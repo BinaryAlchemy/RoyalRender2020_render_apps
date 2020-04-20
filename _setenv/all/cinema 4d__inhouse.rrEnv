@@ -1,0 +1,40 @@
+echo * cinema 4d__inhouse.rrEnv:
+
+# #######################  C4D license variables ########################
+# # Uncomment the following lines to set your Maxon Account credentials
+# g_licenseusername=MAXON_USERNAME
+# g_licensepassword=MAXON_PASSWORD
+
+# # Uncomment the following line to set the license server credentials
+# LicenseFlags=-license 127.0.0.1 5264
+
+
+
+# C4D_rrPluginFolder requires Cinema4D R20.
+# Your path should contain the variable <rrExeVersionMajor>, this will be replaced with the Cinema4D version.
+
+C4D_rrPluginFolder =  
+
+# ###################  VRay environment variables #######################
+# # Uncomment the following line to set the license server. The first you need the VRay license config file.
+# # It is named vrlclient.xml and located in your user home folder or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"
+# # Copy it to RR\render_apps\renderer_prefs\cinema 4d\[os]_x64\vrlclient.xml, then uncomment the next line:
+# VRAY_AUTH_CLIENT_FILE_PATH  =  <rrPrefs>
+
+
+# ###################  RedShift environment variables ###################
+# # Uncomment the next line to set the license server:
+# redshift_LICENSE  =  5053@licenseserverName
+
+# Set the next line to 1 if you have installed Redshift as network install into the RR folder
+RR_REDSHIFT_NETWORK  =  0
+
+
+# ###################  Octane environment variables ###################
+# # Set the next line to 1 if you have installed Redshift as network install into the RR folder
+RR_OCTANE_NETWORK  =  0
+
+
+# ###################  Arnold environment variables ###################
+# # Set the next line to 1 if you have installed Redshift as network install into the RR folder
+RR_ARNOLD_NETWORK  =  0

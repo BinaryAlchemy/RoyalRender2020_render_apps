@@ -1,0 +1,7 @@
+global proc rrStartWrapper(string $pythonPath, string $object, string $imageDir, string $seqStart, string $seqEnd, string $seqStep)
+{
+    python("import sys ");
+    python("sys.path.append('"+$pythonPath+"')");
+    python("import rr_bake_textures");
+    python("rr_bake_textures.rr_start('"+$object+"', '"+$imageDir+"', '"+$seqStart+"', '"+$seqEnd+"', '"+$seqStep+"')");
+}

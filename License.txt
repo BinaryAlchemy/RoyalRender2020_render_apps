@@ -1,0 +1,16 @@
+// ===========================================================================
+// Copyright Holger Schönberger. All rights reserved.
+//
+// Use of these files is subject to the terms of the Royal Render license
+// agreement provided at the time of installation or download, or which
+// otherwise accompanies this software in either electronic or hard copy form.
+// ===========================================================================
+
+The files in this repository are part of the commercial product Royal Render.
+Cloning or pulling files from this repository requires you to have a licensed Royal Render installation.
+
+By pushing or uploading your work to this repository, then you grant Holger Schönberger and Binary Alchemy
+any and all rights to any work products produced by you on your own or jointly with one or more third parties.
+Holger Schönberger and Binary Alchemy are granted the irrevocable, exclusive and with regard to time,
+territory and content unrestricted right to use your work, as well as the sole and unrestricted ownership
+of such work.

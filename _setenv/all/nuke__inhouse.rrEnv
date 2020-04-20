@@ -1,0 +1,10 @@
+ 
+ #  FOUNDRY_LICENSE_FILE = ......
+ #  FOUNDRY_LICENSE =  4101@servername
+
+ # Additional NUKE path: 
+ # NUKE_PATH = /fileserver/myNukepath;<NUKE_PATH>
+ 
+ 
+ # Uncomment this line if you do not want to RR to set the NukeInteractiveLicense flag
+ # NoLicenseChange = NO

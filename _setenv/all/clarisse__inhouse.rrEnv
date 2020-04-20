@@ -1,0 +1,7 @@
+
+
+#Uncomment the next line to set a license server 
+#ILISE_SERVER  =  YORLICSERVER:40500
+
+# Uncomment the next line to set a path to the SpeedTree .lic directory
+#SPEEDTREE_CLARISSE_LICENSE = PATH_TO_LIC_FILE_DIRECTORY

@@ -1,0 +1,4 @@
+
+# ###################  RedShift environment variables ###################
+# Uncomment the next line to set the license server:
+# redshift_LICENSE  =  5053@licenseserverName

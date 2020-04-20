@@ -1,0 +1,8 @@
+#
+#Plugin files with this parts in its name do not trigger plugin update message of rrSetup
+
+Katana
+Maya
+Modo
+
+

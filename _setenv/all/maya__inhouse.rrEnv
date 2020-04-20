@@ -1,0 +1,85 @@
+
+# It might be required for your environment to clear everything that is set in the system enviroment:
+# MAYA_SCRIPT_PATH  =  
+# MAYA_PLUG_IN_PATH  =  
+# MAYA_RENDER_DESC_PATH  =  
+# MAYA_MODULE_PATH  =  
+
+
+# Example lines how to set your own plugin paths:
+# MAYA_PLUG_IN_PATH  =  myCompanyPath;<MAYA_PLUG_IN_PATH>
+# MAYA_SCRIPT_PATH  =  myCompanyPath_cripts;<MAYA_SCRIPT_PATH>
+# MAYA_MODULE_PATH  =  myCompanyPath_modules;<MAYA_MODULE_PATH>
+
+
+# ###################  Maya and Arnold 5 Autodesk license server ###################
+# ADSKFLEX_LICENSE_FILE  =  @MyLicenseServer
+
+#clear license server if Azure Batch license is used
+[If] <AZ_BATCH_JOB_ID> [!=] 
+   ADSKFLEX_LICENSE_FILE =
+[EndIf]
+
+# Define your own folder for the Maya preference folder
+# RR_MAYA_PREFS  =  myCompanyPreferencePath
+
+
+
+# ###################  VRay environment variables ###################
+# Uncomment the following line to set the license server. The first you need the VRay license config file.
+# It is named vrlclient.xml and located in your user home folder or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"
+# Copy it to RR\render_apps\renderer_prefs\maya\[os]_x64\vrlclient.xml, then uncomment the next line:
+# VRAY_AUTH_CLIENT_FILE_PATH  =  <rrPrefs>
+
+# Set the next line to 1 if you have installed VRay as network install into the RR folder
+RR_VRAY_NETWORK  =  0
+
+# Uncomment the next 3 lines if you want to have a separate folder for each VRay version
+# [If] <RR_VRAY_BASE>  [==] 
+#     RR_VRAY_BASE  =  <rrSharedExeDir>vray<rrExeVersionMinReq>__<rrJobRendererVersion>
+# [EndIf]
+
+
+# ###################  Arnold/MtoA environment variables ###################
+# Uncomment the next 3 lines if you want to have a separate folder for each MtoA version
+# [If] <RR_MTOA_BASE>  [==] 
+#     RR_MTOA_BASE  =  <rrSharedExeDir>mtoadeploy_<rrExeVersionMinReq>__<rrJobRendererVersion>
+# [EndIf]
+
+# Set the next line to 0 if you do not want to use a shared folder in RR for MtoA and use the default local folder instead
+RR_MTOA_NETWORK  =  1
+
+# Arnold v3/v4 RLM license server:
+# solidangle_LICENSE  =  [port]@[licenseserverName]
+
+# Example lines how to add your own plugin paths:
+# ARNOLD_PLUGIN_PATH  =  MyCompanyPath;<ARNOLD_PLUGIN_PATH>
+
+
+
+# ###################  RedShift environment variables ###################
+# Uncomment the next line to set the license server:
+# redshift_LICENSE  =  5053@licenseserverName
+
+# Uncomment the next 3 lines if you want to change the location of your Redshift plugin
+# [If] <RR_REDSHIFT_BASE>  [==] 
+#     RR_REDSHIFT_BASE  =   <rrSharedExeDir>Redshift_<rrJobRendererVersion>
+# [EndIf]
+
+# ###################  Yeti environment variables ###################
+# Uncomment the next line to set the license server:
+# peregrinel_LICENSE  =  5053@licenseserverName
+
+# Set the next line to 0 if you have installed Yeti on each client yourself:
+RR_YETI_NETWORK  =  1
+
+# Uncomment the next line to set a different shared network folder for yeti:
+# RR_YETI_BASE  =  <rrBaseAppPath>\modules\Yeti\
+
+
+# ###################  Golaem environment variables ###################
+# Set the next line to 0 if you have installed Golaem on each client yourself:
+RR_GOLAEM_NETWORK  =  1
+
+# Uncomment the next line to set a different shared network folder for golaem:
+# RR_GOLAEM_BASE  =  <rrBaseAppPath>\modules\Golaem\

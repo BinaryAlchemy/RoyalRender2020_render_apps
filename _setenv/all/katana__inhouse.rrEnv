@@ -1,0 +1,61 @@
+# Add plugins directories to use with the farm after the " = " in the next line; comment ("#") to leave system value unchanged
+KATANA_RESOURCES  =
+
+# foundry license server
+# foundry_LICENSE = [port]@[licenseserverName]
+
+# foundry node locked file
+# foundry_LICENSE = [path to license file]
+
+
+# ###################  3Delight environment ###################
+# Set the next line to 1 if you have installed 3Delight as network install into the RR folder
+RR_DELIGHT_NETWORK  =  0
+# Set the next line to the 3Delight folder if the network install is NOT used, and DELIGHT is NOT set on the clients
+#  DELIGHT = [PATH TO 3DELIGHT INSTALL]
+
+
+# ###################   Arnold environment  ###################
+# Set the next line to 1 if you have installed arnold as network install into the RR folder
+RR_ARNOLD_NETWORK  =  1
+# Set the next line to the ktoa folder if the network install is NOT used
+#  RR_KTOA_BASE_LOCAL = [PATH TO KTOA]
+# Add plugin directories to use with the farm after the " = " in the next line; comment ("#") to leave system value unchanged
+ARNOLD_PLUGIN_PATH =
+
+# Autodesk license server
+#  ADSKFLEX_LICENSE_FILE = @MyLicenseServer
+
+# Solid Angle license server:
+#  solidangle_LICENSE   =  [port]@[licenseserverName]
+
+
+# ###################   V-Ray environment   ###################
+
+# Set the next line to 1 if you have installed VRay as network install into the RR folder
+RR_VRAY_NETWORK  =  1
+# Set the next line to the vray for katana folder if the network install is NOT used
+#  RR_VRAY_BASE_LOCAL = [PATH TO VRAY FOR KATANA]
+
+# Uncomment the following line to set the license server. The first you need the VRay license config file.
+# It is named vrlclient.xml and located in your user home folder or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"
+# Copy it to RR\render_apps\renderer_prefs\katana\[os]_x64\vrlclient.xml, then uncomment the next line:
+#  VRAY_AUTH_CLIENT_FILE_PATH  =  <rrPrefs>
+
+
+# ###################  Redshift environment  ###################
+# Set the next line to 1 if you have installed Redshift as network install into the RR folder
+RR_REDSHIFT_NETWORK = 1
+# Set the next line to the redshift folder if the network install is NOT used
+#  RR_REDSHIFT_BASE_LOCAL = 
+# Set the next line to the redshift for katana folder if the network install is NOT used
+#  RR_REDSHIFT4K_BASE_LOCAL = 
+
+# Uncomment the next line to set the license server:
+#  redshift_LICENSE  =  5053@licenseserverName
+# Uncomment the next line to set the license path:
+#  REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
+
+# Uncomment the following lines to set Redshift directories for the farm
+#  REDSHIFT_CACHE_BUDGET =
+#  REDSHIFT_CACHE_FOLDER =
