@@ -1,0 +1,24 @@
+* -text
+
+*.cfg text eol=crlf
+*.inc text eol=crlf
+*.rrEnv text eol=crlf
+*.xml text eol=crlf
+*.ini text eol=crlf
+*.env text eol=crlf
+
+*.bat text eol=crlf
+*.sh text eol=lf
+
+*.mel text eol=crlf
+*.ms text eol=crlf
+*.py text eol=crlf
+*.pyp text eol=crlf
+*.vbs text eol=crlf
+
+
+
+
+
+
+
