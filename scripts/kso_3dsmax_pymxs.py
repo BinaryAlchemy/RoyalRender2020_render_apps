@@ -2,6 +2,8 @@
 #  %rrVersion%
 #  Copyright (c)  Holger Schoenberger - Binary Alchemy
 
+from __future__ import division, print_function
+
 import datetime
 import errno
 import logging
@@ -10,13 +12,19 @@ import shutil
 import sys
 import time
 
-import ConfigParser
-import MaxPlus
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
+
+if sys.version_info.major == 2:
+    range = xrange
+
+from pymxs import runtime as rt
 
 
-LOGFILE_AVAILABLE = False
 USE_DEFAULT_PRINT = True
-PRINT_DEBUG = False
+PRINT_DEBUG = True
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
 PREV_FPADDING = -1  # digits added to render element filenames during previous renders
 GLOBAL_ARG = None  # required for KSO rendering
@@ -81,36 +89,6 @@ def setLogger(log_level=20, log_name="rrMax", log_file=None, log_to_stream=False
         logger.addHandler(str_handler)
 
 
-def logMessageGen(lvl, msg, tries):
-    """DEPRECATED: use logger decorators!
-
-    :param lvl: DBG, ERR, SET...
-    :param msg: message to log
-    :param tries: allowed retries
-    :return: None
-    """
-    try:
-        if len(lvl) == 0:
-            if USE_DEFAULT_PRINT:
-                print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax      : " + str(msg))
-            elif LOGFILE_AVAILABLE:
-                logger = logging.getLogger("rrMax")
-                logging.info(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax      : " + str(msg))
-                logger.handlers[0].close()
-        else:
-            if USE_DEFAULT_PRINT:
-                print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax - " + str(lvl) + ": " + str(msg))
-            elif LOGFILE_AVAILABLE:
-                logger = logging.getLogger("rrMax")
-                logging.info(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax - " + str(lvl) + ": " + str(msg))
-                logger.handlers[0].close()
-    except IOError:
-        # file busy as the rrClient moves it
-        if tries < 3:
-            time.sleep(0.35)
-            logMessageGen(lvl, msg, tries + 1)
-
-
 def rrMax_exit(func):
     """Add exit command to the wrapped func"""
     def wrapper(*args, **kwargs):
@@ -132,7 +110,7 @@ def rrMax_logger(func):
     def wrapper(msg):
         func(msg, logger=logger)
         if USE_DEFAULT_PRINT:
-            MaxPlus.Core.EvalMAXScript("flushLog()")
+            rt.flushlog()
         else:
             closeHandlers(logger)
 
@@ -157,7 +135,7 @@ def io_retry(func, wait_secs=0.35, num_tries=3):
         try:
             func(msg, logger)
         except IOError:
-            for _ in xrange(num_tries):
+            for _ in range(num_tries):
                 time.sleep(wait_secs)
                 try:
                     func(msg, logger)
@@ -218,7 +196,7 @@ class ArgParser:
         argFindName = argFindName.lower()
         try:
             argValue = self.config.get('Max', argFindName)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             return ""
         if argValue == None:
             return ""
@@ -238,7 +216,7 @@ class ArgParser:
         return argValue
 
     def readArguments(self):
-        self.config = ConfigParser.RawConfigParser()
+        self.config = configparser.RawConfigParser()
         configFilename = os.path.join(os.environ['TEMP'], "kso_3dsmax.ini")
         logMessage("configFilename: " + configFilename)
         self.config.read(configFilename)
@@ -303,47 +281,39 @@ def checkCreateFolder(filedir, verbose):
 class StateSetManager:
     """Provide python access to State Sets via dotnet"""
 
-    # base command: actual commands are appended to this string to access StateSets
-    _dotAccess = '''
-    dotState = dotNetObject "Autodesk.Max.StateSets.Plugin"
-    stateSets = dotState.Instance
-    masterState = stateSets.EntityManager.RootEntity.MasterStateSet
-    numStates = masterState.Children.Count
-    states = masterState.Children
-    '''
+    _stateSets = rt.dotNetObject('Autodesk.Max.StateSets.Plugin').Instance
+    _masterState = _stateSets.EntityManager.RootEntity.MasterStateSet
+    _states = _masterState.Children
 
     def getNumStates(self):
-        return MaxPlus.Core.EvalMAXScript(self._dotAccess + ";numStates").Get()
+        return self._states.Count
 
     def getStateSets(self):
         state_sets = []
-        for i in xrange(0, self.getNumStates()):
-            state_name = MaxPlus.Core.EvalMAXScript("{0};states.Item[{1}].Name".format(self._dotAccess, i)).Get()
+        for i in range(0, self.getNumStates()):
+            state_name = self._states.Item(i).Name
             state_sets.append(state_name)
 
         return state_sets
 
     def getStateOutPattern(self):
-        pattern = MaxPlus.Core.EvalMAXScript(
-            self._dotAccess + ";masterState.RenderOutputFilePattern").Get()
+        pattern = self._masterState.RenderOutputFilePattern
         return pattern
 
     def getCurrentState(self):
-        return MaxPlus.Core.EvalMAXScript(self._dotAccess + ";masterState.CurrentState.Name").Get()
+        return self._masterState.CurrentState.Name  # FIXME: This doesn't work but it's never used anyway.
 
     def setCurrentState(self, state_name):
         if not state_name:
-            MaxPlus.Core.EvalMAXScript(self._dotAccess + ";masterState.CurrentState=null")
+            self._masterState.CurrentState = None
             return True
 
         num_states = self.getNumStates()
 
-        for i in xrange(0, num_states):
-            st_name = MaxPlus.Core.EvalMAXScript(
-                "{0};states.Item[{1}].Name".format(self._dotAccess, i)).Get()
-            if st_name == state_name:
-                MaxPlus.Core.EvalMAXScript("""{0};stateSet=states.Item[{1}];
-                masterState.CurrentState = #(stateSet)""".format(self._dotAccess, i))
+        for i in range(0, num_states):
+            stateSet = self._states.Item(i)
+            if stateSet.Name == state_name:
+                self._masterState.CurrentState = rt.array(stateSet)
                 return True
 
         return False
@@ -354,13 +324,10 @@ class StateSetManager:
 
         num_states = self.getNumStates()
 
-        for i in xrange(0, num_states):
-            st_name = MaxPlus.Core.EvalMAXScript(
-                "{0};states.Item[{1}].Name".format(self._dotAccess, i)).Get()
-            if st_name == state_name:
-                MaxPlus.Core.EvalMAXScript(
-                    """{0};stateSet=states.Item[{1}];
-                    stateSet.Render #(stateSet)""".format(self._dotAccess, i))
+        for i in range(0, num_states):
+            stateSet = self._states.Item(i)
+            if stateSet.Name == state_name:
+                stateSet.Render(rt.array(stateSet))
                 return True
 
         return False
@@ -376,15 +343,14 @@ def applyOutput_default(arg, frameNr, verbose):
     :return: main render path
     """
     #logMessageDebug("applyOutput_default "+str(frameNr)+"  "+str(verbose));
-    render = MaxPlus.RenderSettings
 
-    #outFile = render.GetOutputFile()
+    #outFile = rt.rendOutputFilename
     #logMessageDebug("applyOutput_default - "+outFile)
 
     if arg.StateSetFilename != "":  # StateSets can set different extension
         _, tmp_ext = os.path.splitext(arg.StateSetFilename)
     else:
-        _, tmp_ext = os.path.splitext(render.GetOutputFile())
+        _, tmp_ext = os.path.splitext(rt.rendOutputFilename)
 
     if len(tmp_ext) == 0:
         tmp_ext = arg.FExt
@@ -398,40 +364,40 @@ def applyOutput_default(arg, frameNr, verbose):
     if verbose:
         logMessageSET("main output to '" + arg.FName + tmp_ext + "'")
 
-    render.SetOutputFile(arg.FName + tmp_ext)
+    rt.rendOutputFilename = (arg.FName + tmp_ext)
     filedir = os.path.dirname(arg.FName)
     checkCreateFolder(filedir, True)
-    render.SetSaveFile(True)
+    rt.rendSaveFile = True
 
     if verbose:
         #logMessageDebug("applyOutput_default - arg.ElementsFolder "+str(arg.ElementsFolder))
         #logMessageDebug("applyOutput_default - arg.renderChannels "+str(arg.renderChannels))
         #logMessageDebug("applyOutput_default - arg.FNameVar "+str(arg.FNameVar))
-        #logMessageDebug("applyOutput_default - GetElementsActive() "+str(MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).GetElementsActive()").Get()))
+        #logMessageDebug("applyOutput_default - GetElementsActive() "+str(rt.maxOps.GetCurRenderElementMgr().GetElementsActive()))
         logMessageDebug("applyOutput_default - AutoElementFileName is set to  "+str(arg.AutoElementFileName))
 
     if (arg.renderChannels and argValid(arg.FNameVar)
-        and MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).GetElementsActive()").Get()):
+        and rt.maxOps.GetCurRenderElementMgr().GetElementsActive()):
 
         global ELEMENT_FILENAME_ChangedOnce
         global PREV_FPADDING
         #logMessageDebug("applyOutput_default - elements")
-        nrOfElements = MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).NumRenderElements()").Get()
+        nrOfElements = rt.maxOps.GetCurRenderElementMgr().NumRenderElements()
         if verbose:
             logMessage("Elements found: " + str(nrOfElements))
 
-        for elemNr in xrange(0, nrOfElements):
-            elem_cmd_base = "(maxOps.GetCurRenderElementMgr()).GetRenderElement {0}".format(elemNr)
+        for elemNr in range(0, nrOfElements):
+            elem = rt.maxOps.GetCurRenderElementMgr().GetRenderElement(elemNr)
 
-            elem_class = MaxPlus.Core.EvalMAXScript("classof ({0}) as string".format(elem_cmd_base)).Get()
+            elem_class = str(rt.classOf(elem))
 
             if elem_class == "Missing_Render_Element_Plug_in":
                 logMessageWarn(u"skipping element {0}: Missing Plugin".format(elemNr))
                 continue
 
-            elemName = MaxPlus.Core.EvalMAXScript("({0}).elementName".format(elem_cmd_base)).Get()
+            elemName = elem.elementName
             elemName = elemName.replace(" ", "_")
-            elemEnabled = MaxPlus.Core.EvalMAXScript("({0}).enabled".format(elem_cmd_base)).Get()
+            elemEnabled = elem.enabled
 
             if verbose:
                 logMessageDebug(u"applyOutput_default - elemName: {0}   Enabled: {1}".format(elemName, elemEnabled))
@@ -439,22 +405,19 @@ def applyOutput_default(arg, frameNr, verbose):
             if not elemEnabled:
                 continue
 
-            if (MaxPlus.Core.EvalMAXScript("(( (maxOps.GetCurRenderElementMgr()).GetRenderElementFileName " + str(
-                    elemNr) + ")==undefined)").Get()):
+            if rt.maxOps.GetCurRenderElementMgr().GetRenderElementFileName(elemNr) is None:
                 if verbose:
                     logMessageDebug("applyOutput_default - No element filename set in scene file")
                 fileout = ""
                 tmp_ext = ""
                 tempFileName = ""
             else:
-                fVal = MaxPlus.Core.EvalMAXScript(
-                    "(maxOps.GetCurRenderElementMgr()).GetRenderElementFileName " + str(elemNr))
-                fileout = fVal.Get()
+                fileout = rt.maxOps.GetCurRenderElementMgr().GetRenderElementFileName(elemNr)
                 if not ELEMENT_FILENAME_ChangedOnce and verbose:
                     logMessageDebug(u"element filename (saved in scene file) was set to " + fileout)
                 tempFileName, tmp_ext = os.path.splitext(fileout)
                 if (ELEMENT_FILENAME_ChangedOnce and (len(tempFileName) > PREV_FPADDING)):
-                    for _ in xrange(0, PREV_FPADDING):
+                    for _ in range(0, PREV_FPADDING):
                         # remove the frame number we have added previously
                         if tempFileName[-1].isdigit():
                             tempFileName = tempFileName[:-1]
@@ -481,8 +444,7 @@ def applyOutput_default(arg, frameNr, verbose):
             filedir = os.path.dirname(fileout)
             fileout = fileout.replace("\\", "\\\\")
             logMessageDebug("applyOutput_default -  " + fileout)
-            MaxPlus.Core.EvalMAXScript(
-                u'(maxOps.GetCurRenderElementMgr()).SetRenderElementFilename {0} "{1}"'.format(elemNr, fileout))
+            rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
 
             checkCreateFolder(filedir, verbose)
 
@@ -499,14 +461,14 @@ def applyRendererOptions_default(arg):
 
 
 def getVraySettingsContainer():
-    current_renderer = MaxPlus.RenderSettings.GetCurrent(createRendererIfItDoesntExist=False)
-    class_name = current_renderer.GetClassName().lower()
+    current_renderer = rt.renderers.current
+    class_name = rt.getClassName(current_renderer).lower()
 
     assert any(name in class_name for name in ("vray", "v-ray"))
 
-    vray_settings = "renderers.current"
+    vray_settings = rt.renderers.current
     if 'gpu' in class_name:
-        vray_settings += ".V_Ray_settings"
+        vray_settings = vray_settings.V_Ray_settings
 
     return vray_settings
 
@@ -532,17 +494,16 @@ def applyOutput_VRay(arg, frameNr, verbose):
     if arg.RendererMode == "GIPrePass":
         return arg.FName + str(frameNr).zfill(arg.FPadding) + arg.FExt
 
-    render = MaxPlus.RenderSettings
-    if (not arg.vraySeperateRenderChannels) and (render.GetSaveFile() or (not arg.vrayRawFile)):
+    if (not arg.vraySeperateRenderChannels) and (rt.rendSaveFile or (not arg.vrayRawFile)):
         return applyOutput_default(arg, frameNr, verbose)
 
     mainFileName = ""
 
-    if render.GetSaveFile():
-        logMessageDebug("applyOutput_VRay - render.GetSaveFile()")
+    if rt.rendSaveFile:
+        logMessageDebug("applyOutput_VRay - rt.rendSaveFile")
 
         # get the extension of the main output
-        _, temp_ext = os.path.splitext(render.GetOutputFile())
+        _, temp_ext = os.path.splitext(rt.rendOutputFilename)
         if len(temp_ext) == 0:
             temp_ext = arg.FExt
 
@@ -551,7 +512,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
         if verbose:
             logMessageSET("main output to '" + arg.FName + temp_ext + "'")
 
-        render.SetOutputFile(arg.FName + temp_ext)
+        rt.rendOutputFilename = (arg.FName + temp_ext)
         filedir = os.path.dirname(arg.FName)
         checkCreateFolder(filedir, True)
 
@@ -561,10 +522,10 @@ def applyOutput_VRay(arg, frameNr, verbose):
     if arg.vraySeperateRenderChannels:
         logMessageDebug("applyOutput_VRay - vraySeperateRenderChannels")
 
-        outputSet = not MaxPlus.Core.EvalMAXScript("({0}.output_splitfilename==undefined)".format(vray_settings)).Get()
+        outputSet = not (vray_settings.output_splitfilename == None)  # FIXME: This is probably never False because it never returns undefined, just an empty string
         if outputSet:
-            fVal = MaxPlus.Core.EvalMAXScript("{0}.output_splitfilename".format(vray_settings))
-            _, vray_ext = os.path.splitext(fVal.Get())
+            fVal = vray_settings.output_splitfilename
+            _, vray_ext = os.path.splitext(fVal)
 
         if len(vray_ext) == 0:
             vray_ext = arg.FExt  # FIXME: redundant?
@@ -576,10 +537,10 @@ def applyOutput_VRay(arg, frameNr, verbose):
         filedir = os.path.dirname(fileout)
         fileout = os.path.normpath(fileout)
         fileout = fileout.replace("\\", "\\\\")
-        MaxPlus.Core.EvalMAXScript('{0}.output_splitfilename="{1}"'.format(vray_settings, fileout))
+        vray_settings.output_splitfilename = fileout
         checkCreateFolder(filedir, verbose)
-        if ((not render.GetSaveFile())
-            and (MaxPlus.Core.EvalMAXScript("{0}.output_splitRGB".format(vray_settings)).Get())):
+        if ((not rt.rendSaveFile)
+            and (vray_settings.output_splitRGB)):
             mainFileName = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + arg.FExt
             mainFileName = mainFileName.replace("<Channel>", "RGB_color")
 
@@ -588,25 +549,25 @@ def applyOutput_VRay(arg, frameNr, verbose):
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
         fileout = fileout.replace("\\", "\\\\")
-        MaxPlus.Core.EvalMAXScript('{0}.output_rawFileName="{1}"'.format(vray_settings, fileout))
+        vray_settings.output_rawFileName = fileout
 
         mainFileName = arg.FName + str(frameNr).zfill(arg.FPadding) + arg.FExt
 
     # it is not required to set the filename for VRay buffers IF output_splitfilename is enabled
     # but in case that is Disabled or there is a 3dsmax buffer, we need to set it
 
-    elementsActive = MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).GetElementsActive()").Get()
+    elementsActive = rt.maxOps.GetCurRenderElementMgr().GetElementsActive()
     seperateElementFiles = argValid(arg.FNameVar) and elementsActive
 
-    if (not render.GetSaveFile()) and (not arg.vraySeperateRenderChannels):
+    if (not rt.rendSaveFile) and (not arg.vraySeperateRenderChannels):
         seperateElementFiles = False
-    if ((not arg.vrayFramebuffer) and MaxPlus.Core.EvalMAXScript("{0}.output_on".format(vray_settings)).Get()):
+    if ((not arg.vrayFramebuffer) and vray_settings.output_on):
         seperateElementFiles = False
 
     if seperateElementFiles and arg.ElementsFolder:
         logMessageDebug("applyOutput_VRay - Elements")
         if (arg.vraySeperateRenderChannels
-            and (MaxPlus.Core.EvalMAXScript("{0}.output_splitRGB".format(vray_settings)).Get())):
+            and vray_settings.output_splitRGB):
 
             fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
 
@@ -616,8 +577,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
             if verbose:
                 logMessageSET('element {0:>20} output to "{1}"'.format("RGB_color", fileout))
             checkCreateFolder(filedir, verbose)
-        if (arg.vraySeperateRenderChannels and (
-                MaxPlus.Core.EvalMAXScript("{0}.output_splitAlpha".format(vray_settings)).Get())):
+        if (arg.vraySeperateRenderChannels and vray_settings.output_splitAlpha):
 
             fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
             fileout = fileout.replace("<Channel>", "Alpha")
@@ -627,24 +587,20 @@ def applyOutput_VRay(arg, frameNr, verbose):
                 logMessageSET("element %20s output to '%s'" % ("Alpha", fileout))
             checkCreateFolder(filedir, verbose)
 
-        nrOfElements = MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).NumRenderElements()").Get()
+        nrOfElements = rt.maxOps.GetCurRenderElementMgr().NumRenderElements()
         if verbose:
             logMessage("elements found: " + str(nrOfElements))
-        for elemNr in xrange(0, nrOfElements):
-            elemName = MaxPlus.Core.EvalMAXScript(
-                "((maxOps.GetCurRenderElementMgr()).GetRenderElement " + str(elemNr) + ").elementName").Get()
+        for elemNr in range(0, nrOfElements):
+            elemName = rt.maxOps.GetCurRenderElementMgr().GetRenderElement(elemNr).elementName
 
             elemName = elemName.replace(" ", "_")
             if arg.vraySeperateRenderChannels:
                 fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
             else:
-                if (MaxPlus.Core.EvalMAXScript("(( (maxOps.GetCurRenderElementMgr()).GetRenderElementFileName " + str(
-                        elemNr) + ")==undefined)").Get()):
+                if rt.maxOps.GetCurRenderElementMgr().GetRenderElementFileName(elemNr) == None:
                     fileout = ""
                 else:
-                    fVal = MaxPlus.Core.EvalMAXScript(
-                        "(maxOps.GetCurRenderElementMgr()).GetRenderElementFileName " + str(elemNr))
-                    fileout = fVal.Get()
+                    fileout = rt.maxOps.GetCurRenderElementMgr().GetRenderElementFileName(elemNr)
                 _, temp_ext = os.path.splitext(fileout)
                 if len(temp_ext) == 0:
                     temp_ext = arg.FExt
@@ -658,8 +614,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
             fileout = os.path.normpath(fileout)
             fileout.replace("\\", "\\\\")
             checkCreateFolder(filedir, verbose)
-            MaxPlus.Core.EvalMAXScript(
-                '(maxOps.GetCurRenderElementMgr()).SetRenderElementFilename {0} "{1}"'.format(elemNr, fileout))
+            rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
     return mainFileName
 
 
@@ -669,24 +624,19 @@ def moveOutput_VRay(arg, frameNr, verbose):
     vray_ext = arg.FExt
     vray_settings = getVraySettingsContainer()
     if arg.vraySeperateRenderChannels:
-        _, vray_ext = os.path.splitext(
-            MaxPlus.Core.EvalMAXScript("{0}.output_splitfilename".format(vray_settings)).Get())
+        _, vray_ext = os.path.splitext(vray_settings.output_splitfilename)
         if len(vray_ext) == 0:
             vray_ext = arg.FExt
     FNameVar_Rendered = arg.FNameVar
     FNameVar_Rendered = FNameVar_Rendered.replace("<Channel>\\", "")
-    if (arg.vraySeperateRenderChannels and (
-    MaxPlus.Core.EvalMAXScript("{0}.output_splitRGB".format(vray_settings)).Get())):
+    if (arg.vraySeperateRenderChannels and vray_settings.output_splitRGB):
         moveOutput_VRay_sub(arg, frameNr, verbose, FNameVar_Rendered, "RGB_color", vray_ext)
-    if (arg.vraySeperateRenderChannels and (
-    MaxPlus.Core.EvalMAXScript("{0}.output_splitAlpha".format(vray_settings)).Get())):
+    if (arg.vraySeperateRenderChannels and vray_settings.output_splitAlpha):
         moveOutput_VRay_sub(arg, frameNr, verbose, FNameVar_Rendered, "Alpha", vray_ext)
-    if (argValid(arg.FNameVar) and MaxPlus.Core.EvalMAXScript(
-            "(maxOps.GetCurRenderElementMgr()).GetElementsActive()").Get()):
-        nrOfElements = MaxPlus.Core.EvalMAXScript("(maxOps.GetCurRenderElementMgr()).NumRenderElements()").Get()
-        for elemNr in xrange(0, nrOfElements):
-            elemName = MaxPlus.Core.EvalMAXScript(
-                "((maxOps.GetCurRenderElementMgr()).GetRenderElement " + str(elemNr) + ").elementName").Get()
+    if (argValid(arg.FNameVar) and rt.maxOps.GetCurRenderElementMgr().GetElementsActive()):
+        nrOfElements = rt.maxOps.GetCurRenderElementMgr().NumRenderElements()
+        for elemNr in range(0, nrOfElements):
+            elemName = rt.maxOps.GetCurRenderElementMgr().GetRenderElement(elemNr).elementName
             elemName = elemName.replace(" ", "_")
             moveOutput_VRay_sub(arg, frameNr, verbose, FNameVar_Rendered, elemName, vray_ext)
 
@@ -696,67 +646,67 @@ def applyRendererOptions_Vray(arg):
 
     vray_settings = getVraySettingsContainer()
 
-    MaxPlus.Core.EvalMAXScript("{0}.system_lowThreadPriority=true".format(vray_settings))
-    MaxPlus.Core.EvalMAXScript("{0}.system_vrayLog_level=2".format(vray_settings))
-    MaxPlus.Core.EvalMAXScript('{0}.system_vrayLog_file="%TEMP%\\\\VRayLog.txt"'.format(vray_settings))
+    vray_settings.system_lowThreadPriority = True
+    vray_settings.system_vrayLog_level = 2
+    vray_settings.system_vrayLog_file = '%TEMP%\\VRayLog.txt'
 
     if argValid(arg.RenderThreads):
         logMessageSET("VRay render threads  to " + str(arg.RenderThreads))
-        MaxPlus.Core.EvalMAXScript("{0}.system_numThreads={1}".format(vray_settings, arg.RenderThreads))
+        vray_settings.system_numThreads = arg.RenderThreads
     if argValid(arg.VRayMemLimit):
         logMessageSET("VRay mem limit to " + str(arg.VRayMemLimit))
-        MaxPlus.Core.EvalMAXScript("{0}.system_raycaster_memLimit={1}".format(vray_settings, arg.VRayMemLimit))
+        vray_settings.system_raycaster_memLimit = arg.VRayMemLimit
     elif (argValid(arg.VRayMemLimitPercent) and argValid(arg.ClientTotalMemory)):
-        memory = int(arg.ClientTotalMemory) * int(arg.VRayMemLimitPercent) / 100
+        memory = int(arg.ClientTotalMemory) * int(arg.VRayMemLimitPercent) // 100
         logMessageSET(
             "VRay mem limit to {0} % of {1} => {2}".format(arg.VRayMemLimitPercent, arg.ClientTotalMemory, memory))
-        MaxPlus.Core.EvalMAXScript("{0}.system_raycaster_memLimit={1}".format(vray_settings, memory))
+        vray_settings.system_raycaster_memLimit = memory
 
-    arg.vrayOverrideResolution = not MaxPlus.Core.EvalMAXScript("{0}.output_getsetsfrommax".format(vray_settings)).Get()
+    arg.vrayOverrideResolution = not vray_settings.output_getsetsfrommax
     logMessage("VRay Override 3dsMax Resolution: " + str(arg.vrayOverrideResolution))
     if arg.vrayOverrideResolution:
         if argValid(arg.ResX):
             logMessageSET("width to " + str(arg.ResX))
-            MaxPlus.Core.EvalMAXScript("{0}.output_width={1}".format(vray_settings, arg.ResX))
+            vray_settings.output_width = arg.ResX
         if argValid(arg.ResY):
             logMessageSET("height to " + str(arg.ResY))
-            MaxPlus.Core.EvalMAXScript("{0}.output_height={1}".format(vray_settings, arg.ResY))
+            vray_settings.output_height = arg.ResY
 
     if (argValid(arg.limitNoise) or argValid(arg.limitTime)):
-        samplerType = MaxPlus.Core.EvalMAXScript("{0}.imageSampler_type_new".format(vray_settings)).GetInt()
+        samplerType = vray_settings.imageSampler_type_new
         if (samplerType != 1):
             logMessage("Error: VRays image sampler is not set to Progressive!")
             sys.exit()
-        isResumeOn = MaxPlus.Core.EvalMAXScript("{0}.output_resumableRendering".format(vray_settings)).GetBool()
+        isResumeOn = vray_settings.output_resumableRendering
         if (not isResumeOn):
             logMessageSET("Resumable Rendering to enabled (Warning)")
-            MaxPlus.Core.EvalMAXScript("{0}.output_resumableRendering=true".format(vray_settings))
-        autoSaveInterval = MaxPlus.Core.EvalMAXScript("{0}.output_progressiveAutoSave".format(vray_settings)).GetFloat()
+            vray_settings.output_resumableRendering = True
+        autoSaveInterval = vray_settings.output_progressiveAutoSave
         if (autoSaveInterval > 0):
             logMessageSET(
                 "Auto save interval off (Warning). It is slow and only required if you have more crashes than successful frames. ")
-            MaxPlus.Core.EvalMAXScript("{0}.output_progressiveAutoSave=0".format(vray_settings))
+            vray_settings.output_progressiveAutoSave = 0
 
     if argValid(arg.limitNoise):
         arg.limitNoise = float(arg.limitNoise)
         arg.limitNoise = arg.limitNoise / 100.0
         logMessageSET("VRay progressive noise limit to " + str(arg.limitNoise) + " minutes.")
-        MaxPlus.Core.EvalMAXScript("{0}.progressive_noise_threshold={1}".format(vray_settings, arg.limitTime))
+        vray_settings.progressive_noise_threshold = arg.limitTime
 
     if argValid(arg.limitTime):
         logMessageSET("VRay progressive time limit to {0} minutes".format(arg.limitTime))
-        MaxPlus.Core.EvalMAXScript("{0}.progressive_max_render_time={1}".format(vray_settings, arg.limitTime))
-        noiseThreshold = MaxPlus.Core.EvalMAXScript("{0}.progressive_noise_threshold".format(vray_settings)).GetFloat()
+        vray_settings.progressive_max_render_time = arg.limitTime
+        noiseThreshold = vray_settings.progressive_noise_threshold
         if not argValid(arg.limitNoise):
             logMessage("VRay noiseThreshold setting: " + str(noiseThreshold))
         if (noiseThreshold <= 0.01):
             logMessageWarn(
                 "VRay noiseThreshold not set or too low, applying high production quality default of 0.03 ")
-            MaxPlus.Core.EvalMAXScript("{0}.progressive_noise_threshold=0.03".format(vray_settings))
+            vray_settings.progressive_noise_threshold = 0.03
 
-    arg.vrayFramebuffer = MaxPlus.Core.EvalMAXScript("{0}.output_on".format(vray_settings)).Get()
-    arg.vraySeperateRenderChannels = MaxPlus.Core.EvalMAXScript("{0}.output_splitgbuffer".format(vray_settings)).Get()
-    arg.vrayRawFile = MaxPlus.Core.EvalMAXScript("{0}.output_saveRawFile".format(vray_settings)).Get()
+    arg.vrayFramebuffer = vray_settings.output_on
+    arg.vraySeperateRenderChannels = vray_settings.output_splitgbuffer
+    arg.vrayRawFile = vray_settings.output_saveRawFile
 
     if arg.vrayFramebuffer:
         if (not arg.vrayRawFile) and (not arg.vraySeperateRenderChannels):
@@ -764,8 +714,8 @@ def applyRendererOptions_Vray(arg):
             arg.renderChannels = False
     if not arg.vrayFramebuffer:
         arg.vraySeperateRenderChannels = False
-        MaxPlus.Core.EvalMAXScript("{0}.output_splitgbuffer=false".format(vray_settings))
-        MaxPlus.Core.EvalMAXScript("{0}.output_saveRawFile=false".format(vray_settings))
+        vray_settings.output_splitgbuffer = False
+        vray_settings.output_saveRawFile = False
 
     logMessage("VRay Framebuffer used: " + str(arg.vrayFramebuffer))
     logMessage("VRay Seperate Render Channels: " + str(arg.vraySeperateRenderChannels))
@@ -777,61 +727,58 @@ def applyRendererOptions_Vray(arg):
             arg.RendererMode = "GIPrePass"
 
     logMessage("VRay render mode is " + arg.RendererMode)
-    logMessage("VRay GI irradiance mode: #" + str(
-        MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode".format(vray_settings)).Get()))
+    logMessage("VRay GI irradiance mode: #" + str(vray_settings.adv_irradmap_mode))
     if arg.RendererMode == "GIPrePass":
         arg.FExt = ".vrmap"
-        if not MaxPlus.Core.EvalMAXScript("{0}.gi_on".format(vray_settings)).Get():
+        if not vray_settings.gi_on:
             logMessageSET("VRay GI mode enabled")
-            MaxPlus.Core.EvalMAXScript("{0}.gi_on=true".format(vray_settings))
+            vray_settings.gi_on = True
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
         fileout = fileout.replace("\\", "\\\\")
         logMessageSET("VRay GI vrmap prepass to " + fileout)
-        MaxPlus.Core.EvalMAXScript('{0}.adv_irradmap_autoSaveFileName="{1}"'.format(vray_settings, fileout))
+        vray_settings.adv_irradmap_autoSaveFileName = fileout
         logMessageSET("VRay GI vrmap/animation prepass")
-        MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode=6".format(vray_settings))
-        logMessage("VRay GI irradiance mode: #" + str(
-            MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode".format(vray_settings)).Get()))
+        vray_settings.adv_irradmap_mode = 6
+        logMessage("VRay GI irradiance mode: #" + str(vray_settings.adv_irradmap_mode))
         logMessageSET("VRay Seperate Render Channels On")
-        MaxPlus.Core.EvalMAXScript("{0}.output_splitgbuffer=false".format(vray_settings))
+        vray_settings.output_splitgbuffer = False  # FIXME: LogMessage or command is inverted
         logMessageSET("VRay Framebuffer Off")
-        MaxPlus.Core.EvalMAXScript("{0}.output_on=true".format(vray_settings))
+        vray_settings.output_on = True  # FIXME: LogMessage or command is inverted
         logMessageSET("Main 3dsmax save file Off")
-        render = MaxPlus.RenderSettings
-        render.SetSaveFile(False)
+        rt.rendSaveFile = False
     else:
-        if MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode".format(vray_settings)).Get() == 6:
+        if vray_settings.adv_irradmap_mode == 6:
             # the scene was saved with GI prepass animation, so change it to GI animation render
-            loadFileName = MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_loadFileName".format(vray_settings)).Get()
+            loadFileName = vray_settings.adv_irradmap_loadFileName
             if (not argValid(loadFileName)):
                 logMessageWarn("There is no irradiance map set to be loaded, switching to GI mode single frame")
                 logMessageSET("VRay GI mode to single frame")
-                MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode=0".format(vray_settings))
+                vray_settings.adv_irradmap_mode = 0
             else:
                 logMessageSET("VRay GI mode to animation render")
-                MaxPlus.Core.EvalMAXScript("{0}.adv_irradmap_mode=7".format(vray_settings))
+                vray_settings.adv_irradmap_mode = 7
 
     applyOutput_VRay(arg, 0, True)
 
 
 def writeRenderPlaceholder(filename):
-    logMessageFile(filename)
+    logMessage(filename)
 
     import socket
     hostName = socket.gethostname()
     hostName = hostName[:100]
     img_file = open(filename, "wb")
-    img_file.write("rrDB")  # Magic ID
-    img_file.write("\x02\x0B")  # DataType ID
-    img_file.write(chr(len(hostName)))
-    img_file.write("\x00")
-    img_file.write("\x00\x00")
+    img_file.write(str("rrDB").encode("ascii"))  # Magic ID
+    img_file.write(str("\x02\x0B").encode("ascii"))  # DataType ID
+    img_file.write(str(chr(len(hostName))).encode("ascii"))
+    img_file.write(str("\x00").encode("ascii"))
+    img_file.write(str("\x00\x00").encode("ascii"))
     for x in range(0, len(hostName)):
-        img_file.write(hostName[x])
-        img_file.write("\x00")  # unicode
+        img_file.write(str(hostName[x]).encode("ascii"))
+        img_file.write(str("\x00").encode("ascii"))  # unicode
     for x in range(len(hostName), 51):
-        img_file.write("\x00\x00")
+        img_file.write(str("\x00\x00").encode("ascii"))
     img_file.close()
 
 
@@ -853,27 +800,18 @@ def renderExecute(arg, frameStart, frameEnd, fileName, frameStep=1):
         renderCmdLine += " renderType: #region region: #({0}, {1}, {2}, {3})".format(arg.RegionX1, arg.RegionY1,
                                                                                      arg.RegionX2, arg.RegionY2)
     else:
-        if MaxPlus.RenderSettings.GetAreaType() == 1:
-            renderCmdLine += " renderType: #selection "
-        elif MaxPlus.RenderSettings.GetAreaType() == 2:
-            renderCmdLine += " renderType: #region "
-        elif MaxPlus.RenderSettings.GetAreaType() == 3:
-            renderCmdLine += " renderType: #regionCrop "
-        elif MaxPlus.RenderSettings.GetAreaType() == 4:
-            renderCmdLine += " renderType: #blowUp "
-        else:
-            renderCmdLine += " renderType: #normal "
+        renderCmdLine += " renderType: #{} ".format(rt.getRenderType())
 
     if argValid(arg.GBufferString):
         renderCmdLine += " channels:#(" + arg.GBufferString + ")"
 
     if ((arg.RendererMode == "default" or arg.RendererMode == "")
-        and MaxPlus.RenderSettings.GetSaveFile() and fileName != ""):
+        and rt.rendSaveFile and fileName != ""):
         renderCmdLine += ' outputfile:"{0}"'.format(fileName.replace("\\", "/"))
 
     logMessageDebug("executing  " + renderCmdLine)
-    fpVal = MaxPlus.Core.EvalMAXScript(renderCmdLine)
-    logMessageDebug("renderer result: " + str(fpVal.Get()))
+    rend_ret = rt.execute(renderCmdLine)
+    logMessageDebug("renderer result: " + str(rend_ret))
     afterFrame = datetime.datetime.now()
     afterFrame = afterFrame - beforeFrame
 
@@ -905,13 +843,11 @@ def render_frame(FrStart, FrEnd, FrStep, arg):
             localNoFrameLoop = arg.Renderer in ("redshift-s", "Octane-s", "Redshift_Renderer", "Octane")
 
     if localNoFrameLoop:
-        MaxPlus.RenderSettings.SetNThFrame(FrStep)
-        MaxPlus.RenderSettings.SetStart(FrStart * 4800 / MaxPlus.Core.EvalMAXScript('frameRate').GetInt())
-        MaxPlus.RenderSettings.SetEnd(FrEnd * 4800 / MaxPlus.Core.EvalMAXScript('frameRate').GetInt())
+        rt.rendNThFrame = FrStep
+        rt.rendStart = FrStart
+        rt.rendEnd = FrEnd
         logMessage("Starting to render frames #{0}-{1}, step {2} ...".format(FrStart, FrEnd, FrStep))
-        logMessage("Frame range of scene is set to " + str(
-            MaxPlus.RenderSettings.GetStart() * MaxPlus.Core.EvalMAXScript('frameRate').GetInt() / 4800) + " - " + str(
-            MaxPlus.RenderSettings.GetEnd() * MaxPlus.Core.EvalMAXScript('frameRate').GetInt() / 4800))
+        logMessage("Frame range of scene is set to " + str(rt.rendStart) + " - " + str(rt.rendEnd))
 
         FrNum = FrStart if FrStart == FrEnd else ""  # no frame number in range render
         if arg.Renderer == "VRay":
@@ -921,16 +857,13 @@ def render_frame(FrStart, FrEnd, FrStep, arg):
 
         renderExecute(arg, FrStart, FrEnd, fileName, frameStep=FrStep)
     else:
-        MaxPlus.RenderSettings.SetNThFrame(1)
+        rt.rendNThFrame = 1
         # we have to loop single frames as max will not print any "frame done in between"
-        for frameNr in xrange(FrStart, FrEnd + 1, FrStep):
-            MaxPlus.RenderSettings.SetStart(frameNr * 4800 / MaxPlus.Core.EvalMAXScript('frameRate').GetInt())
-            MaxPlus.RenderSettings.SetEnd(frameNr * 4800 / MaxPlus.Core.EvalMAXScript('frameRate').GetInt())
+        for frameNr in range(FrStart, FrEnd + 1, FrStep):
+            rt.rendStart = frameNr
+            rt.rendEnd = frameNr
             logMessage("Starting to render frame #" + str(frameNr) + " ...")
-            logMessage("Frame range of scene is set to " + str(
-                MaxPlus.RenderSettings.GetStart() * MaxPlus.Core.EvalMAXScript(
-                    'frameRate').GetInt() / 4800) + " - " + str(
-                MaxPlus.RenderSettings.GetEnd() * MaxPlus.Core.EvalMAXScript('frameRate').GetInt() / 4800))
+            logMessage("Frame range of scene is set to " + str(rt.rendStart) + " - " + str(rt.rendEnd))
 
             if arg.Renderer == "VRay":
                 fileName = applyOutput_VRay(arg, frameNr + int(arg.FrOffset), False)
@@ -975,18 +908,20 @@ def rrKSOStartServer(arg):
             server.continueLoop = False
             import traceback
             logMessageError(traceback.format_exc())
-        logMessage(
-            "rrKSO NextCommand ______________________________________________________________________________________________")
+        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
         logMessage("rrKSO NextCommand '" + kso_tcp.rrKSONextCommand + "'")
-        logMessage(
-            "rrKSO NextCommand ______________________________________________________________________________________________")
+        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
         if len(kso_tcp.rrKSONextCommand) > 0:
             if (kso_tcp.rrKSONextCommand == "ksoQuit()") or (kso_tcp.rrKSONextCommand == "ksoQuit()\n"):
                 server.continueLoop = False
                 kso_tcp.rrKSONextCommand = ""
             else:
-                exec kso_tcp.rrKSONextCommand
+                exec(kso_tcp.rrKSONextCommand)
                 kso_tcp.rrKSONextCommand = ""
+        else:
+            logMessage("rrKSO NextCommand was empty")
+        
+    server.closeTCP()
     logMessage("rrKSO closed")
 
 
@@ -1003,7 +938,6 @@ def render_main():
     # MAIN "FUNCTION":
     ##############################################################################
     global USE_DEFAULT_PRINT
-    global LOGFILE_AVAILABLE
     global GLOBAL_ARG
 
     GLOBAL_ARG = ArgParser()
@@ -1021,8 +955,7 @@ def render_main():
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        LOGFILE_AVAILABLE = True
-    logMessage("kso_3dsmax.py  %rrVersion%")
+    logMessage("kso_3dsmax_pymxs.py  %rrVersion%")
     logMessage("###########################################################################################")
     logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
     logMessage("###################### IGNORE OLDER MESSAGES ABOUT SCENE AND FRAMES  ######################")
@@ -1034,6 +967,8 @@ def render_main():
     logMessage("Importing rrKSO...")
     global kso_tcp
     import kso_tcp
+    kso_tcp.USE_DEFAULT_PRINT= USE_DEFAULT_PRINT
+    kso_tcp.LOGGER_FILENAME= arg.logFile
 
     if argValid(arg.AdditionalCommandlineParam):
         # '-gammaCorrection:1 -gammaValueIn:2,2 -gammaValueOut:2,2'
@@ -1046,7 +981,7 @@ def render_main():
             part = part.replace(",", ".")
             part = (part == "1")
             logMessageSET("Gamma Correction to " + str(part))
-            MaxPlus.GammaMgr.Enable(part)
+            rt.iDisplayGamma.colorCorrectionMode = (rt.name('gamma') if part else rt.name('none'))
 
         pos = arg.AdditionalCommandlineParam.find("gammaValueIn:")
         if pos > 0:
@@ -1057,7 +992,7 @@ def render_main():
             part = part.replace(",", ".")
             part = float(part)
             logMessageSET("FileInGamma to " + str(part))
-            MaxPlus.GammaMgr.SetFileInGamma(part)
+            rt.fileInGamma = part
 
         pos = arg.AdditionalCommandlineParam.find("gammaValueOut:")
         if pos > 0:
@@ -1068,16 +1003,15 @@ def render_main():
             part = part.replace(",", ".")
             part = float(part)
             logMessageSET("FileOutGamma to " + str(part))
-            MaxPlus.GammaMgr.SetFileOutGamma(part)
+            rt.fileOutGamma = part
 
     logMessage("Loading Scene '" + str(arg.SName) + "'...")
-    fm = MaxPlus.FileManager
-    if not fm.Open(str(arg.SName), True, True, True):
+    if not rt.loadMaxFile(str(arg.SName), useFileUnits=True, quiet=True):
         logMessageError("Unable to open scene file")
 
-    logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format(MaxPlus.GammaMgr.IsEnabled(),
-                                                                      MaxPlus.GammaMgr.GetFileInGamma(),
-                                                                      MaxPlus.GammaMgr.GetFileOutGamma()))
+    logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((rt.iDisplayGamma.colorCorrectionMode == rt.name('gamma')),
+                                                                      rt.fileInGamma,
+                                                                      rt.fileOutGamma))
 
     if argValid(arg.StateSet):
         stateSet = str(arg.StateSet)
@@ -1096,17 +1030,16 @@ def render_main():
                 logMessageError(stateSet + "state not found in scene")
         else:
             # scene state
-            MaxPlus.Core.EvalMAXScript('sceneStateMgr.restoreAllParts "' + arg.StateSet + '"')
+            rt.sceneStateMgr.restoreAllParts(arg.StateSet)
     else:
         arg.StateSetFilename = ""
 
     if argValid(arg.RPMPass):
         logMessageSET("RPM pass to '" + str(arg.RPMPass) + "'")
-        MaxPlus.Core.EvalMAXScript(
+        rt.execute(
             "RPass_nr =0;  for i= 1 to RPMdata.GetPassCount() do  (  if (" + arg.RPMPass + "==RPMdata.GetPassName(i))    then RPass_nr=i  );  if RPass_nr>0    then RPMData.RMRestValues RPass_nr    else quitMax #noPrompt")
 
-    fpVal = MaxPlus.Core.EvalMAXScript("classof renderers.current as string")
-    arg.Renderer = fpVal.Get()
+    arg.Renderer = str(rt.classOf(rt.renderers.current))
     # logMessage("renderer used: '" + arg.Renderer + "'")
     if "V_Ray" in arg.Renderer:
         arg.Renderer = "VRay"
@@ -1120,41 +1053,43 @@ def render_main():
 
     showVfb = argValid(arg.showVfb) and arg.showVfb
 
-    MaxPlus.RenderSettings.SetSkipFrames(False)
-    MaxPlus.RenderSettings.SetTimeType(2)  # Frame range
-    MaxPlus.RenderSettings.SetFileNumberBase(int(arg.FrOffset))
-    MaxPlus.RenderSettings.SetShowVFB(showVfb)
-    MaxPlus.RenderSettings.SetAreaType(0)
+    rt.skipRenderedFrames = False
+    rt.rendTimeType = 3  # Frame range
+    rt.rendFileNumberBase = int(arg.FrOffset)
+    rt.rendShowVFB = showVfb
+    rt.SetRenderType(rt.name('view'))
 
     logMessageSET("SetShowVFB: " + str(showVfb))
 
-    IBitmapPagerEnabled = MaxPlus.Core.EvalMAXScript('IBitmapPager.enabled').GetBool()
+    IBitmapPagerEnabled = rt.IBitmapPager.enabled
     # logMessage("IBitmapPager is set to: '" + str(IBitmapPagerEnabled) +"'")
     if IBitmapPagerEnabled:
         logMessage("Disabling IBitmapPager... ")
-        MaxPlus.Core.EvalMAXScript("IBitmapPager.enabled=false")
-    # IBitmapPagerEnabled= MaxPlus.Core.EvalMAXScript('IBitmapPager.enabled').GetBool()
+        rt.IBitmapPager.enabled = False
+    # IBitmapPagerEnabled = rt.IBitmapPager.enabled
     # logMessage("IBitmapPager is set to: '" + str(IBitmapPagerEnabled) +"'")
 
     if argValid(arg.Camera):
         logMessageSET("camera to " + arg.Camera)
-        camNode = MaxPlus.INode.GetINodeByName(arg.Camera)
-        if str(camNode) == "None":
+        camNode = rt.getNodeByName(arg.Camera)
+        if camNode is None:
             logMessage("Unable to find camera node with name " + arg.Camera)
             arg.Camera = ""
 
-        MaxPlus.RenderSettings.SetUseActiveView(False)
-        MaxPlus.ViewportManager.SetActiveViewport(0)
-        MaxPlus.RenderSettings.SetViewID(0)
-        MaxPlus.Viewport.SetViewCamera(MaxPlus.ViewportManager.GetViewportByID(0), camNode)
-        MaxPlus.RenderSettings.SetCamera(camNode)
+        rt.rendUseActiveView = False
+        rt.viewport.activeViewport = 1
+        rt.rendViewIndex = 1
+        rt.viewport.setCamera(camNode)
     else:
-        logMessage("Rendering active viewport number " + str(MaxPlus.RenderSettings.GetViewID()))
+        logMessage("Rendering active viewport number " + str(rt.viewport.activeViewport))
 
-    MaxPlus.Core.EvalMAXScript("redrawViews()")
-    viewID = MaxPlus.RenderSettings.GetViewID()
+    rt.redrawViews()
+    viewID = (rt.viewport.activeViewport if rt.rendUseActiveView else rt.rendViewIndex)
+    viewName = rt.viewport.getType(index=viewID)
+    if viewName == rt.name('view_camera'):
+        viewName = rt.viewport.getCamera(index=viewID).name
     logMessage(
-        "Rendering camera/view #" + str(viewID) + " '" + str(MaxPlus.ViewportManager.getViewportLabel(viewID)) + "'")
+        "Rendering camera/view #" + str(viewID) + " '" + str(viewName) + "'")
 
     camFileName = arg.Camera
     camFileName = camFileName.replace(" ", "_")
@@ -1231,10 +1166,10 @@ def render_main():
 
     if argValid(arg.ResX):
         logMessageSET("width to " + str(arg.ResX))
-        MaxPlus.RenderSettings.SetWidth(int(arg.ResX))
+        rt.renderWidth = int(arg.ResX)
     if argValid(arg.ResY):
         logMessageSET("height to " + str(arg.ResY))
-        MaxPlus.RenderSettings.SetHeight(int(arg.ResY))
+        rt.renderHeight = int(arg.ResY)
 
     arg.GBufferString = ""
     if argValid(arg.GBuffer) and arg.GBuffer:
@@ -1264,7 +1199,7 @@ def render_main():
             logMessage("region rendering Y:  {0}-{1}".format(arg.RegionY1, arg.RegionY2))
         else:
             arg.RegionY1 = 0
-            arg.RegionY2 = int(MaxPlus.RenderSettings.GetHeight()) + 1
+            arg.RegionY2 = rt.renderHeight + 1
             logMessage("region rendering Y:  {0}-{1}".format(arg.RegionY1, arg.RegionY2))
 
     arg.renderChannels = True
@@ -1281,9 +1216,9 @@ def render_main():
 
     if (argValid(arg.multiExr) and arg.multiExr):
         logMessageSET("exr settings to Multi-Layer EXR")
-        MaxPlus.Core.EvalMAXScript('fopenexr.setAutoAddRenderElements true')
+        rt.fopenexr.setAutoAddRenderElements(True)
         # enforce 16 bit float exr
-        MaxPlus.Core.EvalMAXScript('fopenexr.setLayerOutputFormat 0 1')
+        rt.fopenexr.setLayerOutputFormat(0, 1)
 
     GLOBAL_ARG = arg  # copy for kso render
     if argValid(arg.KSOMode) and arg.KSOMode:
@@ -1293,7 +1228,7 @@ def render_main():
 
     if showVfb:
         # Leaving Vfb on might prevent exiting
-        MaxPlus.RenderSettings.SetShowVFB(False)
+        rt.rendShowVFB = False
 
     logMessage("Render done")
     logMessage("                                        ")
@@ -1311,4 +1246,4 @@ if __name__ == "__main__":
             closeHandlers(logging.getLogger("rrMax"))
         raise
 
-    MaxPlus.Core.EvalMAXScript("quitmax #noprompt")
+    #rt.quitMax(rt.name('noPrompt'))  # Disabled because quitMax in pymxs creates an exception. quitMax is in kso_3dsmax.ms instead.
