@@ -471,7 +471,12 @@ struct rrSubmit_scriptrender
         
         
         
-        if ( (rrJob.channelNames[1]!="prePass")  and   ((rrJob.outimageFileName[rrJob.outimageFileName.count]) as integer != undefined) and (rrJob.outimageFileName[rrJob.outimageFileName.count]!=".")) then (
+        if (rrJob.channelNames[1] == "vrayRaw") then (
+            if (renderers.production.fileName_addDot and (rrJob.outimageFileName[rrJob.outimageFileName.count]!=".")) then (
+                rrJob.outimageFileName= rrJob.outimageFileName + "."
+            )
+        )
+        else if ( (rrJob.channelNames[1]!="prePass")  and   ((rrJob.outimageFileName[rrJob.outimageFileName.count]) as integer != undefined) and (rrJob.outimageFileName[rrJob.outimageFileName.count]!=".")) then (
             rrJob.outimageFileName= rrJob.outimageFileName+"."
         ) 
         
