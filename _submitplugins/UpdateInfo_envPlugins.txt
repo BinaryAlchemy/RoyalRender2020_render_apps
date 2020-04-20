@@ -1,5 +1,5 @@
 #
-#Plugin files with this parts in its name do not trigger plugin update message of rrSetup
+#Plugin files with these text parts in their name should not trigger the plugin update message of rrSetup
 
 Katana
 Maya
