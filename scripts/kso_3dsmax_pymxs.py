@@ -2,7 +2,7 @@
 #  %rrVersion%
 #  Copyright (c)  Holger Schoenberger - Binary Alchemy
 
-from __future__ import division, print_function
+#from __future__ import division, print_function
 
 import datetime
 import errno
@@ -11,20 +11,19 @@ import os
 import shutil
 import sys
 import time
-
+from pymxs import runtime as rt
 try:
     import configparser
 except:
     import ConfigParser as configparser
 
-if sys.version_info.major == 2:
+if (sys.version_info.major == 2):
     range = xrange
-
-from pymxs import runtime as rt
 
 
 USE_DEFAULT_PRINT = True
-PRINT_DEBUG = True
+LOGGER_ADD_TIME = True
+PRINT_DEBUG = False
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
 PREV_FPADDING = -1  # digits added to render element filenames during previous renders
 GLOBAL_ARG = None  # required for KSO rendering
@@ -52,7 +51,11 @@ def closeHandlers(logger):
 def setLogger(log_level=20, log_name="rrMax", log_file=None, log_to_stream=False):
     logger = logging.getLogger(log_name)
     logger.setLevel(log_level)
-    log_format = logging.Formatter("' %(asctime)s %(name)s %(levelname)s: %(message)s", "%H:%M:%S")
+    global LOGGER_ADD_TIME
+    if LOGGER_ADD_TIME:
+        log_format = logging.Formatter("' %(asctime)s %(name)s %(levelname)5s: %(message)s", "%H:%M:%S")
+    else: 
+        log_format = logging.Formatter("' %(name)s %(levelname)5s: %(message)s")
 
     OUTFILE_LEVEL_NUM = logging.INFO + 2
     SET_LEVEL_NUM = logging.INFO + 1
@@ -908,11 +911,14 @@ def rrKSOStartServer(arg):
             server.continueLoop = False
             import traceback
             logMessageError(traceback.format_exc())
-        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
-        logMessage("rrKSO NextCommand '" + kso_tcp.rrKSONextCommand + "'")
-        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
+        logMessage("_______________________________________ rrKSO NextCommands ____________________________________________________")
+        printString= kso_tcp.rrKSONextCommand
+        printString=printString.replace("\n", "\\n")
+        logMessage("'" + printString + "'")
+        logMessage("_______________________________________ rrKSO NextCommands ____________________________________________________")
         if len(kso_tcp.rrKSONextCommand) > 0:
-            if (kso_tcp.rrKSONextCommand == "ksoQuit()") or (kso_tcp.rrKSONextCommand == "ksoQuit()\n"):
+            if ("ksoQuit()" in kso_tcp.rrKSONextCommand):
+                logMessageDebug("ksoQuit() found")
                 server.continueLoop = False
                 kso_tcp.rrKSONextCommand = ""
             else:
@@ -920,9 +926,11 @@ def rrKSOStartServer(arg):
                 kso_tcp.rrKSONextCommand = ""
         else:
             logMessage("rrKSO NextCommand was empty")
-        
+   
+    logMessage("Closing TCP")    
     server.closeTCP()
     logMessage("rrKSO closed")
+    time.sleep(2)
 
 
 def render_KSO(arg):
@@ -939,6 +947,8 @@ def render_main():
     ##############################################################################
     global USE_DEFAULT_PRINT
     global GLOBAL_ARG
+    global PRINT_DEBUG
+    global LOGGER_ADD_TIME
 
     GLOBAL_ARG = ArgParser()
     timeStart = datetime.datetime.now()
@@ -952,9 +962,12 @@ def render_main():
 
     USE_DEFAULT_PRINT = arg.MaxBatchMode
     if USE_DEFAULT_PRINT:
+        LOGGER_ADD_TIME= False
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
+        logMessage("USE_DEFAULT_PRINT")
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
+        logMessage("USE_LOGFILE_PRINT")
     logMessage("kso_3dsmax_pymxs.py  %rrVersion%")
     logMessage("###########################################################################################")
     logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
@@ -967,9 +980,11 @@ def render_main():
     logMessage("Importing rrKSO...")
     global kso_tcp
     import kso_tcp
-    kso_tcp.USE_DEFAULT_PRINT= USE_DEFAULT_PRINT
+    kso_tcp.USE_DEFAULT_PRINT= False #somehow the default logging does not work any more in 3dsmaxBatch once the TCP server handle function is called
+    kso_tcp.LOGGER_ADD_TIME= True
     kso_tcp.LOGGER_FILENAME= arg.logFile
-
+    kso_tcp.rrKSO_logger_init()
+    
     if argValid(arg.AdditionalCommandlineParam):
         # '-gammaCorrection:1 -gammaValueIn:2,2 -gammaValueOut:2,2'
         pos = arg.AdditionalCommandlineParam.find("gammaCorrection:")
@@ -1235,6 +1250,17 @@ def render_main():
     logMessage("                                        ")
     logMessage("                                        ")
     logMessage("                                        ")
+    if arg.MaxBatchMode: # not required for 3dsmaxcmd as quitMax is called kso_3dsmax.ms instead.
+        
+        #3dsmaxbatch requires to call exitcode:0, otherwise it returns an error code 130 because of an 3dsmax error message during start  
+        #quitMAX quiet:true exitCode:0
+
+        # Disabled because quitMax in pymxs creates an exception. 
+        # rt.quitMax(rt.name('noPrompt'))
+        pass
+        
+    
+        
 
 
 if __name__ == "__main__":
@@ -1246,4 +1272,4 @@ if __name__ == "__main__":
             closeHandlers(logging.getLogger("rrMax"))
         raise
 
-    #rt.quitMax(rt.name('noPrompt'))  # Disabled because quitMax in pymxs creates an exception. quitMax is in kso_3dsmax.ms instead.
+ 

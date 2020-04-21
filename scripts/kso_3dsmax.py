@@ -14,7 +14,6 @@ import ConfigParser
 import MaxPlus
 
 
-LOGFILE_AVAILABLE = False
 USE_DEFAULT_PRINT = True
 PRINT_DEBUG = False
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
@@ -79,36 +78,6 @@ def setLogger(log_level=20, log_name="rrMax", log_file=None, log_to_stream=False
         str_handler = logging.StreamHandler()
         str_handler.setFormatter(log_format)
         logger.addHandler(str_handler)
-
-
-def logMessageGen(lvl, msg, tries):
-    """DEPRECATED: use logger decorators!
-
-    :param lvl: DBG, ERR, SET...
-    :param msg: message to log
-    :param tries: allowed retries
-    :return: None
-    """
-    try:
-        if len(lvl) == 0:
-            if USE_DEFAULT_PRINT:
-                print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax      : " + str(msg))
-            elif LOGFILE_AVAILABLE:
-                logger = logging.getLogger("rrMax")
-                logging.info(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax      : " + str(msg))
-                logger.handlers[0].close()
-        else:
-            if USE_DEFAULT_PRINT:
-                print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax - " + str(lvl) + ": " + str(msg))
-            elif LOGFILE_AVAILABLE:
-                logger = logging.getLogger("rrMax")
-                logging.info(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMax - " + str(lvl) + ": " + str(msg))
-                logger.handlers[0].close()
-    except IOError:
-        # file busy as the rrClient moves it
-        if tries < 3:
-            time.sleep(0.35)
-            logMessageGen(lvl, msg, tries + 1)
 
 
 def rrMax_exit(func):
@@ -975,19 +944,21 @@ def rrKSOStartServer(arg):
             server.continueLoop = False
             import traceback
             logMessageError(traceback.format_exc())
-        logMessage(
-            "rrKSO NextCommand ______________________________________________________________________________________________")
+        logMessage("rrKSO NextCommand ___________________________________________________________________________________________")
         logMessage("rrKSO NextCommand '" + kso_tcp.rrKSONextCommand + "'")
-        logMessage(
-            "rrKSO NextCommand ______________________________________________________________________________________________")
+        logMessage("rrKSO NextCommand ___________________________________________________________________________________________")
         if len(kso_tcp.rrKSONextCommand) > 0:
             if (kso_tcp.rrKSONextCommand == "ksoQuit()") or (kso_tcp.rrKSONextCommand == "ksoQuit()\n"):
                 server.continueLoop = False
                 kso_tcp.rrKSONextCommand = ""
             else:
-                exec kso_tcp.rrKSONextCommand
+                exec(kso_tcp.rrKSONextCommand)
                 kso_tcp.rrKSONextCommand = ""
+
+    server.closeTCP()
     logMessage("rrKSO closed")
+    time.sleep(2)
+    
 
 
 def render_KSO(arg):
@@ -1003,8 +974,8 @@ def render_main():
     # MAIN "FUNCTION":
     ##############################################################################
     global USE_DEFAULT_PRINT
-    global LOGFILE_AVAILABLE
     global GLOBAL_ARG
+    global PRINT_DEBUG
 
     GLOBAL_ARG = ArgParser()
     timeStart = datetime.datetime.now()
@@ -1019,10 +990,10 @@ def render_main():
     USE_DEFAULT_PRINT = arg.MaxBatchMode
     if USE_DEFAULT_PRINT:
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
+        logMessage("USE_DEFAULT_PRINT")
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        LOGFILE_AVAILABLE = True
-    logMessage("kso_3dsmax.py  %rrVersion%")
+        logMessage("USE_LOGFILE_PRINT")
     logMessage("###########################################################################################")
     logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
     logMessage("###################### IGNORE OLDER MESSAGES ABOUT SCENE AND FRAMES  ######################")
@@ -1034,7 +1005,9 @@ def render_main():
     logMessage("Importing rrKSO...")
     global kso_tcp
     import kso_tcp
-
+    kso_tcp.USE_DEFAULT_PRINT= USE_DEFAULT_PRINT
+    kso_tcp.LOGGER_FILENAME= arg.logFile
+    
     if argValid(arg.AdditionalCommandlineParam):
         # '-gammaCorrection:1 -gammaValueIn:2,2 -gammaValueOut:2,2'
         pos = arg.AdditionalCommandlineParam.find("gammaCorrection:")

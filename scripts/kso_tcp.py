@@ -19,12 +19,14 @@ Size_RRN_TCP_HeaderData_v5 = 206
 rrnData_commands = 7
 log_command="print(' \\\'"
 log_command_end="')"
-PRINT_DEBUG= True
 commandTimeout=180
-log_logger_name = "rrKSO_TCP"
+PRINT_DEBUG= False
+LOGGER_NAME = "rrKSO_TCP"
 USE_DEFAULT_PRINT = True
 LOGGER_WAS_SETUP= False
 LOGGER_FILENAME=""
+LOGGER_ADD_TIME = True
+
 
 
 
@@ -36,7 +38,7 @@ def flushLog():
         sys.stdout.flush()
         sys.stderr.flush()
     else:
-        logger = logging.getLogger(log_logger_name)
+        logger = logging.getLogger(LOGGER_NAME)
         for handler in logger.handlers:
             handler.flush()
 
@@ -47,11 +49,15 @@ def closeHandlers(logger):
         handler.close()
 
 
-def setLogger(log_level=20, log_name=log_logger_name, log_file=None, log_to_stream=False):
+def setLogger(log_level=20, log_name=LOGGER_NAME, log_file=None, log_to_stream=False):
     logger = logging.getLogger(log_name)
     logger.setLevel(log_level)
-    log_format = logging.Formatter("' %(asctime)s %(name)s %(levelname)s: %(message)s", "%H:%M:%S")
+    if LOGGER_ADD_TIME:
+        log_format = logging.Formatter("' %(asctime)s %(name)s %(levelname)5s: %(message)s", "%H:%M:%S")
+    else: 
+        log_format = logging.Formatter("' %(name)s %(levelname)5s: %(message)s")
 
+    
     OUTFILE_LEVEL_NUM = logging.INFO + 2
     SET_LEVEL_NUM = logging.INFO + 1
 
@@ -73,7 +79,7 @@ def setLogger(log_level=20, log_name=log_logger_name, log_file=None, log_to_stre
     for handler in handlers:
         handler.close()
         logger.removeHandler(handler)
-
+        
     if log_file:
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(log_format)
@@ -85,28 +91,28 @@ def setLogger(log_level=20, log_name=log_logger_name, log_file=None, log_to_stre
         str_handler = logging.StreamHandler()
         str_handler.setFormatter(log_format)
         logger.addHandler(str_handler)
+        
+    logger.debug("Logger "+LOGGER_NAME +" was initialized." )
 
+def rrKSO_logger_init():        
+    global USE_DEFAULT_PRINT
+    global PRINT_DEBUG
+    LOGGER_WAS_SETUP= True
+    if USE_DEFAULT_PRINT:
+        setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
+    else:
+        setLogger(log_file=LOGGER_FILENAME, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
 
 
 
 def rrKSO_logger(func):
-    global LOGGER_WAS_SETUP
-    global USE_DEFAULT_PRINT
-    global PRINT_DEBUG
-    if not LOGGER_WAS_SETUP:
-        LOGGER_WAS_SETUP= True
-        if USE_DEFAULT_PRINT:
-            setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        else:
-            setLogger(log_file=LOGGER_FILENAME, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-
-    """Wrapper for log functions, gets the "log_logger_name" logger,
+    """Wrapper for log functions, gets the "LOGGER_NAME" logger,
     makes sure to close handlers or flush the listener after message log
 
     :param func: function to wrap, must accept arguments "msg" and "logger"
     :return: wrapped function
     """
-    logger = logging.getLogger(log_logger_name)
+    logger = logging.getLogger(LOGGER_NAME)
 
     def wrapper(msg):
         func(msg, logger=logger)
@@ -203,6 +209,17 @@ class _RRCommands():
 
     def fromBinary(self, buf):
         tmp= struct.unpack("=HBBhbbQiiHH1002s1000?bb",buf)
+        #= Native byte order, standard var size, no alignment
+        #0     H  uInt16 
+        #1,2   BB uChar  
+        #3     h  Int16
+        #4,5   bb Char
+        #6     Q  uInt64
+        #7,8   ii Int32
+        #9,10  HH uInt16
+        #11    s  Char[]
+        #12    ?  bool[]
+        #13,14 bb Char
         self.StructureID= tmp[0] 
         self.ctype= tmp[1] 
         self.command= tmp[2] 
@@ -213,8 +230,17 @@ class _RRCommands():
         self.paramSType= tmp[10]
         paramsTemp=tmp[11]
         self.paramS=""   
-        for c in range(0, self.paramSlength):  #string is actually unicode 16bit, but for now a dirty ANSI conversion is fine 
-            self.paramS= self.paramS+ paramsTemp[c*2]
+        if (sys.version_info > (3, 0)):
+            paramsTemp= paramsTemp[:(self.paramSlength*2)]
+            self.paramS= paramsTemp.decode(encoding="utf_16_le", errors="strict")
+            #logMessage("paramSlength: "+str(self.paramSlength))
+            #logMessage("len paramS: "+str(len(self.paramS)))
+            #hexStr=paramsTemp.hex()
+            #logMessage("paramS: "+str(hexStr))
+            #logMessage("paramS: "+str(self.paramS))
+        else:
+            for c in range(0, self.paramSlength):  #string is actually unicode 16bit, but for these commands a dirty ANSI conversion is fine 
+                self.paramS= self.paramS+ paramsTemp[c*2]
         
     def rightStructure(self):
         return (self.StructureID== StructureID_rrCommands)
@@ -268,8 +294,8 @@ class rrKSOTCPHandler(socketserver.BaseRequestHandler):
         if (( not command.rightStructure())):
             self.server.continueLoop=False
             logMessageError("TCP data wrong! "
-                   + "ID:"+ str(command.StructureID)+"!=" +str(StructureID_rrCommands)
-                   )
+                           + "ID:"+ str(command.StructureID)+"!=" +str(StructureID_rrCommands)
+                           )
             return
         logMessageDebug("rrKSOTCPHandler - right structure")
         if (( command.paramSlength==0)):
@@ -281,7 +307,7 @@ class rrKSOTCPHandler(socketserver.BaseRequestHandler):
         rrKSONextCommand= rrKSONextCommand.replace("\\n","\n")
         rrKSONextCommand= rrKSONextCommand.replace("\n ","\n")
         rrKSONextCommand= rrKSONextCommand.replace("\n ","\n")
-        logMessageDebug("rrKSOTCPHandler - rrKSONextCommand: "+rrKSONextCommand)
+
 
 
     
@@ -310,11 +336,13 @@ class rrKSOServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
     def print_port(self):
         logMessage("Server is listening on port "+str(self.server_address))
-        logMessageError("Server is listening on port "+str(self.server_address))
 
     def closeTCP(self):
-        self.shutdown()
+        logMessageDebug("rrKSOServer closeTCP")
+        #self.shutdown()
+        #logMessageDebug("rrKSOServer shutdown executed")
         self.server_close()
+        logMessageDebug("rrKSOServer server_close executed")
         
 
 

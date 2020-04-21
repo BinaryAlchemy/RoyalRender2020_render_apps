@@ -83,6 +83,14 @@ RenderAppWindow_WIN= Layers ~
 RenderAppWindow_WIN= Containers ~
 RenderAppWindow_WIN= MassFX Toolbar ~
 RenderAppWindow_WIN= Extras ~
+RenderAppWindow_WIN= Floating Viewport ~
+RenderAppWindow_WIN= 3dsmax ~ StatusPanel ~
+RenderAppWindow_WIN= 3dsmax ~ ViewControlPanel ~
+RenderAppWindow_WIN= 3dsmax ~ AnimatePanel ~
+RenderAppWindow_WIN= 3dsmax ~ TimePanel ~
+RenderAppWindow_WIN= 3dsmax ~ TimeSlider ~
+RenderAppWindow_WIN= 3dsmax ~ Cancel Expert Mode ~
+
 
 
 
