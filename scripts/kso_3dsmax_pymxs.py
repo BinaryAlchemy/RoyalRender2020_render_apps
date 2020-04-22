@@ -968,6 +968,7 @@ def render_main():
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
         logMessage("USE_LOGFILE_PRINT")
+       
     logMessage("kso_3dsmax_pymxs.py  %rrVersion%")
     logMessage("###########################################################################################")
     logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
@@ -1019,11 +1020,14 @@ def render_main():
             part = float(part)
             logMessageSET("FileOutGamma to " + str(part))
             rt.fileOutGamma = part
-
+ 
+ 
     logMessage("Loading Scene '" + str(arg.SName) + "'...")
     if not rt.loadMaxFile(str(arg.SName), useFileUnits=True, quiet=True):
         logMessageError("Unable to open scene file")
 
+   
+    
     logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((rt.iDisplayGamma.colorCorrectionMode == rt.name('gamma')),
                                                                       rt.fileInGamma,
                                                                       rt.fileOutGamma))
@@ -1234,7 +1238,8 @@ def render_main():
         rt.fopenexr.setAutoAddRenderElements(True)
         # enforce 16 bit float exr
         rt.fopenexr.setLayerOutputFormat(0, 1)
-
+        
+    
     GLOBAL_ARG = arg  # copy for kso render
     if argValid(arg.KSOMode) and arg.KSOMode:
         render_KSO(arg)
@@ -1251,12 +1256,12 @@ def render_main():
     logMessage("                                        ")
     logMessage("                                        ")
     if arg.MaxBatchMode: # not required for 3dsmaxcmd as quitMax is called kso_3dsmax.ms instead.
-        
         #3dsmaxbatch requires to call exitcode:0, otherwise it returns an error code 130 because of an 3dsmax error message during start  
-        #quitMAX quiet:true exitCode:0
 
-        # Disabled because quitMax in pymxs creates an exception. 
-        # rt.quitMax(rt.name('noPrompt'))
+        #logMessage("calling rt.quitMax(exitCode=0, quiet=True)")
+        #rt.quitMax(exitCode=0, quiet=True)  #this command does not seem to work, the exitcode is still -130
+        
+        #Workaround using a .ms maxscript file as a wrapper for this python script to call "quitMAX quiet:true exitCode:0" afterwards does not create an exception, but does not work either
         pass
         
     
