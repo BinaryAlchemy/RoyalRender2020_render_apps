@@ -116,4 +116,5 @@ RemoveFromLog= Contains ~ MENTAL RAY LOG ~ parsing file
 
 
 ::include(3D03__3dsMAX_s____global__inhouse.inc)
+::include(3D03__3dsMAX_s_21____global__inhouse.inc)
 
