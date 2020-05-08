@@ -445,7 +445,6 @@ def applyOutput_default(arg, frameNr, verbose):
                 logMessageSET("element %20s output to '%s'" % (elemName, fileout))
             fileout = os.path.normpath(fileout)
             filedir = os.path.dirname(fileout)
-            fileout = fileout.replace("\\", "\\\\")
             logMessageDebug("applyOutput_default -  " + fileout)
             rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
 
@@ -539,7 +538,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
 
         filedir = os.path.dirname(fileout)
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         vray_settings.output_splitfilename = fileout
         checkCreateFolder(filedir, verbose)
         if ((not rt.rendSaveFile)
@@ -551,7 +549,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
         logMessageDebug("applyOutput_VRay - output_saveRawFile")
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         vray_settings.output_rawFileName = fileout
 
         mainFileName = arg.FName + str(frameNr).zfill(arg.FPadding) + arg.FExt
@@ -615,7 +612,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
                 logMessageSET("element %20s output to '%s'" % (elemName, fileout))
             filedir = os.path.dirname(fileout)
             fileout = os.path.normpath(fileout)
-            fileout.replace("\\", "\\\\")
             checkCreateFolder(filedir, verbose)
             rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
     return mainFileName
@@ -738,7 +734,6 @@ def applyRendererOptions_Vray(arg):
             vray_settings.gi_on = True
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         logMessageSET("VRay GI vrmap prepass to " + fileout)
         vray_settings.adv_irradmap_autoSaveFileName = fileout
         logMessageSET("VRay GI vrmap/animation prepass")
