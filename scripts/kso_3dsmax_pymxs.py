@@ -1032,8 +1032,8 @@ def render_main():
    
     
     logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((rt.iDisplayGamma.colorCorrectionMode == rt.name('gamma')),
-                                                                      rt.fileInGamma,
-                                                                      rt.fileOutGamma))
+                                                                      round(rt.fileInGamma, 5),
+                                                                      round(rt.fileOutGamma, 5)))
 
     if argValid(arg.StateSet):
         stateSet = str(arg.StateSet)
