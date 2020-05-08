@@ -48,7 +48,7 @@ ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
 ErrorSearchLine = Not enough memory...
-ErrorSearchLine = collides with the same ID in file
+
 
 RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= Application Error ~  ~ 1 ~ Button ~ OK
