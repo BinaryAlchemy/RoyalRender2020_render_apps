@@ -44,6 +44,15 @@ permanentErrorSearchLine = Error initializing backburner path system
 findFrameNoPre= Frame #
 findFrameNoPost=  done
 
+RenderAppWindow_WIN= 3D Mouse News ~ ~ 1 ~ Button ~ Close
+RenderAppWindow_WIN= Render history settings ~ The path ~ 1 ~ Button ~ &No
+RenderAppWindow_WIN= GrowFX windows manager ~  ~ 1 ~ Button ~ OK 
+RenderAppWindow_WIN= DLL Initialization Fail ~ ~ 1 ~ Button ~ OK
+RenderAppWindow_WIN= Error Report ~ ~ 1 ~ Button ~ Cancel
+RenderAppWindow_WIN= Interaction Mode ~ ~ 1 ~ Button ~ OK
+RenderAppWindow_WIN= Error ~ ~ 1 ~ Button ~ OK
+RenderAppWindow_WIN= Unhandled exception ~ ~ 1 ~ Button ~ &Abort
+
 RenderAppWindow_WIN= Rendering - ~
 RenderAppWindow_WIN= Rendern - ~
 RenderAppWindow_WIN= - Autodesk 3ds Max ~
@@ -53,27 +62,19 @@ RenderAppWindow_WIN= MAXScript Editor ~
 RenderAppWindow_WIN= MAXScript-Editor ~
 RenderAppWindow_WIN= RealFlow Log Window ~
 RenderAppWindow_WIN= AfterBurn Shadow Map ~
-RenderAppWindow_WIN= 3D Mouse News ~ ~ 1 ~ Button ~ Close
-RenderAppWindow_WIN= Render history settings ~ The path ~ 1 ~ Button ~ &No
-RenderAppWindow_WIN= GrowFX windows manager ~  ~ 1 ~ Button ~ OK 
 RenderAppWindow_WIN= Render history ~
 RenderAppWindow_WIN= Pixel information ~
 RenderAppWindow_WIN= Stamp variables window ~
 RenderAppWindow_WIN= Color corrections ~
 RenderAppWindow_WIN= FumeFX ~
-RenderAppWindow_WIN= DLL Initialization Fail ~ ~ 1 ~ Button ~ OK
-RenderAppWindow_WIN= Error Report ~ ~ 1 ~ Button ~ Cancel
 RenderAppWindow_WIN= Script Controller ~
 RenderAppWindow_WIN= Rendering ~
-RenderAppWindow_WIN= Interaction Mode ~ ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= FFX_ ~
-RenderAppWindow_WIN= Error ~ ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= RFRK Log Window
 RenderAppWindow_WIN= MXS_ ~
 RenderAppWindow_WIN= State Sets ~
 RenderAppWindow_WIN= .mcr - MAXScript ~
 RenderAppWindow_WIN= Lens Effects ~
-RenderAppWindow_WIN= Unhandled exception ~ ~ 1 ~ Button ~ &Abort
 RenderAppWindow_WIN= Pencil+ ~
 RenderAppWindow_WIN= Axis Constraints ~
 RenderAppWindow_WIN= Render Shortcuts ~
@@ -90,8 +91,6 @@ RenderAppWindow_WIN= 3dsmax ~ AnimatePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimeSlider ~
 RenderAppWindow_WIN= 3dsmax ~ Cancel Expert Mode ~
-
-
 
 
 
