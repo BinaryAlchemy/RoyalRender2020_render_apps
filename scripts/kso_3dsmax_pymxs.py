@@ -1021,7 +1021,7 @@ def render_main():
     # So to prevent VRay message boxes to freeze the session, we will set VRay to silent mode here, before the scene is loaded.
     try:
         rt.setVRaySilentMode()
-        logMessage("VRay set to silent mode")
+        logMessageSET("VRay to Silent Mode")
     except:
         pass
 
