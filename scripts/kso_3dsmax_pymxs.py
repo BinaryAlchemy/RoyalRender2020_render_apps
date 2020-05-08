@@ -1017,6 +1017,14 @@ def render_main():
             rt.fileOutGamma = part
  
  
+    # For an unknown reason, VRay is not automatically set to silent mode. (We believe it's becasue we use 3dsmaxbatch.exe instead of 3dsmaxcmd.exe)
+    # So to prevent VRay message boxes to freeze the session, we will set VRay to silent mode here, before the scene is loaded.
+    try:
+        rt.setVRaySilentMode()
+        logMessage("VRay set to silent mode")
+    except:
+        pass
+
     logMessage("Loading Scene '" + str(arg.SName) + "'...")
     if not rt.loadMaxFile(str(arg.SName), useFileUnits=True, quiet=True):
         logMessageError("Unable to open scene file")
