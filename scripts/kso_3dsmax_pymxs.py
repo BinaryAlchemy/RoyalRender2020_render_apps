@@ -658,7 +658,7 @@ def applyRendererOptions_Vray(arg):
         vray_settings.system_numThreads = int(arg.RenderThreads)
     if argValid(arg.VRayMemLimit):
         logMessageSET("VRay mem limit to " + str(arg.VRayMemLimit))
-        vray_settings.system_raycaster_memLimit = arg.VRayMemLimit
+        vray_settings.system_raycaster_memLimit = int(arg.VRayMemLimit)
     elif (argValid(arg.VRayMemLimitPercent) and argValid(arg.ClientTotalMemory)):
         memory = int(arg.ClientTotalMemory) * int(arg.VRayMemLimitPercent) // 100
         logMessageSET(
@@ -670,10 +670,10 @@ def applyRendererOptions_Vray(arg):
     if arg.vrayOverrideResolution:
         if argValid(arg.ResX):
             logMessageSET("width to " + str(arg.ResX))
-            vray_settings.output_width = arg.ResX
+            vray_settings.output_width = int(arg.ResX)
         if argValid(arg.ResY):
             logMessageSET("height to " + str(arg.ResY))
-            vray_settings.output_height = arg.ResY
+            vray_settings.output_height = int(arg.ResY)
 
     if (argValid(arg.limitNoise) or argValid(arg.limitTime)):
         samplerType = vray_settings.imageSampler_type_new
@@ -694,11 +694,11 @@ def applyRendererOptions_Vray(arg):
         arg.limitNoise = float(arg.limitNoise)
         arg.limitNoise = arg.limitNoise / 100.0
         logMessageSET("VRay progressive noise limit to " + str(arg.limitNoise) + " minutes.")
-        vray_settings.progressive_noise_threshold = arg.limitTime
+        vray_settings.progressive_noise_threshold = float(arg.limitNoise)
 
     if argValid(arg.limitTime):
         logMessageSET("VRay progressive time limit to {0} minutes".format(arg.limitTime))
-        vray_settings.progressive_max_render_time = arg.limitTime
+        vray_settings.progressive_max_render_time = float(arg.limitTime)
         noiseThreshold = vray_settings.progressive_noise_threshold
         if not argValid(arg.limitNoise):
             logMessage("VRay noiseThreshold setting: " + str(noiseThreshold))
