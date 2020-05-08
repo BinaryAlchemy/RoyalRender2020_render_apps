@@ -655,7 +655,7 @@ def applyRendererOptions_Vray(arg):
 
     if argValid(arg.RenderThreads):
         logMessageSET("VRay render threads  to " + str(arg.RenderThreads))
-        vray_settings.system_numThreads = arg.RenderThreads
+        vray_settings.system_numThreads = int(arg.RenderThreads)
     if argValid(arg.VRayMemLimit):
         logMessageSET("VRay mem limit to " + str(arg.VRayMemLimit))
         vray_settings.system_raycaster_memLimit = arg.VRayMemLimit
