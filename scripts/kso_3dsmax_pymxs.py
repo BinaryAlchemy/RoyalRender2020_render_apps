@@ -707,10 +707,6 @@ def applyRendererOptions_Vray(arg):
     arg.vraySeperateRenderChannels = vray_settings.output_splitgbuffer
     arg.vrayRawFile = vray_settings.output_saveRawFile
 
-    if arg.vrayFramebuffer:
-        if (not arg.vrayRawFile) and (not arg.vraySeperateRenderChannels):
-            arg.vrayFramebuffer = False
-            arg.renderChannels = False
     if not arg.vrayFramebuffer:
         arg.vraySeperateRenderChannels = False
         vray_settings.output_splitgbuffer = False
@@ -739,10 +735,10 @@ def applyRendererOptions_Vray(arg):
         logMessageSET("VRay GI vrmap/animation prepass")
         vray_settings.adv_irradmap_mode = 6
         logMessage("VRay GI irradiance mode: #" + str(vray_settings.adv_irradmap_mode))
-        logMessageSET("VRay Seperate Render Channels On")
-        vray_settings.output_splitgbuffer = False  # FIXME: LogMessage or command is inverted
-        logMessageSET("VRay Framebuffer Off")
-        vray_settings.output_on = True  # FIXME: LogMessage or command is inverted
+        logMessageSET("VRay Raw Off")
+        vray_settings.output_saveRawFile = False
+        logMessageSET("VRay Seperate Render Channels Off")
+        vray_settings.output_splitgbuffer = False
         logMessageSET("Main 3dsmax save file Off")
         rt.rendSaveFile = False
     else:
