@@ -33,11 +33,11 @@ licenseFailLine=  No licenses could be found to run this application
 
 RealTimeAbortLine = ABORT ABORT ABORT
 permanentErrorSearchLine = ABORT ABORT ABORT
-
-
 permanentErrorSearchLine = OperationFailed
 permanentErrorSearchLine = Unable to initialize
 permanentErrorSearchLine = Unable to connect to hserver for license
+
+errorSearchLine = aborting render script
 
 RenderAppWindow_WIN= Houdini DSO Error ~ Couldn't load ~ 1 ~ Button ~ OK
 
