@@ -21,7 +21,7 @@ if (sys.version_info.major == 2):
     range = xrange
 
 
-USE_DEFAULT_PRINT = True
+USE_DEFAULT_PRINT = False
 LOGGER_ADD_TIME = True
 PRINT_DEBUG = False
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
@@ -87,7 +87,7 @@ def setLogger(log_level=20, log_name="rrMax", log_file=None, log_to_stream=False
         logger.addHandler(file_handler)
 
     if log_to_stream:
-        str_handler = logging.StreamHandler()
+        str_handler = logging.StreamHandler(sys.stdout)
         str_handler.setFormatter(log_format)
         logger.addHandler(str_handler)
 
@@ -951,20 +951,21 @@ def render_main():
     if not argValid(arg.MaxBatchMode):
         arg.MaxBatchMode = False
 
-    USE_DEFAULT_PRINT = arg.MaxBatchMode
+    USE_DEFAULT_PRINT = False #it is not possible to use print to stdOut in 3dsmax-batch/-cmd. stdErr is possible, but 3dsmax reports an error in this case
     if USE_DEFAULT_PRINT:
         LOGGER_ADD_TIME= False
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        logMessage("USE_DEFAULT_PRINT")
+        logMessageDebug("USE_DEFAULT_PRINT")
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        logMessage("USE_LOGFILE_PRINT")
+        logMessageDebug("USE_LOGFILE_PRINT")
        
     logMessage("kso_3dsmax_pymxs.py  %rrVersion%")
-    logMessage("###########################################################################################")
-    logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
-    logMessage("###################### IGNORE OLDER MESSAGES ABOUT SCENE AND FRAMES  ######################")
-    logMessage("###########################################################################################")
+    if (arg.MaxBatchMode):
+        logMessage("###########################################################################################")
+        logMessage("######################         RENDER IS STARTING FROM NOW           ######################")
+        logMessage("###################### IGNORE OLDER MESSAGES ABOUT SCENE AND FRAMES  ######################")
+        logMessage("###########################################################################################")
 
     if argValid(arg.PyModPath):
         sys.path.append(arg.PyModPath)
@@ -1238,6 +1239,9 @@ def render_main():
         # enforce 16 bit float exr
         rt.fopenexr.setLayerOutputFormat(0, 1)
         
+#    if not USE_DEFAULT_PRINT:    
+ #       logMessage("SLEEEEEP 120")
+  #      time.sleep(120) #rrClient needs some time to capture the seperate log file
     
     GLOBAL_ARG = arg  # copy for kso render
     if argValid(arg.KSOMode) and arg.KSOMode:

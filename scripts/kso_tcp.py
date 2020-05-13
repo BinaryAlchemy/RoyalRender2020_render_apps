@@ -88,7 +88,7 @@ def setLogger(log_level=20, log_name=LOGGER_NAME, log_file=None, log_to_stream=F
         logger.addHandler(file_handler)
 
     if log_to_stream:
-        str_handler = logging.StreamHandler()
+        str_handler = logging.StreamHandler(sys.stdout)
         str_handler.setFormatter(log_format)
         logger.addHandler(str_handler)
         
