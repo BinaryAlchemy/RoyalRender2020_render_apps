@@ -445,7 +445,6 @@ def applyOutput_default(arg, frameNr, verbose):
                 logMessageSET("element %20s output to '%s'" % (elemName, fileout))
             fileout = os.path.normpath(fileout)
             filedir = os.path.dirname(fileout)
-            fileout = fileout.replace("\\", "\\\\")
             logMessageDebug("applyOutput_default -  " + fileout)
             rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
 
@@ -539,7 +538,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
 
         filedir = os.path.dirname(fileout)
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         vray_settings.output_splitfilename = fileout
         checkCreateFolder(filedir, verbose)
         if ((not rt.rendSaveFile)
@@ -551,7 +549,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
         logMessageDebug("applyOutput_VRay - output_saveRawFile")
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         vray_settings.output_rawFileName = fileout
 
         mainFileName = arg.FName + str(frameNr).zfill(arg.FPadding) + arg.FExt
@@ -615,7 +612,6 @@ def applyOutput_VRay(arg, frameNr, verbose):
                 logMessageSET("element %20s output to '%s'" % (elemName, fileout))
             filedir = os.path.dirname(fileout)
             fileout = os.path.normpath(fileout)
-            fileout.replace("\\", "\\\\")
             checkCreateFolder(filedir, verbose)
             rt.maxOps.GetCurRenderElementMgr().SetRenderElementFilename(elemNr, fileout)
     return mainFileName
@@ -655,10 +651,10 @@ def applyRendererOptions_Vray(arg):
 
     if argValid(arg.RenderThreads):
         logMessageSET("VRay render threads  to " + str(arg.RenderThreads))
-        vray_settings.system_numThreads = arg.RenderThreads
+        vray_settings.system_numThreads = int(arg.RenderThreads)
     if argValid(arg.VRayMemLimit):
         logMessageSET("VRay mem limit to " + str(arg.VRayMemLimit))
-        vray_settings.system_raycaster_memLimit = arg.VRayMemLimit
+        vray_settings.system_raycaster_memLimit = int(arg.VRayMemLimit)
     elif (argValid(arg.VRayMemLimitPercent) and argValid(arg.ClientTotalMemory)):
         memory = int(arg.ClientTotalMemory) * int(arg.VRayMemLimitPercent) // 100
         logMessageSET(
@@ -670,10 +666,10 @@ def applyRendererOptions_Vray(arg):
     if arg.vrayOverrideResolution:
         if argValid(arg.ResX):
             logMessageSET("width to " + str(arg.ResX))
-            vray_settings.output_width = arg.ResX
+            vray_settings.output_width = int(arg.ResX)
         if argValid(arg.ResY):
             logMessageSET("height to " + str(arg.ResY))
-            vray_settings.output_height = arg.ResY
+            vray_settings.output_height = int(arg.ResY)
 
     if (argValid(arg.limitNoise) or argValid(arg.limitTime)):
         samplerType = vray_settings.imageSampler_type_new
@@ -694,11 +690,11 @@ def applyRendererOptions_Vray(arg):
         arg.limitNoise = float(arg.limitNoise)
         arg.limitNoise = arg.limitNoise / 100.0
         logMessageSET("VRay progressive noise limit to " + str(arg.limitNoise) + " minutes.")
-        vray_settings.progressive_noise_threshold = arg.limitTime
+        vray_settings.progressive_noise_threshold = float(arg.limitNoise)
 
     if argValid(arg.limitTime):
         logMessageSET("VRay progressive time limit to {0} minutes".format(arg.limitTime))
-        vray_settings.progressive_max_render_time = arg.limitTime
+        vray_settings.progressive_max_render_time = float(arg.limitTime)
         noiseThreshold = vray_settings.progressive_noise_threshold
         if not argValid(arg.limitNoise):
             logMessage("VRay noiseThreshold setting: " + str(noiseThreshold))
@@ -711,10 +707,6 @@ def applyRendererOptions_Vray(arg):
     arg.vraySeperateRenderChannels = vray_settings.output_splitgbuffer
     arg.vrayRawFile = vray_settings.output_saveRawFile
 
-    if arg.vrayFramebuffer:
-        if (not arg.vrayRawFile) and (not arg.vraySeperateRenderChannels):
-            arg.vrayFramebuffer = False
-            arg.renderChannels = False
     if not arg.vrayFramebuffer:
         arg.vraySeperateRenderChannels = False
         vray_settings.output_splitgbuffer = False
@@ -738,16 +730,15 @@ def applyRendererOptions_Vray(arg):
             vray_settings.gi_on = True
         fileout = arg.FName + arg.FExt
         fileout = os.path.normpath(fileout)
-        fileout = fileout.replace("\\", "\\\\")
         logMessageSET("VRay GI vrmap prepass to " + fileout)
         vray_settings.adv_irradmap_autoSaveFileName = fileout
         logMessageSET("VRay GI vrmap/animation prepass")
         vray_settings.adv_irradmap_mode = 6
         logMessage("VRay GI irradiance mode: #" + str(vray_settings.adv_irradmap_mode))
-        logMessageSET("VRay Seperate Render Channels On")
-        vray_settings.output_splitgbuffer = False  # FIXME: LogMessage or command is inverted
-        logMessageSET("VRay Framebuffer Off")
-        vray_settings.output_on = True  # FIXME: LogMessage or command is inverted
+        logMessageSET("VRay Raw Off")
+        vray_settings.output_saveRawFile = False
+        logMessageSET("VRay Seperate Render Channels Off")
+        vray_settings.output_splitgbuffer = False
         logMessageSET("Main 3dsmax save file Off")
         rt.rendSaveFile = False
     else:
@@ -1022,6 +1013,14 @@ def render_main():
             rt.fileOutGamma = part
  
  
+    # For an unknown reason, VRay is not automatically set to silent mode. (We believe it's becasue we use 3dsmaxbatch.exe instead of 3dsmaxcmd.exe)
+    # So to prevent VRay message boxes to freeze the session, we will set VRay to silent mode here, before the scene is loaded.
+    try:
+        rt.setVRaySilentMode()
+        logMessageSET("VRay to Silent Mode")
+    except:
+        pass
+
     logMessage("Loading Scene '" + str(arg.SName) + "'...")
     if not rt.loadMaxFile(str(arg.SName), useFileUnits=True, quiet=True):
         logMessageError("Unable to open scene file")
@@ -1029,8 +1028,8 @@ def render_main():
    
     
     logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((rt.iDisplayGamma.colorCorrectionMode == rt.name('gamma')),
-                                                                      rt.fileInGamma,
-                                                                      rt.fileOutGamma))
+                                                                      round(rt.fileInGamma, 5),
+                                                                      round(rt.fileOutGamma, 5)))
 
     if argValid(arg.StateSet):
         stateSet = str(arg.StateSet)
