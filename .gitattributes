@@ -4,7 +4,7 @@
 *.inc text eol=crlf
 *.rrEnv text eol=crlf
 *.xml text eol=crlf
-*.ini text eol=crlf
+*.ini -text
 *.env text eol=crlf
 
 *.bat text eol=crlf
