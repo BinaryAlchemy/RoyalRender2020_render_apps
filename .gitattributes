@@ -1,10 +1,13 @@
 * -text
 
+#some 3dsmax ini files are UTF-16 LE files, therefore we have to treat them as binary
+*.ini -text
+
+
 *.cfg text eol=crlf
 *.inc text eol=crlf
 *.rrEnv text eol=crlf
 *.xml text eol=crlf
-*.ini text eol=crlf
 *.env text eol=crlf
 
 *.bat text eol=crlf
