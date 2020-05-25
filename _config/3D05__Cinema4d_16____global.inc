@@ -42,6 +42,11 @@ licenseFailLine= Error: Invalid License
 
 RealTimeAbortLine= Missing serial number
 RealTimeAbortLine= Render failure detected
+RealTimeAbortLine= create stack trace
+RealTimeAbortLine= CRITICAL: Stop
+RealTimeAbortLine= MacOSException::SuspendAllThreads
+RealTimeAbortLine= aborting render script
+
 
 ErrorSearchLine = Error rendering document
 ErrorSearchLine = Error rendering project
