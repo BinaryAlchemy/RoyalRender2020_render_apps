@@ -6,6 +6,9 @@
 // otherwise accompanies this software in either electronic or hard copy form.
 // ===========================================================================
 
+This license applies if you have downloaded the files from the git repository
+https://github.com/BinaryAlchemy/RoyalRender2020_render_apps.git
+
 The files in this repository are part of the commercial product Royal Render.
 Cloning or pulling files from this repository requires you to have a licensed Royal Render installation.
 
