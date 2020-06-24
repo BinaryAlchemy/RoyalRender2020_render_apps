@@ -79,6 +79,15 @@ def append_vray_params(submit_args):
     return True
 
 
+def append_prman_params(submit_args):
+
+    prman_ver = "23"
+
+    submit_args.append("-customRenVer_prman")
+    submit_args.append(prman_ver)
+
+    return True
+
 def rrSubmit():
     print ("rrSubmit %rrVersion%")
     hou.hipFile.save()

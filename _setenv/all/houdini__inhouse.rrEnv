@@ -12,16 +12,23 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 #  solidangle_LICENSE = port@hostname
 
 # [If] E <RR_HTOA_BASE> ??? 
-#   RR_HTOA_BASE= \\myfileserver\Shader\HtoA\htoa<rrJobRendererVersion>__houdini<ExeVersionFull>
+#   RR_HTOA_BASE= \\myfileserver\Renderer\HtoA\htoa<rrJobRendererVersion>__houdini<ExeVersionFull>
 # [EndIf]
 
 # ###################  RedShift environment variables ###################
 # redshift_LICENSE  =  5053@licenseserverName
 
-
 # [If] E <RR_REDSHIFT_BASE> ??? 
-#    RR_REDSHIFT_BASE= \\myfileserver\Shader\Redshift\Redshift_<rrJobRendererVersion>
+#    RR_REDSHIFT_BASE= \\myfileserver\Renderer\Redshift\Redshift_<rrJobRendererVersion>
 # [EndIf]
+
+
+
+# ###################  Renderman environment variables ###################
+# [If] E <RR_RENDERMAN_BASE> ??? 
+#    RR_RENDERMAN_BASE= \\myfileserver\Renderer\Renderman\RenderMan
+# [EndIf]
+
 
 # ###################  If you have issues accessing external file (e.g. Alembic), try to uncomment the following line ###################
 # HOUDINI_ACCESS_METHOD = 2

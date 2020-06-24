@@ -94,7 +94,9 @@ class argParser:
         self.FrStart=self.getParam("-FrStart")
         self.FrEnd=self.getParam("-FrEnd")
         self.FrStep=self.getParam("-FrStep")
-        self.layer=self.getParam("-layer")
+        self.ropName=self.getParam("-rop")
+        if (not argValid(self.ropName)):
+            self.ropName=self.getParam("-layer")
         self.FName=self.getParam("-FName")
         self.FRefName=self.getParam("-FRefName")
         self.FExt=self.getParam("-FExt")
@@ -140,6 +142,55 @@ def formatExceptionInfo(maxTBlevel=5):
 
 
 
+def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
+    beforeFrame = datetime.datetime.now()
+    flushLog()
+    global arg
+    frameRange = (localFrStart,localFrEnd,localFrStep)
+    if (argValid(arg.wedge)):
+        arg.rop.parm('trange').set("normal")
+        arg.rop.parm('f1').set(frameRange[0])
+        arg.rop.parm('f2').set(frameRange[1])
+        arg.rop.parm('f3').set(frameRange[2])
+        if (argValid(arg.verbose) and arg.verbose):
+            arg.wedgeRop.render( res=imgRes, verbose=True, output_progress=True)
+        else:
+            arg.wedgeRop.render( res=imgRes)
+    elif (type(arg.rop)==hou.RopNode):
+        #logMessage("Output node is a ROP node")
+        if (argValid(arg.verbose) and arg.verbose):
+            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
+        else:
+            arg.rop.render(frame_range=frameRange, res=imgRes)
+        
+    elif (arg.rop.isNetwork()):
+        logMessage("Output node is a network node of type "+str(arg.rop.type()) + ", searching for children ROP nodes to render...")
+        rop_children= arg.rop.children()
+        for child in rop_children:
+            if (type(child)==hou.RopNode):
+                logMessage("Rendering ROP node "+str(child.name()) + " of type "+str(child.type().name()))
+                if (argValid(arg.verbose) and arg.verbose):
+                    child.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
+                else:
+                    child.render(frame_range=frameRange, res=imgRes)
+    else:
+        logMessage("Warning: Unknown node type "+str(type(arg.rop))+", trying to render anyway")
+        if (argValid(arg.verbose) and arg.verbose):
+            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
+        else:
+            arg.rop.render(frame_range=frameRange, res=imgRes)
+    nrofFrames = ((localFrEnd - localFrStart) / localFrStep) + 1
+    afterFrame = datetime.datetime.now()
+    afterFrame -= beforeFrame
+    afterFrame /= nrofFrames
+    if (nrofFrames==1):
+        logMessage("Frame Time : "+str(afterFrame)+"  h:m:s.ms.  Frame Rendered #" + str(localFrStart) )
+    else:
+        logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(localFrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
+    logMessage(" ")
+    flushLog()
+
+
 def renderFrames(FrStart,FrEnd,FrStep):
     global arg
     FrStart=int(FrStart)
@@ -176,32 +227,8 @@ def renderFrames(FrStart,FrEnd,FrStep):
                 localFrEnd= float(localFrEnd+1) - localFrStep
             logMessage("Rendering Frames #{0}-{1}, step {2} ...".format(FrStart, localFrEnd, localFrStep))
 
-            flushLog()
-            beforeFrame = datetime.datetime.now()
-            frameRange = (FrStart,localFrEnd,localFrStep)
+            renderFrames_sub(FrStart,localFrEnd,localFrStep,imgRes)
 
-            if (argValid(arg.wedge)):
-                arg.rop.parm('trange').set("normal")
-                arg.rop.parm('f1').set(frameRange[0])
-                arg.rop.parm('f2').set(frameRange[1])
-                arg.rop.parm('f3').set(frameRange[2])
-                if (argValid(arg.verbose) and arg.verbose):
-                    arg.wedgeRop.render( res=imgRes, verbose=True, output_progress=True)
-                else:
-                    arg.wedgeRop.render( res=imgRes)
-            else:
-                if (argValid(arg.verbose) and arg.verbose):
-                    arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
-                else:
-                    arg.rop.render(frame_range=frameRange, res=imgRes)
-
-            nrofFrames = ((localFrEnd - FrStart) / localFrStep) + 1
-            afterFrame = datetime.datetime.now()
-            afterFrame -= beforeFrame
-            afterFrame /= nrofFrames
-            logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(FrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
-            logMessage(" ")
-            flushLog()
         else:
             for fr in xrange(FrStart,FrEnd+1,FrStep):
                 if (arg.subFrames>1):
@@ -210,33 +237,11 @@ def renderFrames(FrStart,FrEnd,FrStep):
                     logMessage( "Rendering Frame #" + str(fr) + " ...")
                 if (not argValid(arg.SkipExisting) or not (arg.SkipExisting)):
                     kso_tcp.writeRenderPlaceholder_nr(mainFileName, fr, arg.FPadding, arg.FExt)
-                flushLog()
-                beforeFrame=datetime.datetime.now()
                 localFrEnd= fr
                 if (localFrStep < 1.0):
                     localFrEnd= float(localFrEnd + 1) - localFrStep
-                frameRange= (fr,localFrEnd,localFrStep)
-                if (argValid(arg.wedge)):
-                    arg.rop.parm('trange').set("normal")
-                    arg.rop.parm('f1').set(frameRange[0])
-                    arg.rop.parm('f2').set(frameRange[1])
-                    arg.rop.parm('f3').set(frameRange[2])
-                    if (argValid(arg.verbose) and arg.verbose):
-                        arg.wedgeRop.render( res=imgRes, verbose=True, output_progress=True )
-                    else:
-                        arg.wedgeRop.render( res=imgRes)
-                else:
-                    if (argValid(arg.verbose) and arg.verbose):
-                        arg.rop.render( frame_range=frameRange, res=imgRes, verbose=True, output_progress=True )
-                    else:
-                        arg.rop.render( frame_range=frameRange, res=imgRes)
-                nrofFrames=1
-                afterFrame = datetime.datetime.now()
-                afterFrame = afterFrame - beforeFrame
-                afterFrame /= nrofFrames  # FIXME: we might just not divide inside this condition
-                logMessage("Frame Time : "+str(afterFrame)+"  h:m:s.ms.  Frame Rendered #" + str(fr) )
-                logMessage(" ")
-                flushLog()
+
+                renderFrames_sub(fr,localFrEnd,localFrStep,imgRes)
 
     except Exception as e:
         logMessageError(str(e), True)
@@ -341,7 +346,9 @@ def rrReplaceUpLevel(dir):
 
 def addFrameNumber_and_Log(outFileName):
     global arg
-    if (arg.subFrames>1):
+    if (arg.FSingleFile):
+        outFileName= arg.FName + arg.FExt
+    elif (arg.subFrames>1):
         outFileName= outFileName +"$FF" + arg.FExt
     else: 
         outFileName= outFileName +"$F"+str(arg.FPadding) + arg.FExt
@@ -447,7 +454,24 @@ def applyRendererOptions_default():
         except:
             pass
 
-
+def applyRendererOptions_createUSD():
+    global arg
+    logMessage("Exporting USD files")
+    if (argValid(arg.take)):
+        logMessageSET("take to "+arg.take)
+        arg.rop.parm('take').set(arg.take)
+    outFileName= addFrameNumber_and_Log(arg.FName)
+    arg.rop.parm('lopoutput').set(outFileName)
+    
+def applyRendererOptions_USD():
+    global arg
+    logMessage("Rendering USD/LOP")
+    if (argValid(arg.take)):
+        logMessageSET("take to "+arg.take)
+        arg.rop.parm('take').set(arg.take)
+    outFileName= addFrameNumber_and_Log(arg.FName)
+    arg.rop.parm('outputimage').set(outFileName)
+    
 def applyRendererOptions_openGl():
     global arg
     logMessage("Rendering with openGL renderer")
@@ -643,16 +667,20 @@ try:
 
         
     
-    arg.rop = hou.node( arg.layer )
+    arg.rop = hou.node( arg.ropName )
     if arg.rop is None:
-        logMessageError("Node \"" + arg.layer + "\" does not exist" , True)
+        logMessageError("Node \"" + arg.ropName + "\" does not exist" , True)
     else:
-        logMessage("using rop:   name:"+arg.rop.name()+"   node type:"+arg.rop.type().name())
+        logMessage("Rendering rop:   name:"+arg.rop.name()+"   node type:"+arg.rop.type().name())
     logMessage("renderer "+str(arg.renderer))
     if (arg.renderer=="arnold"):
         applyRendererOptions_Arnold()
     elif (arg.renderer=="redshift"):
         applyRendererOptions_Redshift()
+    elif (arg.renderer=="usd"):
+        applyRendererOptions_USD()
+    elif (arg.renderer=="createUSD"):
+        applyRendererOptions_createUSD()
     elif (arg.renderer=="vray"):
         applyRendererOptions_VRay()
     elif (arg.renderer=="opengl"):

@@ -182,6 +182,51 @@ QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 
 
 
+# ###################  Renderman environment variables ###################
+[If] <rrJobRenderer>  [contains] renderman
+    [If] <RR_RENDERMAN_VERSION>  [==] 
+        echo * Rendering with renderman
+        RR_RENDERMAN_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+[EndIf]
+[If] <rrJobRenderer>  [contains] createRIB
+    [If] <RR_RENDERMAN_VERSION>  [==] 
+        echo * Creating with renderman
+        RR_RENDERMAN_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+[EndIf]
+[If] <RR_RENDERMAN_VERSION>  [==] 
+    RR_RENDERMAN_VERSION  =  AnyVersion
+[EndIf]
+
+
+
+[If] <RR_RENDERMAN_BASE>  [==] 
+    RR_RENDERMAN_BASE  =  <rrSharedExeDir>Renderman
+[EndIf]
+RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
+
+RR_RENDERMAN_PROSERVER  =  <RR_RENDERMAN_BASE>ProServer-<RR_RENDERMAN_VERSION>
+RR_RENDERMAN_PROSERVER_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>ProServer-<RR_RENDERMAN_VERSION>
+RR_RENDERMAN_HOUDINI  =  <RR_RENDERMAN_BASE>ForHoudini-<RR_RENDERMAN_VERSION>
+RR_RENDERMAN_HOUDINI_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>ForHoudini-<RR_RENDERMAN_VERSION>
+
+echo * Renderman ProServer source path is set to <RR_RENDERMAN_PROSERVER>
+echo * Renderman ProServer cache path is set to <RR_RENDERMAN_PROSERVER_LOCAL>
+[copy] SyncNoCreateDir <RR_RENDERMAN_PROSERVER>   =>   <RR_RENDERMAN_PROSERVER_LOCAL>
+echo * Renderman Houdini source path is set to <RR_RENDERMAN_HOUDINI>
+echo * Renderman Houdini cache path is set to <RR_RENDERMAN_HOUDINI_LOCAL>
+[copy] SyncNoCreateDir <RR_RENDERMAN_HOUDINI>   =>   <RR_RENDERMAN_HOUDINI_LOCAL>
+
+RMANTREE = <RR_RENDERMAN_PROSERVER_LOCAL>
+RMSTREE = <RR_RENDERMAN_PROSERVER_LOCAL>
+RFHTREE = <RR_RENDERMAN_HOUDINI_LOCAL>
+RMAN_PROCEDURALPATH = <RFHTREE>/<ExeVersionFull>/openvdb;<RMAN_PROCEDURALPATH>
+HOUDINI_PATH=<RFHTREE>/<ExeVersionFull>;<HOUDINI_PATH>
+PATH=<RMANTREE>\bin;<PATH>
+
+
+
 
 # conversion of back-slashes into slashes for Windows as Houdini does not like backslashes
 [BSlashConvert] HOUDINI_PATH  =  <HOUDINI_PATH>
