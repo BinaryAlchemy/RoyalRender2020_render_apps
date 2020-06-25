@@ -532,7 +532,23 @@ def applyRendererOptions_Arnold():
         arg.rop.parm('ar_ass_export_enable').set(0)
         arg.rop.parm('ar_picture').set( outFileName)
     
-   
+def applyRendererOptions_PRman():
+    global arg
+    logMessage("Rendering with VRay")
+    if (argValid(arg.take)):
+        logMessageSET("take to "+arg.take)
+        arg.rop.parm('take').set(arg.take)
+    outFileName= addFrameNumber_and_Log(outFileName)
+    if (arg.rendererExportMode):
+        arg.rop.parm('docapture').set(1)
+        arg.rop.parm('soho_diskfile').set(outFileName)
+        #debugOutputName = arg.rop.parm('soho_diskfile').eval()
+        #logMessageSET("output name to "+debugOutputName+ "(evaluated)")        
+        logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('ri_display_0').eval()))
+    else:
+        arg.rop.parm('docapture').set(0)
+        arg.rop.parm('ri_display_0').set(outFileName)
+
 
 def applyRendererOptions_VRay():
     global arg
@@ -683,6 +699,8 @@ try:
         applyRendererOptions_createUSD()
     elif (arg.renderer=="vray"):
         applyRendererOptions_VRay()
+    elif (arg.renderer=="prman"):
+        applyRendererOptions_PRman()
     elif (arg.renderer=="opengl"):
         applyRendererOptions_openGl()
     elif (arg.renderer=="geometry"):

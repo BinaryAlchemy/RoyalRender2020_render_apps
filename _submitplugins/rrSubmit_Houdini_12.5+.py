@@ -38,6 +38,10 @@ def append_arnold_params(submit_args):
     submit_args.append(arnold.AiGetVersionString())
     submit_args.append("-customRenVer_createASS")
     submit_args.append(arnold.AiGetVersionString())
+    submit_args.append("-customRenVer_usd_arnold")
+    submit_args.append(arnold.AiGetVersionString())
+    submit_args.append("-customRenVer_createUSD_arnold")
+    submit_args.append(arnold.AiGetVersionString())
 
     return True
 
@@ -59,6 +63,11 @@ def append_redshift_params(submit_args):
     submit_args.append(rs_ver)
     submit_args.append("-customRenVer_createRS")
     submit_args.append(rs_ver)
+    submit_args.append("-customRenVer_usd_redshift")
+    submit_args.append(rs_ver)
+    submit_args.append("-customRenVer_createUSD_redshift")
+    submit_args.append(rs_ver)
+    
 
     return True
 
@@ -75,6 +84,11 @@ def append_vray_params(submit_args):
     submit_args.append(vray_ver)
     submit_args.append("-customRenVer_createVRscene")
     submit_args.append(vray_ver)
+    submit_args.append("-customRenVer_usd_vray")
+    submit_args.append(vray_ver)
+    submit_args.append("-customRenVer_createUSD_vray")
+    submit_args.append(vray_ver)
+    
 
     return True
 
@@ -84,6 +98,10 @@ def append_prman_params(submit_args):
     prman_ver = "23"
 
     submit_args.append("-customRenVer_prman")
+    submit_args.append(prman_ver)
+    submit_args.append("-customRenVer_usd_prman")
+    submit_args.append(prman_ver)
+    submit_args.append("-customRenVer_createUSD_prman")
     submit_args.append(prman_ver)
 
     return True
@@ -115,7 +133,8 @@ def rrSubmit():
     append_arnold_params(exe_args)
     append_vray_params(exe_args)
     append_redshift_params(exe_args)
-
+    append_prman_params(exe_args)
+    
     # finally open
     subprocess.Popen(exe_args)
 

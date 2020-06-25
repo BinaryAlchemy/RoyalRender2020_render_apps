@@ -183,9 +183,9 @@ QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 
 
 # ###################  Renderman environment variables ###################
-[If] <rrJobRenderer>  [contains] renderman
+[If] <rrJobRenderer>  [contains] prman
     [If] <RR_RENDERMAN_VERSION>  [==] 
-        echo * Rendering with renderman
+        echo * Rendering with Pixars Renderman
         RR_RENDERMAN_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]

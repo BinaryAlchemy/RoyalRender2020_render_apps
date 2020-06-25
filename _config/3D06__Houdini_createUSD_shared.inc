@@ -6,9 +6,8 @@
 #
 ################################## Identify Render Application ################################## 
 Name= Houdini
-rendererName= usd_karma
-Version=10
-Version_Minor=0
+rendererName= createUSD
+Version=18
 Type=3D
 
 
@@ -36,29 +35,29 @@ CommandLine=
 CommandLine= 
 	"<Exe>"
 	"<PD/ <rrLocalRenderScripts>kso_houdini.py" >
-    -scene "<PD/<Scene>>"
-	-renderer "usd"
+        -scene "<PD/<Scene>>"
+	-renderer "createUSD"
+	-exportmode true
 	-FrStart <SeqStart>
 	-FrEnd <SeqEnd>
 	-FrStep <SeqStep>
 	-FPadding <ImageFramePadding>
 	-FName "<PD/<ImageDir><ImageFilenameVariables>>" 
 	-FExt "<ImageExtension>" 
+    <ImageSingleOutputFile -FSingleFile True >
  	-rop "<PD/<Layer>>"
  	-threads <CPU>
     -renderDemo False 
-    -gpuBits <GpuBits>
     -avFrameTime <AvFrameTimeSec>
-    -SkipExisting <SequenceDivide False ? True>
     <AvFrameTimeMin10 -verbose True>
 	<CONoPerFrameLoop -noFrameLoop True>
     <COIgnoreLoadWarnings -ignoreLoadIssues True>
 	<COSubFrames -subFrames <COSubFrames>>
 	<SequenceDivideMin ? -noFrameLoop True>    
 	-PyModPath <rrLocalRenderScripts><EL<PD>>
-    <SceneState -wedge <SceneState>>
-    <isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
     <channel -take <channel>>
+    <SceneState -wedge <SceneState>>
+	<isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>
 	
@@ -73,7 +72,7 @@ CommandLine=
 # KSO settings
 KSO_Type= TCP
 
-KSO_NewFrame= arg.avFrameTime= <AvFrameTimeSec> \nksoRenderFrame (<SeqStart>, <SeqEnd>, <SeqStep> )
+KSO_NewFrame= ksoRenderFrame (<SeqStart>, <SeqEnd>, <SeqStep> )
 
 KSO_Close= ksoQuit()
 
@@ -87,6 +86,7 @@ KSOlog_Quit=rrKSO closed
 
 
 
+
 ################################## Render Settings ##################################
 
 CONoPerFrameLoop= 1 ~ 0
@@ -96,12 +96,11 @@ COSubFrames = 1 ~ 0 ~ 4
 ImageSizeCommandline= -width <Width> -height <Height>
 
 
-IconRenderer=3D06__Houdini_karma.png
+
+################################## Submitter + Client Settings ################################## 
+
+IconRenderer=r_usd.png
 
 ::include(3D06__Houdini____global.inc)
-::include(r_Renderman.inc)
-
-
 
 ::include(<ConfigFileName>__inhouse.inc)
-
