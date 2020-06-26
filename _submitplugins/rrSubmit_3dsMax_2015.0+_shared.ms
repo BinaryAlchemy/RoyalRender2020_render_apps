@@ -748,7 +748,7 @@ struct rrSubmit_scriptrender
             )
             
             newJob.imageFileNameBase = substituteString newJob.imageFileNameBase "<StateName>" stateSet.Name
-            newJob.imageFileNameBase = substituteString newJob.imageFileNameBase "<Layer>" stateSet.Name
+            newJob.imageFileNameBase = substituteString newJob.imageFileNameBase "<CameraView>" "<Camera>"
             setChannelsOutput newJob channelIntoSubfolder
             append rrJobs newJob
         )
