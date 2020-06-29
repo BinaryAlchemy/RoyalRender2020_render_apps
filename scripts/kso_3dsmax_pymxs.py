@@ -284,9 +284,11 @@ def checkCreateFolder(filedir, verbose):
 class StateSetManager:
     """Provide python access to State Sets via dotnet"""
 
-    _stateSets = rt.dotNetObject('Autodesk.Max.StateSets.Plugin').Instance
-    _masterState = _stateSets.EntityManager.RootEntity.MasterStateSet
-    _states = _masterState.Children
+    def __init__(self):
+        sets_plugin = rt.dotNetObject('Autodesk.Max.StateSets.Plugin')
+        self._stateSets = sets_plugin.Instance
+        self._masterState = self._stateSets.EntityManager.RootEntity.MasterStateSet
+        self._states = self._masterState.Children
 
     def getNumStates(self):
         return self._states.Count
@@ -307,14 +309,17 @@ class StateSetManager:
         return self._masterState.CurrentState.Name  # FIXME: This doesn't work but it's never used anyway.
 
     def setCurrentState(self, state_name):
+        logMessageDebug("Setting current state set to '{0}'".format(state_name))
         if not state_name:
             self._masterState.CurrentState = None
             return True
 
         num_states = self.getNumStates()
+        logMessageDebug("Number of state sets: {0}".format(num_states))
 
         for i in range(0, num_states):
             stateSet = self._states.Item(i)
+            logMessageDebug("\tChecking '{0}'".format(stateSet.Name))
             if stateSet.Name == state_name:
                 self._masterState.CurrentState = rt.array(stateSet)
                 return True
@@ -1046,7 +1051,7 @@ def render_main():
                 arg.StateSetFilename = ""
             # state set
             elif not stateMan.setCurrentState(arg.StateSet[2:]):
-                logMessageError(stateSet + "state not found in scene")
+                logMessageError(stateSet + " state not found in scene")
         else:
             # scene state
             rt.sceneStateMgr.restoreAllParts(arg.StateSet)
