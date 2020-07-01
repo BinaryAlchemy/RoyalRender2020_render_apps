@@ -414,6 +414,7 @@ class rrJob(JobProps):
         for c in xrange(0, self.maxChannels):
             self.subE(jobElement, "ChannelFilename", self.channelFileName[c])
             self.subE(jobElement, "ChannelExtension", self.channelExtension[c])
+            LOGGER.debug("channel {0}: {1} {2}".format(c, self.channelFileName[c], self.channelExtension[c]))
 
         # self.subE(jobElement, "preID", self.preID)
         # self.subE(jobElement, "WaitForPreID", self.WaitForPreID)
@@ -949,6 +950,10 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             "SET_PASSES_NOISE", "SET_PASSES_VOLUME", "SET_PASSES_VOLUME_EMISSION", "SET_PASSES_VOLUME_MASK",
             "SET_PASSES_VOLUME_Z_DEPTH_BACK", "SET_PASSES_VOLUME_Z_DEPTH_FRONT",
             "SET_PASSES_IRRADIANCE", "SET_PASSES_LIGHT_DIRECTION",
+            #denoise group
+            "SET_PASSES_BEAUTY_DENOISER", "SET_PASSES_DENOISER_DIFFUSE_D", "SET_PASSES_DENOISER_DIFFUSE_I",
+            "SET_PASSES_DENOISER_REFLECT_D", "SET_PASSES_DENOISER_REFLECT_I", "SET_PASSES_DENOISER_REMAINDER",
+            "SET_PASSES_DENOISER_EMISSION", "SET_PASSES_DENOISER_VOLUME", "SET_PASSES_DENOISER_VOL_EMIS",
             # info group
             "SET_PASSES_AO", "SET_PASSES_WIRE", "SET_PASSES_RENDER_LAYER_MASK", "SET_PASSES_RENDER_LAYER_ID",
             "SET_PASSES_LIGHT_PASS_ID", "SET_PASSES_BAKEGROUP_ID", "SET_PASSES_OBJ_LAYERCOLOR_ID", "SET_PASSES_OBJID",
@@ -966,8 +971,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             "VP_PASSES_RL_MASK17", "VP_PASSES_RL_MASK18", "VP_PASSES_RL_MASK19", "VP_PASSES_RL_MASK20",
             "VP_PASSES_RL_MASK21", "VP_PASSES_RL_MASK22", "VP_PASSES_RL_MASK23", "VP_PASSES_RL_MASK24",
             # materials group
-            "SET_LIGHTPASS_8", "SET_LIGHTPASS_7", "SET_LIGHTPASS_6", "SET_LIGHTPASS_5", "SET_LIGHTPASS_4",
-            "SET_LIGHTPASS_3", "SET_LIGHTPASS_2", "SET_LIGHTPASS_1", "SET_LIGHTPASS_SUNLIGHT", "SET_LIGHTPASS_AMBIENT"
+            "SET_LIGHTPASS_8", "SET_LIGHTPASS_8_D", "SET_LIGHTPASS_8_I",
+            "SET_LIGHTPASS_7", "SET_LIGHTPASS_7_D", "SET_LIGHTPASS_7_I",
+            "SET_LIGHTPASS_6", "SET_LIGHTPASS_6_D", "SET_LIGHTPASS_6_I",
+            "SET_LIGHTPASS_5", "SET_LIGHTPASS_5_D", "SET_LIGHTPASS_5_I",
+            "SET_LIGHTPASS_4", "SET_LIGHTPASS_4_D", "SET_LIGHTPASS_4_I",
+            "SET_LIGHTPASS_3", "SET_LIGHTPASS_3_D", "SET_LIGHTPASS_3_I",
+            "SET_LIGHTPASS_2", "SET_LIGHTPASS_2_D", "SET_LIGHTPASS_2_I",
+            "SET_LIGHTPASS_1", "SET_LIGHTPASS_1_D", "SET_LIGHTPASS_1_I",
+            "SET_LIGHTPASS_SUNLIGHT", "SET_LIGHTPASS_SUNLIGHT_D", "SET_LIGHTPASS_SUNLIGHT_I",
+            "SET_LIGHTPASS_AMBIENT", "SET_LIGHTPASS_AMBIENT_D", "SET_LIGHTPASS_AMBIENT_I",
         ]
 
         oc_pass_names = dict(
@@ -977,7 +990,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
             SET_PASSES_DIFFUSE=("diffuse", "Dif"), SET_PASSES_DIF_D=("diffuse direct", "DifD"),
             SET_PASSES_DIF_I=("diffuse indirect", "DifI"), SET_PASSES_DIF_FILTER=("diffuse filter", "DiffFi"),
-            SET_PASSES_REFLECTION=("reflection", "Refl"),
+            SET_PASSES_REFLECTION=("reflection", "Ref"),
             SET_PASSES_REFL_D=("reflection direct", "RefD"), SET_PASSES_REFL_I=("reflection indirect", "RflFi"),
             SET_PASSES_REFL_FILTER=("reflection filter", "RflFi"), SET_PASSES_REFRACT=("refraction", "Refr"),
             SET_PASSES_REFRACT_FILTER=("refraction filter", "RflFi"), SET_PASSES_TRANS=("transmission", "Tran"),
@@ -1001,6 +1014,23 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             SET_PASSES_SHDNORM=("shading normal", "ShN"), SET_PASSES_VTXNORM=("vertex normal", "SmN"),
             SET_PASSES_GEONORM=("geometric normal", "GN"),
 
+            SET_PASSES_BEAUTY_DENOISER=("denoised beauty", "DeMain"),
+            SET_PASSES_DENOISER_DIFFUSE_D=("denoised diffuse direct", "DeDifD"),
+            SET_PASSES_DENOISER_DIFFUSE_I=("denoised diffuse indirect", "DeDifI"),
+            SET_PASSES_DENOISER_REFLECT_D=("denoised reflection direct", "DeRefD"),
+            SET_PASSES_DENOISER_REFLECT_I=("denoised reflection indirect", "DeRefI"),
+            SET_PASSES_DENOISER_REMAINDER=("denoised remainder", "DeRem"),
+            SET_PASSES_DENOISER_EMISSION=("denoised emission", "DeEmit"),
+            SET_PASSES_DENOISER_VOLUME=("denoised volume", "DeVol"),
+            SET_PASSES_DENOISER_VOL_EMIS=("denoised volume emission", "DeVolE"),
+
+            SET_LIGHTPASS_SUNLIGHT=("sun light", "SLi"),
+            SET_LIGHTPASS_SUNLIGHT_D=("sun light direct", "SLiD"),
+            SET_LIGHTPASS_SUNLIGHT_I=("sun light indirect", "SLiI"),
+            SET_LIGHTPASS_AMBIENT=("ambient light", "ALi"),
+            SET_LIGHTPASS_AMBIENT_D=("ambient light direct", "ALiD"),
+            SET_LIGHTPASS_AMBIENT_I=("ambient light indirect", "ALiI"),
+
             SET_PASSES_INFO_OPACITY=("opacity filter", "Op"), SET_PASSES_INFO_ROUGHNESS=("roughness filter", "Ro"),
             SET_PASSES_INFO_IOR=("ior filter", "Ior"), SET_PASSES_INFO_DIFFUSE=("diffuse filter", "DifF"),
             SET_PASSES_INFO_REFLECTION=("reflection filter", "RflFi"),
@@ -1011,7 +1041,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         use_subfolder = bool(oc_vp[c4d.SET_PASSES_MAKEFOLDER])
         use_c4d_path = bool(oc_vp[c4d.SET_PASSES_SHOWPASSES])
         use_multi_layer = bool(oc_vp[c4d.SET_PASSES_MULTILAYER])
-        passes_path = oc_vp[c4d.SET_PASSES_SAVEPATH]
+        passes_path = self.handleRelativeFileOut(oc_vp[c4d.SET_PASSES_SAVEPATH])
         passes_dir, passes_fname = os.path.split(passes_path)
         passes_ext = pass_formats[oc_vp[c4d.SET_PASSES_FILEFORMAT]]
         pass_sep = oc_vp[c4d.SET_PASSES_SEPERATOR]
@@ -1024,22 +1054,32 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             try:
                 pass_enabled = oc_vp[getattr(c4d, oc_pass)]
             except AttributeError:
+                LOGGER.debug("pass not found " + oc_pass)
                 continue
             else:
                 if not pass_enabled:
                     continue
 
             added = False
-            if oc_pass.startswith("VP_PASSES_RL_MASK"):
-                mask_id = oc_pass.strip("VP_PASSES_RL_MASK")
-                short_name = "RLMa" + pass_sep + mask_id
-                nice_name = "objmaskid" + mask_id
-            elif oc_pass.startswith("SET_LIGHTPASS_"):
-                mask_id = oc_pass.strip("SET_LIGHTPASS_")
-                short_name = "Li" + mask_id
-                nice_name = "light pass " + mask_id
-            else:
+
+            try:
                 nice_name, short_name = oc_pass_names[oc_pass]
+            except KeyError:
+                if oc_pass.startswith("VP_PASSES_RL_MASK"):
+                    mask_id = oc_pass.strip("VP_PASSES_RL_MASK")
+                    short_name = "RLMa" + pass_sep + mask_id
+                    nice_name = "objmaskid" + mask_id
+                elif oc_pass.startswith("SET_LIGHTPASS_"):
+                    mask_id = oc_pass.lstrip("SET_LIGHTPASS_")
+                    try:
+                        mask_id, suffix = mask_id.rsplit("_", 1)
+                        nice_suffix = " direct" if suffix == "D" else " indirect"
+                    except ValueError:
+                        suffix = ""
+                        nice_suffix = ""
+
+                    short_name = "Li" + mask_id + suffix  # e.g. "Li1", "Li2", "Li2D" etc...
+                    nice_name = "light pass " + mask_id + nice_suffix
 
             if use_c4d_path and nice_name:
                 nice_name = "{0}_{1}".format(nice_name, num_channels_idx)
@@ -1399,6 +1439,26 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return image_name
 
+    @staticmethod
+    def handleRelativeFileOut(file_path):
+        if not file_path:
+            return file_path
+
+        is_relative = True
+
+        if file_path.startswith(".") and file_path[1] != ".":
+            file_path = file_path[1:]
+            is_relative = True
+        elif file_path[1] == ":":    #windows drive letter
+            is_relative=False
+        elif file_path.startswith("/"):  #osx root path
+            is_relative=False
+        elif file_path.startswith("\\"): #windows unc path
+            is_relative=False
+
+        if is_relative:
+            return "<SceneFolder>/" + file_path
+
     def setFileout(self):
         if self.isMP:
             LOGGER.debug("MultiPass: yes")
@@ -1421,20 +1481,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.job[0].imageName = self.replacePathTokens(self.job[0].imageName)
         LOGGER.debug("imageName is: " + self.job[0].imageName)
 
-        isRelative = True
-        if len(self.job[0].imageName) > 1:
-            if (self.job[0].imageName[0]=="." and self.job[0].imageName[1]!="."):
-                self.job[0].imageName = self.job[0].imageName[1:]
-                isRelative = True
-            elif self.job[0].imageName[1] == ":":    #windows drive letter
-                isRelative=False
-            elif self.job[0].imageName[0] == "/":  #osx root path
-                isRelative=False
-            elif (self.job[0].imageName[0] == "\\"): #windows unc path
-                isRelative=False
-        if isRelative:
-            self.job[0].imageName = "<SceneFolder>/" + self.job[0].imageName
-
+        self.job[0].imageName = self.handleRelativeFileOut(self.job[0].imageName)
         self.job[0].imageName = self.job[0].imageName + "<IMS>"
 
         addStereoString = ""
