@@ -4,20 +4,15 @@
 # %rrVersion%
 #
 #
-# Same commands as the default houdini commandline, but some RR options are set
-#  RenderPreviewFirst ist off, MaxClientsAtATime=1 and DistributeStartToEnd is enabled
-#
-#
 ################################## Identify Render Application ################################## 
 Name= Houdini
-rendererName= SimRender
-Version=10
-Version_Minor=0
+rendererName= createUSD
+Version=18
 Type=3D
 
 
 
-################################## [Windows] [Linux] [Osx] ##################################
+################################## [Windows] [Linux] [Osx] [KSO] ##################################
 
 
 CommandLine=<envFileExecute <rrEnvFile>> 
@@ -33,59 +28,79 @@ CommandLine=
 CommandLine=
 	<SetEnvSoft>
 
+
 CommandLine=
 	<ResetExitCode> 
 
 CommandLine= 
 	"<Exe>"
 	"<PD/ <rrLocalRenderScripts>kso_houdini.py" >
-	-renderer "<AppRenderer>"
-    -scene "<PD/<Scene>>"
+        -scene "<PD/<Scene>>"
+	-renderer "createUSD"
+	-exportmode true
 	-FrStart <SeqStart>
 	-FrEnd <SeqEnd>
 	-FrStep <SeqStep>
 	-FPadding <ImageFramePadding>
-	-FName "<PD/<ImageDir><ImageFilenameVariables_noTile>>" 
-	-FRefName "<PD/<ImageDir><ImageFilenameVariables>>" 
+	-FName "<PD/<ImageDir><ImageFilenameVariables>>" 
 	-FExt "<ImageExtension>" 
+    <ImageSingleOutputFile -FSingleFile True >
  	-rop "<PD/<Layer>>"
  	-threads <CPU>
+    -renderDemo False 
+    -avFrameTime <AvFrameTimeSec>
     <AvFrameTimeMin10 -verbose True>
 	<CONoPerFrameLoop -noFrameLoop True>
     <COIgnoreLoadWarnings -ignoreLoadIssues True>
 	<COSubFrames -subFrames <COSubFrames>>
 	<SequenceDivideMin ? -noFrameLoop True>    
 	-PyModPath <rrLocalRenderScripts><EL<PD>>
-    -KSOMode \n
     <channel -take <channel>>
     <SceneState -wedge <SceneState>>
+	<isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>
-    
+	
+
 CommandLine=
 	<CheckExitCode> <FN>
 
 
 
+
+#################################################
+# KSO settings
+KSO_Type= TCP
+
+KSO_NewFrame= ksoRenderFrame (<SeqStart>, <SeqEnd>, <SeqStep> )
+
+KSO_Close= ksoQuit()
+
+KSOlog_AppStarted= Scene init done, starting to render
+
+KSOlog_Running= rrKSO server started
+
+KSOlog_FrameDone= rrKSO Frame(s) done
+
+KSOlog_Quit=rrKSO closed
+
+
+
+
 ################################## Render Settings ##################################
 
-CONoPerFrameLoop= 0 ~ 1
+CONoPerFrameLoop= 1 ~ 0
 COIgnoreLoadWarnings= 1 ~ 0
 COSubFrames = 1 ~ 0 ~ 4
 
+ImageSizeCommandline= -width <Width> -height <Height>
+
+
+
 ################################## Submitter + Client Settings ################################## 
 
+IconRenderer=r_usd.png
 
 ::include(3D06__Houdini____global.inc)
 
-MaxClientsAtATime=0~1
-DistributeStartToEnd=0~1
-RenderPreviewFirst= 0~0
-KeepSceneOpen=0~0
-
-IconRenderer=3D06__Houdini_sim.png
-
 ::include(<ConfigFileName>__inhouse.inc)
-
-
-

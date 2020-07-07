@@ -4,9 +4,8 @@
 #
 #
 ################################## Identify Render Application ################################## 
-Name= Mantra_StdA
-Version=10
-Version_Minor=0
+Name= USD_StdA
+Version=18
 Type=Archive
 
 
@@ -39,12 +38,12 @@ CommandLine=
 
 
 CommandLine=  "<Exe>"
-	-f <PD/<Scene>>
-	<verboseLevel>
-        <Cores -j <Cores>>
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>
-	<ImageSingleOutputFile	"<PD/<ImageDir><ImageFilename>>"	? "<PD/<ImageDir><ImageFilename><FNimgPadded><ImageExtension>>" >
+    <verboseLevel>
+    --usd-input <PD/<Scene>>
+    <Cores --threads <Cores>>
+	-o <ImageSingleOutputFile	"<PD/<ImageDir><ImageFilename>>"	? "<PD/<ImageDir><ImageFilename><FNimgPadded><ImageExtension>>" >
 
 
 CommandLine=
@@ -57,8 +56,6 @@ CommandLine=
 	"*************** Frame <FN> done ***************"
 
 ################################## Render Settings ################################## 
-sceneIsMultiFrame= 1
-
 FlagsVerbose0= <AvFrameTimeMin10 -V2a ? -V2>
 FlagsVerbose1= -V0
 FlagsVerbose2= -V1
@@ -66,10 +63,7 @@ FlagsVerbose3= -V3a
 FlagsVerbose4= -V7a
 
 
-
 ################################## Submitter Settings ################################## 
-
-SceneFileExtension= *.ifd
 SequenceDivide= 0~1
 AllowImageNameChange= 1
 AllowImageDirChange= 1
@@ -81,14 +75,10 @@ AllowLocalSceneCopy= 0~0
 
 ################################## Client Settings ################################## 
 
-IconApp=empty.png
-IconRenderer=3D06__Houdini_red.png
-
+IconApp=r_usd.png
 
 
 Frozen_MinCoreUsage=1.90
-
-TexReplaceFormat= .ifd ~ Char ~ AlwaysForward
 
 licenseFailLine=  no license available
 licenseFailLine=  no licenses could be found to run this application
