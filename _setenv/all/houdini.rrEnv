@@ -86,12 +86,18 @@ HOUDINI_SCRIPT_PATH  =  <HOUDINI_SCRIPT_PATH>;<RR_HTOA_BASE_LOCAL>\scripts;
     RR_REDSHIFT_VERSION  =  AnyVersion
 [EndIf]
 
-
-
-[If] <RR_REDSHIFT_BASE>  [==] 
-    RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>
+RR_REDSHIFT_FLT = <RR_REDSHIFT_FLT>
+[If] <RR_REDSHIFT_FLT>  [==] 1
+    [If] <RR_REDSHIFT_BASE>  [==] 
+        RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>_flt
+    [EndIf]
+    RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>_flt
+[Else]
+    [If] <RR_REDSHIFT_BASE>  [==] 
+        RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>
+    [EndIf]
+    RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
 [EndIf]
-RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
 echo * RedShift source path is set to <RR_REDSHIFT_BASE>
 echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
 [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
