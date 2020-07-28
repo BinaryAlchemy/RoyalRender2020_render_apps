@@ -634,6 +634,7 @@ try:
         sys.path.append(arg.PyModPath)
         global kso_tcp
         import kso_tcp
+        kso_tcp.rrKSO_logger_init()
     if (not argValid(arg.rendererExportMode)):
         arg.rendererExportMode=False
     if (not argValid(arg.FPadding)):
