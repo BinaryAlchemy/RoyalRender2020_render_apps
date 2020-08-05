@@ -349,6 +349,10 @@ def rrSubmit_CreateAllJob(jobList,noLocalSceneCopy):
             if (writeNode['use_limit'].value()):
                 newJob.seqStart = writeNode['first'].value()
                 newJob.seqEnd = writeNode['last'].value()
+                try:
+                    newJob.seqStep = writeNode['frame_step'].value()
+                except:
+                    newJob.seqStep =1
             newJob.imageFileName= nuke.filename(writeNode)
             if (newJob.seqStart==newJob.seqEnd and (newJob.imageFileName.find("#")<0)):
                 newJob.imageSingleOutput = True
@@ -421,8 +425,12 @@ def rrSubmit_CreateSingleJobs_Node(jobList,noLocalSceneCopy, node):
             newJob.imageStereoR=nViews[0]
             newJob.imageStereoL=nViews[1]
         if (writeNode['use_limit'].value()):
-           newJob.seqStart = writeNode['first'].value()
-           newJob.seqEnd = writeNode['last'].value()
+            newJob.seqStart = writeNode['first'].value()
+            newJob.seqEnd = writeNode['last'].value()
+            try: 
+                newJob.seqStep = writeNode['frame_step'].value()
+            except:
+                newJob.seqStep =1
         newJob.imageFileName= nuke.filename(writeNode)
         if ((newJob.imageFileName== None) or  (len(newJob.imageFileName)<3)):
             return
@@ -484,8 +492,13 @@ def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy):
             newJob.imageStereoR=nViews[0]
             newJob.imageStereoL=nViews[1]
         if (writeNode['use_limit'].value()):
-           newJob.seqStart = writeNode['first'].value()
-           newJob.seqEnd = writeNode['last'].value()
+            newJob.seqStart = writeNode['first'].value()
+            newJob.seqEnd = writeNode['last'].value()
+            try:
+                newJob.seqStep = writeNode['frame_step'].value()
+            except:
+                newJob.seqStep =1
+           
         newJob.imageFileName= nuke.filename(writeNode)
         if ((newJob.imageFileName== None) or  (len(newJob.imageFileName)<3)):
             continue

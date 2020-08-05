@@ -39,6 +39,9 @@ permanentErrorSearchLine = doesn't support the required sdk
 
 licenseFailLine=  Missing serial number
 licenseFailLine= Error: Invalid License
+licenseFailLine= Could not get a license
+licenseFailLine= Error running authentication
+
 
 RealTimeAbortLine= Missing serial number
 RealTimeAbortLine= Render failure detected
@@ -46,6 +49,9 @@ RealTimeAbortLine= create stack trace
 #RealTimeAbortLine= CRITICAL: Stop    We cannot detect this error as there are (Arnold) scenes that report "CRITICAL: Stop [ge_container.h(291)]" once at scene open and continue witrhout issue.
 RealTimeAbortLine= MacOSException::SuspendAllThreads
 RealTimeAbortLine= aborting render script
+RealTimeAbortLine= Could not get a license
+RealTimeAbortLine= Error running authentication
+
 
 
 ErrorSearchLine = Error rendering document

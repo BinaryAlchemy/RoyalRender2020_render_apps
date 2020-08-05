@@ -154,13 +154,25 @@ VRAY_VFB_GUI  =  0
 [Else]
     [If] <RR_MTOA_BASE>  [==] 
         RR_MTOA_NETWORK  =  0
-        [If] <rrExeOS>  [==] win
-            RR_MTOA_BASE  =  C:\SolidAngle\mtoadeploy\<rrExeVersionMinReq>
-        [Else]
-            [If] <rrExeOS>  [==] mac
-                RR_MTOA_BASE  =  /Applications/solidangle/mtoa/<rrExeVersionMinReq>
+        [If] <rrExeVersionMajor>  [<] 2020
+            [If] <rrExeOS>  [==] win
+                RR_MTOA_BASE  =  C:\SolidAngle\mtoadeploy\<rrExeVersionMinReq>
             [Else]
-                RR_MTOA_BASE  =  /opt/solidangle/mtoa/<rrExeVersionMinReq>
+                [If] <rrExeOS>  [==] mac
+                    RR_MTOA_BASE  =  /Applications/solidangle/mtoa/<rrExeVersionMinReq>
+                [Else]
+                    RR_MTOA_BASE  =  /opt/solidangle/mtoa/<rrExeVersionMinReq>
+                [EndIf]
+            [EndIf]
+        [Else]
+            [If] <rrExeOS>  [==] win
+                RR_MTOA_BASE  =  C:\Program Files\Autodesk\Arnold\maya<rrExeVersionMajor>
+            [Else]
+                [If] <rrExeOS>  [==] mac
+                    RR_MTOA_BASE  =  /Applications/solidangle/mtoa/<rrExeVersionMinReq>
+                [Else]
+                    RR_MTOA_BASE  =  /opt/solidangle/mtoa/<rrExeVersionMinReq>
+                [EndIf]
             [EndIf]
         [EndIf]
     [EndIf]
