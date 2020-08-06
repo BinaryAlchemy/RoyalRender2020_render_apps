@@ -40,5 +40,8 @@ permanentErrorSearchLine = Unable to connect to hserver for license
 errorSearchLine = aborting render script
 
 RenderAppWindow_WIN= Houdini DSO Error ~ Couldn't load ~ 1 ~ Button ~ OK
+RenderAppWindow_WIN= Houdini ~ installed OpenGL driver is not able ~ 1 ~ Button ~ OK
+
+
 
 ::include(3D06__Houdini____global__inhouse.inc)

@@ -369,7 +369,7 @@ def applyRendererOptions_default():
             logMessage(e)
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -462,7 +462,7 @@ def applyRendererOptions_createUSD():
     logMessage("Exporting USD files")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -474,7 +474,7 @@ def applyRendererOptions_USD():
     logMessage("Rendering USD/LOP")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -486,7 +486,7 @@ def applyRendererOptions_openGl():
     logMessage("Rendering with openGL renderer")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -499,7 +499,7 @@ def applyRendererOptions_geometry():
     logMessage("Rendering with geometry exporter")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -512,7 +512,7 @@ def applyRendererOptions_alembic(singleFile):
     logMessage("Rendering with alembic exporter")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -532,7 +532,7 @@ def applyRendererOptions_Arnold():
     logMessage("Rendering with Arnold")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -558,7 +558,7 @@ def applyRendererOptions_PRman():
     logMessage("Rendering with VRay")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -579,7 +579,7 @@ def applyRendererOptions_VRay():
     logMessage("Rendering with VRay")
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")
@@ -607,7 +607,7 @@ def applyRendererOptions_Redshift():
     arg.rop.parm('RS_renderToMPlay').set(0)
     if (argValid(arg.take)):
         logMessageSET("take to "+arg.take)
-        try
+        try:
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.layer +"!")

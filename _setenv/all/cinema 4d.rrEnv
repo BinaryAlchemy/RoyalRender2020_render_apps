@@ -159,7 +159,7 @@ LicenseFlags= <LicenseFlags>
 
         g_additionalModulePath = <g_additionalModulePath>;<RR_ARNOLD_BASE_LOCAL>
 [EndIf]
-
+ARNOLD_ADP_OPTIN = 0
 
 
 
