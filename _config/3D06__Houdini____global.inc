@@ -36,6 +36,7 @@ permanentErrorSearchLine = ABORT ABORT ABORT
 permanentErrorSearchLine = OperationFailed
 permanentErrorSearchLine = Unable to initialize
 permanentErrorSearchLine = Unable to connect to hserver for license
+permanentErrorSearchLine = The installed OpenGL driver is not able to run OpenGL
 
 errorSearchLine = aborting render script
 
