@@ -59,6 +59,7 @@ ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
 ErrorSearchLine = Not enough memory...
+ErrorSearchLine = net.maxon.ui.class.osclipboard is missing
 
 
 RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
