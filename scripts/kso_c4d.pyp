@@ -150,6 +150,7 @@ class ArnoldSymbols():
     ARNOLD_DRIVER = 1030141
     ARNOLD_LIGHT = 1030424
     ARNOLD_PROCEDURAL = 1032509
+    ARNOLD_VOLUME = 1033693
     ARNOLD_SCENE_HOOK = 1032309
     ARNOLD_SHADER_NETWORK = 1033991
     ARNOLD_SHADER_GV = 1033990
@@ -258,6 +259,9 @@ class ArnoldSymbols():
         C4DAIN_DRIVER_TIFF: C4DAIP_DRIVER_TIFF_FILENAME
     }
 
+    # res/description/ainode_volume.h
+    C4DAIP_VOLUME_FILENAME = 1869200172
+
     # Message IDs
     C4DTOA_MSG_TYPE = 1000
     C4DTOA_MSG_PARAM1 = 2001
@@ -323,6 +327,16 @@ def arnoldConvertProcedural(ob, fromOS, toOS):
     if proc_path_new:
         logMessage("C4DtoA proc: Convert path {0} to {1}".format(proc_path, proc_path_new))
         ob[c4d.C4DAI_PROCEDURAL_PATH] = proc_path_new
+
+
+def arnoldConvertVolume(ob, fromOS, toOS):
+    volume_path = ob[ArnoldSymbols.C4DAIP_VOLUME_FILENAME]
+    volume_path_new = convertFilepath(volume_path, fromOS, toOS)
+
+    if volume_path_new:
+        logMessage("C4DtoA proc: Convert path {0} to {1}".format(volume_path, volume_path_new))
+        ob[ArnoldSymbols.C4DAIP_VOLUME_FILENAME] = volume_path_new
+        ob[ArnoldSymbols.C4DAIP_VOLUME_FILENAME] = volume_path_new  # you need to set volume path twice: the first time numbers are converted to '#'
 
 
 def arnoldLinkedTexShader(ob, attr_code):
@@ -461,6 +475,9 @@ def arnoldConvertObjectPaths(ob, fromOS, toOS):
         # arnold Sky
         elif type_id == ArnoldSymbols.ARNOLD_SKY:
             arnoldConvertSky(ob, fromOS, toOS)
+        # arnold Volume
+        elif type_id == ArnoldSymbols.ARNOLD_VOLUME:
+            arnoldConvertVolume(ob, fromOS, toOS)
         # arnold driver
         elif type_id == ArnoldSymbols.ARNOLD_DRIVER:
             if ob[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:  # disabled in c4d

@@ -1459,6 +1459,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if is_relative:
             return "<SceneFolder>/" + file_path
 
+        return file_path
+
     def setFileout(self):
         if self.isMP:
             LOGGER.debug("MultiPass: yes")
