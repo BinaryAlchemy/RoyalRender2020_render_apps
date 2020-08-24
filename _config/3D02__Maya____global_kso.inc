@@ -4,6 +4,7 @@ IconApp=3D02__Maya.png
 MarkStandardErrorOutput= 0
 MultiOSScenes=0~1
 
+
 ################################## Submitter Settings ################################## 
 
 SceneFileExtension= *.ma;*.mb
@@ -22,7 +23,7 @@ ImageSize= 4:3 Big   ~ 1000~750
 ImageSize= 16:9     ~ 1024~576
 
 CODisableImagePlanes= 1~0
-
+CONoPerFrameLoop= 1 ~ 0
 
 
 ################################## Client Settings ################################## 
