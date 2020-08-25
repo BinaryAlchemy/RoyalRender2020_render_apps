@@ -149,6 +149,9 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     frameRange = (localFrStart,localFrEnd,localFrStep)
     if (argValid(arg.wedge)):
         arg.rop.parm('trange').set("normal")
+        arg.rop.parm('f1').deleteAllKeyframes()
+        arg.rop.parm('f2').deleteAllKeyframes()
+        arg.rop.parm('f3').deleteAllKeyframes()        
         arg.rop.parm('f1').set(frameRange[0])
         arg.rop.parm('f2').set(frameRange[1])
         arg.rop.parm('f3').set(frameRange[2])
