@@ -23,7 +23,7 @@ UIStyle= 1~dark
 
 
 COhdrFrameBuffer= 1 ~ 1
-
+COListenerLog=0~0
 
 
 ################################## Client Settings ################################## 
