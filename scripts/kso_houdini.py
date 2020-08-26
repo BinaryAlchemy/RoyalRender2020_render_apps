@@ -665,9 +665,11 @@ try:
         import sys
         logMessage("Append python search path with '" +arg.PyModPath+"'" )
         sys.path.append(arg.PyModPath)
-        global kso_tcp
-        import kso_tcp
-        kso_tcp.rrKSO_logger_init()
+    global kso_tcp
+    import kso_tcp
+    kso_tcp.USE_LOGGER= False
+    kso_tcp.USE_DEFAULT_PRINT= True        
+    kso_tcp.rrKSO_logger_init()
     if (not argValid(arg.rendererExportMode)):
         arg.rendererExportMode=False
     if (not argValid(arg.FPadding)):
