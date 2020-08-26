@@ -14,7 +14,8 @@ import ConfigParser
 import MaxPlus
 
 
-USE_DEFAULT_PRINT = True
+USE_DEFAULT_PRINT = False
+USE_LOGGER = True
 PRINT_DEBUG = False
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
 PREV_FPADDING = -1  # digits added to render element filenames during previous renders
@@ -24,8 +25,8 @@ GLOBAL_ARG = None  # required for KSO rendering
 ################ Logger Functions ################
 
 def flushLog():
-    global USE_DEFAULT_PRINT
-    if USE_DEFAULT_PRINT:
+    global USE_LOGGER
+    if USE_LOGGER:
         sys.stdout.flush()
         sys.stderr.flush()
     else:
@@ -100,7 +101,7 @@ def rrMax_logger(func):
 
     def wrapper(msg):
         func(msg, logger=logger)
-        if USE_DEFAULT_PRINT:
+        if USE_LOGGER:
             MaxPlus.Core.EvalMAXScript("flushLog()")
         else:
             closeHandlers(logger)
@@ -119,7 +120,7 @@ def io_retry(func, wait_secs=0.35, num_tries=3):
     """
     def wrapper(msg, logger):
 
-        if USE_DEFAULT_PRINT:
+        if USE_LOGGER:
             func(msg, logger)
             return
 
@@ -973,7 +974,7 @@ def render_main():
     ##############################################################################
     # MAIN "FUNCTION":
     ##############################################################################
-    global USE_DEFAULT_PRINT
+    global USE_LOGGER
     global GLOBAL_ARG
     global PRINT_DEBUG
 
@@ -987,10 +988,10 @@ def render_main():
     if not argValid(arg.MaxBatchMode):
         arg.MaxBatchMode = False
 
-    USE_DEFAULT_PRINT = arg.MaxBatchMode
-    if USE_DEFAULT_PRINT:
+    USE_LOGGER = arg.MaxBatchMode
+    if USE_LOGGER:
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        logMessage("USE_DEFAULT_PRINT")
+        logMessage("USE_LOGGER")
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
         logMessage("USE_LOGFILE_PRINT")
@@ -1005,7 +1006,8 @@ def render_main():
     logMessage("Importing rrKSO...")
     global kso_tcp
     import kso_tcp
-    kso_tcp.USE_DEFAULT_PRINT= USE_DEFAULT_PRINT
+    kso_tcp.USE_LOGGER= USE_LOGGER
+    kso_tcp.USE_DEFAULT_PRINT= False
     kso_tcp.LOGGER_FILENAME= arg.logFile
     
     if argValid(arg.AdditionalCommandlineParam):
@@ -1279,7 +1281,7 @@ if __name__ == "__main__":
     try:
         render_main()
     except:
-        if not USE_DEFAULT_PRINT:
+        if not USE_LOGGER:
             # make sure we release "rrMaxRender.log": the .ms script needs to write to it
             closeHandlers(logging.getLogger("rrMax"))
         raise

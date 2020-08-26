@@ -22,7 +22,8 @@ log_command_end="')"
 commandTimeout=180
 PRINT_DEBUG= False
 LOGGER_NAME = "rrKSO_TCP"
-USE_DEFAULT_PRINT = True
+USE_DEFAULT_PRINT = False
+USE_LOGGER = True
 LOGGER_WAS_SETUP= False
 LOGGER_FILENAME=""
 LOGGER_ADD_TIME = True
@@ -34,7 +35,8 @@ LOGGER_ADD_TIME = True
 
 def flushLog():
     global USE_DEFAULT_PRINT
-    if USE_DEFAULT_PRINT:
+    global USE_LOGGER
+    if USE_DEFAULT_PRINT or USE_LOGGER:
         sys.stdout.flush()
         sys.stderr.flush()
     else:
@@ -97,8 +99,11 @@ def setLogger(log_level=20, log_name=LOGGER_NAME, log_file=None, log_to_stream=F
 def rrKSO_logger_init():        
     global USE_DEFAULT_PRINT
     global PRINT_DEBUG
+    global USE_LOGGER
     LOGGER_WAS_SETUP= True
-    if USE_DEFAULT_PRINT:
+    if USE_LOGGER:
+        pass
+    elif USE_DEFAULT_PRINT:
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
     else:
         setLogger(log_file=LOGGER_FILENAME, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
@@ -113,16 +118,25 @@ def rrKSO_logger(func):
     :return: wrapped function
     """
     logger = logging.getLogger(LOGGER_NAME)
-
     def wrapper(msg):
+        global USE_LOGGER
+        global USE_DEFAULT_PRINT
         func(msg, logger=logger)
-        if USE_DEFAULT_PRINT:
+        if USE_DEFAULT_PRINT or USE_LOGGER:
             flushLog()
         else:
             closeHandlers(logger)
 
     return wrapper
 
+def logMessageGenKSO(lvl, msg):
+    if (len(lvl)==0):
+        msg=datetime.datetime.now().strftime("%H:%M.%S") + " rrKSO      : " + str(msg)
+    else:
+        msg=datetime.datetime.now().strftime("%H:%M.%S") + " rrKSO - " + str(lvl) + ": " + str(msg)
+    msg= msg.replace("\'","\\\'").replace("\n","\\\n")
+    msg= log_command+msg+log_command_end
+    exec(msg)
 
 def io_retry(func, wait_secs=0.35, num_tries=3):
     """Wrapper that re-executes given function num_tries times, waiting wait_time between tries.
@@ -134,8 +148,10 @@ def io_retry(func, wait_secs=0.35, num_tries=3):
     :return: wrapped function
     """
     def wrapper(msg, logger):
+        global USE_LOGGER
+        global USE_DEFAULT_PRINT
 
-        if USE_DEFAULT_PRINT:
+        if USE_DEFAULT_PRINT or USE_LOGGER:
             func(msg, logger)
             return
 
@@ -157,36 +173,62 @@ def io_retry(func, wait_secs=0.35, num_tries=3):
 @rrKSO_logger
 @io_retry
 def logMessage(msg, logger=None):
-    logger.info(msg)
+    global USE_DEFAULT_PRINT
+    if USE_DEFAULT_PRINT:
+        logMessageGenKSO("",msg)
+    else:
+        logger.info(msg)
 
 
 @rrKSO_logger
 @io_retry
 def logMessageSET(msg, logger=None):
-    logger.set(msg)
+    global USE_DEFAULT_PRINT
+    if USE_DEFAULT_PRINT:
+        logMessageGenKSO("SET",msg)
+    else:
+        logger.set(msg)
 
 
 @rrKSO_logger
 @io_retry
 def logMessageWarn(msg, logger=None):
-    logger.warning(msg)
+    global USE_DEFAULT_PRINT
+    if USE_DEFAULT_PRINT:
+        logMessageGenKSO("WRN",msg)
+    else:
+        logger.warning(msg)
 
 
 @rrKSO_logger
 @io_retry
 def logMessageDebug(msg, logger=None):
-    logger.debug(msg)
+    global USE_DEFAULT_PRINT
+    global PRINT_DEBUG
+    if USE_DEFAULT_PRINT:
+        if PRINT_DEBUG:
+            logMessageGenKSO("WRN",msg)
+    else:
+        logger.debug(msg)
 
 
 @rrKSO_logger
 @io_retry
 def logMessageFile(msg, logger=None):
-    logger.outfile(msg)
+    global USE_DEFAULT_PRINT
+    if USE_DEFAULT_PRINT:
+        logMessageGenKSO("FLE",msg)
+    else:
+        logger.outfile(msg)
     
 @rrKSO_logger
 @io_retry
 def logMessageError(msg, logger=None):
-    logger.error(msg)
+    global USE_DEFAULT_PRINT
+    if USE_DEFAULT_PRINT:
+        logMessageGenKSO("ERR",msg)
+    else:
+        logger.error(msg)
    
 
 class _RRCommands():

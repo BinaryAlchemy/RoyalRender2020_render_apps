@@ -22,6 +22,7 @@ if (sys.version_info.major == 2):
 
 
 USE_DEFAULT_PRINT = False
+USE_LOGGER = False
 LOGGER_ADD_TIME = True
 PRINT_DEBUG = False
 ELEMENT_FILENAME_ChangedOnce = False  # True if render element filenames have been set at render time
@@ -32,8 +33,8 @@ GLOBAL_ARG = None  # required for KSO rendering
 ################ Logger Functions ################
 
 def flushLog():
-    global USE_DEFAULT_PRINT
-    if USE_DEFAULT_PRINT:
+    global USE_LOGGER
+    if USE_LOGGER:
         sys.stdout.flush()
         sys.stderr.flush()
     else:
@@ -112,7 +113,7 @@ def rrMax_logger(func):
 
     def wrapper(msg):
         func(msg, logger=logger)
-        if USE_DEFAULT_PRINT:
+        if USE_LOGGER:
             rt.flushlog()
         else:
             closeHandlers(logger)
@@ -131,7 +132,7 @@ def io_retry(func, wait_secs=0.35, num_tries=3):
     """
     def wrapper(msg, logger):
 
-        if USE_DEFAULT_PRINT:
+        if USE_LOGGER:
             func(msg, logger)
             return
 
@@ -941,7 +942,7 @@ def render_main():
     ##############################################################################
     # MAIN "FUNCTION":
     ##############################################################################
-    global USE_DEFAULT_PRINT
+    global USE_LOGGER
     global GLOBAL_ARG
     global PRINT_DEBUG
     global LOGGER_ADD_TIME
@@ -956,11 +957,11 @@ def render_main():
     if not argValid(arg.MaxBatchMode):
         arg.MaxBatchMode = False
 
-    USE_DEFAULT_PRINT = False #it is not possible to use print to stdOut in 3dsmax-batch/-cmd. stdErr is possible, but 3dsmax reports an error in this case
-    if USE_DEFAULT_PRINT:
+    USE_LOGGER = False #it is not possible to use print to stdOut in 3dsmax-batch/-cmd. stdErr is possible, but 3dsmax reports an error in this case
+    if USE_LOGGER:
         LOGGER_ADD_TIME= False
         setLogger(log_to_stream=True, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
-        logMessageDebug("USE_DEFAULT_PRINT")
+        logMessageDebug("USE_LOGGER")
     else:
         setLogger(log_file=arg.logFile, log_level=logging.DEBUG if PRINT_DEBUG else logging.INFO)
         logMessageDebug("USE_LOGFILE_PRINT")
@@ -979,6 +980,7 @@ def render_main():
     global kso_tcp
     import kso_tcp
     kso_tcp.USE_DEFAULT_PRINT= False #somehow the default logging does not work any more in 3dsmaxBatch once the TCP server handle function is called
+    kso_tcp.USE_LOGGER= False #somehow the default logging does not work any more in 3dsmaxBatch once the TCP server handle function is called
     kso_tcp.LOGGER_ADD_TIME= True
     kso_tcp.LOGGER_FILENAME= arg.logFile
     kso_tcp.rrKSO_logger_init()
@@ -1244,7 +1246,7 @@ def render_main():
         # enforce 16 bit float exr
         rt.fopenexr.setLayerOutputFormat(0, 1)
         
-#    if not USE_DEFAULT_PRINT:    
+#    if not USE_LOGGER:    
  #       logMessage("SLEEEEEP 120")
   #      time.sleep(120) #rrClient needs some time to capture the seperate log file
     
@@ -1280,7 +1282,7 @@ if __name__ == "__main__":
     try:
         render_main()
     except:
-        if not USE_DEFAULT_PRINT:
+        if not USE_LOGGER:
             # make sure we release "rrMaxRender.log": the .ms script needs to write to it
             closeHandlers(logging.getLogger("rrMax"))
         raise
