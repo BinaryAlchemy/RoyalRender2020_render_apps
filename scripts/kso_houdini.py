@@ -375,7 +375,7 @@ def applyRendererOptions_default():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName=arg.FName
     if (argValid(arg.totalTiles) and (int(arg.totalTiles)>1)):
         arg.rop.parm('vm_tile_render').set(1)
@@ -468,7 +468,7 @@ def applyRendererOptions_createUSD():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('lopoutput').set(outFileName)
     
@@ -480,7 +480,7 @@ def applyRendererOptions_USD():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('outputimage').set(outFileName)
     
@@ -492,7 +492,7 @@ def applyRendererOptions_openGl():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('picture').set(outFileName)
 
@@ -505,10 +505,12 @@ def applyRendererOptions_geometry():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName= addFrameNumber_and_Log(arg.FName)
-    arg.rop.parm('sopoutput').set(outFileName )
-
+    try:
+        arg.rop.parm('sopoutput').set(outFileName )
+    except:
+        logMessage("Error: Unable to change output in "+ arg.ropName +"!")
 
 def applyRendererOptions_alembic(singleFile):
     global arg
@@ -518,7 +520,7 @@ def applyRendererOptions_alembic(singleFile):
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName=arg.FName
     if singleFile:
         outFileName= outFileName
@@ -538,7 +540,7 @@ def applyRendererOptions_Arnold():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     if (arg.renderDemo):
         arg.rop.parm('ar_abort_on_license_fail').set(0)
         arg.rop.parm('ar_skip_license_check').set(1)
@@ -564,7 +566,7 @@ def applyRendererOptions_PRman():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     outFileName= addFrameNumber_and_Log(outFileName)
     if (arg.rendererExportMode):
         arg.rop.parm('docapture').set(1)
@@ -585,7 +587,7 @@ def applyRendererOptions_VRay():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     if (arg.rendererExportMode):
         arg.rop.parm('render_export_mode').set("2")
         archiveName=""
@@ -613,7 +615,7 @@ def applyRendererOptions_Redshift():
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.layer +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
     if (argValid(arg.gpuBits)):
         logMessageSET("GPUs to be used: "+arg.gpuBits)
         hou.hscript("Redshift_setGPU -s "+arg.gpuBits) 
