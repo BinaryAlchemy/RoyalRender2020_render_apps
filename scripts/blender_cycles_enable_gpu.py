@@ -24,7 +24,6 @@ def enable_gpu_devices():
         prefs = bpy.context.user_preferences
 
     cprefs = prefs.addons['cycles'].preferences
-    cprefs.compute_device_type = 'CUDA'
 
     # Attempt to set GPU device types if available
     for compute_device_type in ('CUDA', 'OPENCL', 'NONE'):
@@ -32,11 +31,16 @@ def enable_gpu_devices():
             cprefs.compute_device_type = compute_device_type
             break
         except TypeError:
-            pass
+            print("Failed to enable gpu")
+            raise
 
     # Enable all CPU and GPU devices
-    for device in cprefs.devices:
-        device.use = True
+    print("GPU set to", cprefs.compute_device_type)
+
+    for device in cprefs.get_devices(bpy.context):
+        for dev_entry in device:
+            print("\tenabling device", dev_entry.name)
+            dev_entry.use = True
 
 
 if __name__ == "__main__":
