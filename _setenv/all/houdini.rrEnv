@@ -198,7 +198,7 @@ QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 [EndIf]
 [If] <rrJobRenderer>  [contains] createRIB
     [If] <RR_RENDERMAN_VERSION>  [==] 
-        echo * Creating with renderman
+        echo * Creating .rib with renderman
         RR_RENDERMAN_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]

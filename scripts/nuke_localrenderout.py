@@ -108,19 +108,23 @@ def isGizmo(node):
 
 
 
-def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None):
+def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, write_node_output=None):
     """Set output paths to the RR local directory. If specified, only the Write Node
     named 'write_node_name' is  processed
     """
     writeInfo("-----------------LocalRenderOut-----------------")
-
     orgDir=orgDir.replace("\\","/")
     locDir=locDir.replace("\\","/")
     orgDirWinDrive=orgDirWinDrive.replace("\\","/")
 
-    writeInfo("Replacing: "+orgDir+" => "+locDir)
-    writeInfo("Replacing: "+orgDirWinDrive+" => "+locDir)
-    writeInfo("")
+    if write_node_name:
+        writeInfo("Editing write node '"+ write_node_name+ "' only ")
+    if write_node_output:
+        writeInfo("Overriding output to '"+ write_node_output+ "'")
+    else:
+        writeInfo("Replacing: "+orgDir+" => "+locDir)
+        writeInfo("Replacing: "+orgDirWinDrive+" => "+locDir)
+        writeInfo("")
 
     #replace all scripted paths in all read nodes
     #change render path to local render out
@@ -135,15 +139,18 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None):
 
         writeDebug("\t writeNode: " + writeNode['name'].value())
         write_node_found = True
-##        if isGizmo(writeNode):
-##            with writeNode:
-##                gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
-##                for gnode in gList:
-##                    if (gnode['disable'].value()):
-##                        continue
-##                    convertPath(gnode, orgDir, orgDirWinDrive, locDir, True,"file")
-##        else:
-        convertPath(writeNode, orgDir, orgDirWinDrive, locDir, True,"file")
+        if write_node_output:
+            writeNode["file"].setValue(write_node_output)
+        else:
+##            if isGizmo(writeNode):
+##                with writeNode:
+##                    gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
+##                    for gnode in gList:
+##                        if (gnode['disable'].value()):
+##                            continue
+##                        convertPath(gnode, orgDir, orgDirWinDrive, locDir, True,"file")
+##            else:
+            convertPath(writeNode, orgDir, orgDirWinDrive, locDir, True,"file")
 
     if not write_node_found:
         if write_node_name:
@@ -160,9 +167,15 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None):
         pathScripted=readNode['file'].value()
         if ((pathScripted== None) or (len(pathScripted)<3)):
             continue
-        pathResolved=nuke.filename(readNode)
-        readNode['file'].setValue(pathResolved)
+        if ("[string" in pathScripted) or ("[value" in pathScripted) or ("[python" in pathScripted):
+            pathResolved= nuke.filename(readNode)
+        else:
+            continue
+        if (pathResolved==None):
+            writeInfo("Error changing filename of read node " + readNode['name'].value() + ":  "+str(pathScripted)+"  "+str(pathResolved))
+            continue
         if (pathScripted!=pathResolved):
+            readNode['file'].setValue(pathResolved)
             writeInfo("    "+readNode['name'].value()+":   "+pathScripted+" => "+pathResolved)
 
 
@@ -261,5 +274,5 @@ if __name__ == "__main__":
 
     nuke.scriptOpen(srcFilename)
     crossOSConvert(locRenderScripts, sceneOSstr, write_node_name=layer)
-    makeLocalRenderOut(srcBasePath, srcBasePath_DriveLetter, locOutputPath, write_node_name=layer)
+    makeLocalRenderOut(srcBasePath, srcBasePath_DriveLetter, locOutputPath, write_node_name=layer, write_node_output=image_name)
     nuke.scriptSaveAs(locFileName, 1)

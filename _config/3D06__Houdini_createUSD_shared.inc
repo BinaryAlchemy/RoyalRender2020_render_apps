@@ -89,9 +89,6 @@ KSOlog_Quit=rrKSO closed
 
 ################################## Render Settings ##################################
 
-CONoPerFrameLoop= 1 ~ 0
-COIgnoreLoadWarnings= 1 ~ 0
-COSubFrames = 1 ~ 0 ~ 4
 
 ImageSizeCommandline= -width <Width> -height <Height>
 

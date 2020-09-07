@@ -47,7 +47,18 @@ def argValid(argValue):
     return ((argValue!= None) and (len(str(argValue))>0))
 
 def switchTake(takeName):
-    hou.hscript("takeset "+takeName) #replaced by hou.takes.setCurrentTake() since version ??
+    houVersion= hou.applicationVersion()
+    logMessage("Houdini version: "+str(houVersion[0])+" "+str(houVersion))
+    if (houVersion[0]>17):
+        if (takeName=="Main"):
+            logMessageSET("scene take to main (master) take")
+            hou.takes.setCurrentTake(hou.takes.rootTake())
+        else:
+            logMessageSET("scene take to " + takeName)
+            hou.takes.setCurrentTake(hou.takes.findTake(takeName))
+    else:
+       logMessageSET("scene take to " + takeName)
+       hou.hscript("takeset "+takeName) #replaced by hou.takes.setCurrentTake() since version ??
     #hou.hscript("set -g WEDGE ="+takeName)
    
 
@@ -139,6 +150,16 @@ def formatExceptionInfo(maxTBlevel=5):
          excTb = traceback.format_tb(trbk, maxTBlevel)
          return (excName, excArgs, excTb)
 
+
+def setParmException(node, parmName, value):
+    try:
+        node.parm(parmName).deleteAllKeyframes()
+    except:
+        logMessage("Error: Unable to delete keyframes of "+ node.name() + "." + parmName + " !")
+    try:
+        arg.rop.parm('sopoutput').set(value )
+    except:
+        logMessage("Error: Unable to change "+ node.name() +"."+ parmName + " to " + str(value) + " !")    
 
 
 
@@ -371,11 +392,11 @@ def applyRendererOptions_default():
             logMessage("Error: Unable to set thread count")
             logMessage(e)
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName=arg.FName
     if (argValid(arg.totalTiles) and (int(arg.totalTiles)>1)):
         arg.rop.parm('vm_tile_render').set(1)
@@ -464,11 +485,11 @@ def applyRendererOptions_createUSD():
     global arg
     logMessage("Exporting USD files")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('lopoutput').set(outFileName)
     
@@ -476,11 +497,11 @@ def applyRendererOptions_USD():
     global arg
     logMessage("Rendering USD/LOP")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('outputimage').set(outFileName)
     
@@ -488,11 +509,11 @@ def applyRendererOptions_openGl():
     global arg
     logMessage("Rendering with openGL renderer")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('picture').set(outFileName)
 
@@ -501,26 +522,23 @@ def applyRendererOptions_geometry():
     global arg
     logMessage("Rendering with geometry exporter")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
-    try:
-        arg.rop.parm('sopoutput').set(outFileName )
-    except:
-        logMessage("Error: Unable to change output in "+ arg.ropName +"!")
+    setParmException(arg.rop, 'sopoutput' , outFileName)
 
 def applyRendererOptions_alembic(singleFile):
     global arg
     logMessage("Rendering with alembic exporter")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName=arg.FName
     if singleFile:
         outFileName= outFileName
@@ -536,11 +554,11 @@ def applyRendererOptions_Arnold():
     global arg
     logMessage("Rendering with Arnold")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     if (arg.renderDemo):
         arg.rop.parm('ar_abort_on_license_fail').set(0)
         arg.rop.parm('ar_skip_license_check').set(1)
@@ -560,34 +578,47 @@ def applyRendererOptions_Arnold():
     
 def applyRendererOptions_PRman():
     global arg
-    logMessage("Rendering with VRay")
+    logMessage("Rendering with PRman")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
-    outFileName= addFrameNumber_and_Log(outFileName)
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+    outFileName= addFrameNumber_and_Log(arg.FName)
     if (arg.rendererExportMode):
-        arg.rop.parm('docapture').set(1)
+        try:
+            arg.rop.parm('rib_outputmode').set(1) #Houdini ROP
+        except:
+            pass
+        try:
+            arg.rop.parm('diskfile').set(1)   #prman v23
+        except:
+            pass
         arg.rop.parm('soho_diskfile').set(outFileName)
-        #debugOutputName = arg.rop.parm('soho_diskfile').eval()
-        #logMessageSET("output name to "+debugOutputName+ "(evaluated)")        
-        logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('ri_display_0').eval()))
+        logMessage("Info: Not touching image output")
     else:
-        arg.rop.parm('docapture').set(0)
-        arg.rop.parm('ri_display_0').set(outFileName)
+        try:
+            arg.rop.parm('rib_outputmode').set(0) #Houdini ROP
+        except:
+            pass
+        try:
+            arg.rop.parm('diskfile').set(0)   #prman v23
+        except:
+            pass       
+        setParmException(arg.rop, 'ri_display' , outFileName) #Houdini ROP
+        setParmException(arg.rop, 'ri_display_0' , outFileName) #prman v23 ROP
 
 
 def applyRendererOptions_VRay():
     global arg
     logMessage("Rendering with VRay")
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     if (arg.rendererExportMode):
         arg.rop.parm('render_export_mode').set("2")
         archiveName=""
@@ -611,11 +642,11 @@ def applyRendererOptions_Redshift():
     arg.rop.parm('RS_outputEnable').set(1)
     arg.rop.parm('RS_renderToMPlay').set(0)
     if (argValid(arg.take)):
-        logMessageSET("take to "+arg.take)
+        logMessageSET("ROP take to "+arg.take)
         try:
             arg.rop.parm('take').set(arg.take)
         except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +"!")
+            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     if (argValid(arg.gpuBits)):
         logMessageSET("GPUs to be used: "+arg.gpuBits)
         hou.hscript("Redshift_setGPU -s "+arg.gpuBits) 
@@ -644,15 +675,15 @@ def applyRendererOptions_Redshift():
                 logMessageSET("Skip existing frames to True")
                 arg.rop.parm('RS_outputSkipRendered').set(1)
             else:
+                logMessageSET("Skip existing frames to False")
                 arg.rop.parm('RS_outputSkipRendered').set(0)
         else:
             arg.rop.parm('RS_outputSkipRendered').set(0)
-        arg.rop.parm('RS_archive_enable').set(0)
-        arg.rop.parm('RS_outputFileNamePrefix').set(outFileName)
-        arg.rop.parm('RS_outputFileFormat').set(arg.FExt)
-       
-    
-       
+        setParmException(arg.rop,'RS_archive_enable',0)
+        setParmException(arg.rop,'RS_outputFileNamePrefix',outFileName)
+        setParmException(arg.rop,'RS_outputFileFormat',arg.FExt)
+
+              
 
 #main function:
 try:
@@ -706,10 +737,9 @@ try:
         logMessageError( "Error loading scene: 'hou.hipFile.load' operation failed \n"+str(e), (not arg.ignoreLoadIssues))
     except Exception as e:
         logMessageError( "Error loading scene: \n"+str(e), True)
-
+        
     if (argValid(arg.take)):
-        switchTake("Main")
-        # we have to switch to the main take to be able to change render settings
+        switchTake("Main") #we have to switch to the main take to be able to change render settings
         arg.FName= arg.FName.replace("<Channel>",arg.take)
         arg.FRefName= arg.FRefName.replace("<Channel>",arg.take)
     else:
@@ -726,6 +756,7 @@ try:
         logMessageError("Node \"" + arg.ropName + "\" does not exist" , True)
     else:
         logMessage("Rendering rop:   name:"+arg.rop.name()+"   node type:"+arg.rop.type().name())
+                
     logMessage("renderer "+str(arg.renderer))
     if (arg.renderer=="arnold"):
         applyRendererOptions_Arnold()
@@ -751,12 +782,10 @@ try:
         arg.renderer= "mantra"
         applyRendererOptions_default()
         
-        
-        
     if (argValid(arg.take)):
-        logMessageSET("scene take to "+arg.take)
         switchTake(arg.take)
-
+        
+        
     if (argValid(arg.wedge)):
         switchWedge(arg)
 
@@ -780,4 +809,4 @@ try:
 
             
 except Exception as e:
-    logMessageError( str(e)+"\n"+str(formatExceptionInfo()), False)
+    logMessageError( str(e)+"\n"+str(formatExceptionInfo()), True)
