@@ -94,17 +94,30 @@ def append_vray_params(submit_args):
 
 
 def append_prman_params(submit_args):
+    import os
+    
+    try:
+        import about
 
-    prman_ver = "23"
-
-    submit_args.append("-customRenVer_prman")
-    submit_args.append(prman_ver)
-    submit_args.append("-customRenVer_usd_prman")
-    submit_args.append(prman_ver)
-    submit_args.append("-customRenVer_createUSD_prman")
-    submit_args.append(prman_ver)
+        rfh_path = os.environ['RFHTREE']
+        version = about._rfhReadVersion(os.path.join(rfh_path, about._rfhGetVersion(), 'etc', 'buildid.txt'))
+        prman_ver=version["versionStr"]
+        prman_ver= prman_ver.replace('RenderMan', '')
+        prman_ver= prman_ver.replace('for', '')
+        prman_ver= prman_ver.replace('Houdini', '')
+        prman_ver= prman_ver.strip()
+        
+        submit_args.append("-customRenVer_prman")
+        submit_args.append(prman_ver)
+        submit_args.append("-customRenVer_usd_prman")
+        submit_args.append(prman_ver)
+        submit_args.append("-customRenVer_createUSD_prman")
+        submit_args.append(prman_ver)
+    except:
+        return False
 
     return True
+
 
 def rrSubmit():
     print ("rrSubmit %rrVersion%")

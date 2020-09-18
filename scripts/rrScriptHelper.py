@@ -150,29 +150,31 @@ def xmlIndent(elem, level=0):
 def createVRayRemapFile(filename, fromOS):    
     osConvert= rrOSConversion()
     osConvert.loadSettings()
+    fromOSlist, toOSlist = osConvert.getTableOS(fromOS,getOS(),False)
+    if (len(fromOSlist)<=0):
+        print("No OS path conversions set in rrConfig\n\n")
+        return
     from xml.etree.ElementTree import ElementTree, Element, SubElement
     rootElement = Element("RemapPaths")
-    fromOSlist, toOSlist = osConvert.getTableOS(fromOS,getOS(),False)
-    if (len(fromOSlist)>0):
-        for i in range(len(fromOSlist)):
-            RemapItem = SubElement(rootElement, "RemapItem")
-            sub = SubElement(RemapItem, "From")
-            sub.text = fromOSlist[i]
-            sub = SubElement(RemapItem, "To")
-            sub.text = toOSlist[i]
+    for i in range(len(fromOSlist)):
+        RemapItem = SubElement(rootElement, "RemapItem")
+        sub = SubElement(RemapItem, "From")
+        sub.text = fromOSlist[i]
+        sub = SubElement(RemapItem, "To")
+        sub.text = toOSlist[i]
     xml = ElementTree(rootElement)
     xmlIndent(xml.getroot())
     tmpFile = open(filename, "w")
-    if not tmpFile == None:
+    if tmpFile != None:
         xml.write(tmpFile)
         tmpFile.close()
+        print("Saved "+str(len(fromOSlist))+" OS path conversions into "+filename+"\n\n")
     else:
-        print("No valid filename has been passed to the function")
+        print("No valid filename has been passed to the function: "+str(filename)+"\n\n")
         try:
             tmpFile.close()
         except:
             pass
         return False
-    print("Saved "+str(len(fromOSlist))+" OS path conversions into "+filename+"\n\n")
     return True    
     
