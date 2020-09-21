@@ -2111,7 +2111,7 @@ def initializePlugin(mobject):
         maya.mel.eval('$RRMenuCtrl = `menu -p $gMainWindow -to true -l "RRender"`;')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene..." -c "rrSubmit";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Select camera..." -c "rrSubmit true";')
-        maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Local Textures" -c "rrSubmit false true";')
+        #maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Local Textures" -c "rrSubmit false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Simulate PhoenixFD object" -c "rrSubmit false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export selected object as alembic cache" -c "rrSubmit false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - VRay Bake Textures" -c "rrSubmit false false false false true";')
