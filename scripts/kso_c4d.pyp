@@ -62,9 +62,15 @@ class argParser:
                     argValue=True
                 elif (argValue.lower()=="false"):
                     argValue=False
-                else:  # decode special characters to string accepted by c4d
-                    argValue = argValue.decode(sys.getfilesystemencoding()).encode('utf8')
-                logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'");
+                else: 
+                    #argv is an unicode object, but C4D reads in bytes instead of unicode
+                    if sys.version_info[0] == 2:
+                        argValue = argValue.decode(sys.getfilesystemencoding()).encode('utf8')
+                    else:
+                        
+                        argValue= argValue.encode("latin1") 
+                        argValue= argValue.decode(sys.getfilesystemencoding())
+                logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'")
                 return argValue
         return ""
 
@@ -1099,7 +1105,7 @@ def rrKSOStartServer():
                 logMessageDebug("rrKSO waiting for new command...")
                 server.handle_request()
                 time.sleep(1) # handle_request() seem to return before handle() completed execution
-            except Exception, e:
+            except Exception as e:
                 logMessageError(e)
                 server.continueLoop= False
                 import traceback
@@ -1114,7 +1120,7 @@ def rrKSOStartServer():
                     server.continueLoop = False
                     kso_tcp.rrKSONextCommand = ""
                 else:
-                    exec kso_tcp.rrKSONextCommand
+                    exec(kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand = ""
         logMessage("rrKSO closed")
     except Exception as e:
@@ -1166,7 +1172,7 @@ def init_c4d():
         timeEnd -= timeStart
         logMessage("Scene load time: " + str(timeEnd) + "  h:m:s.ms")
     else:
-        print "no -scene parameter given, exiting rrKSO plugin"
+        print( "no -scene parameter given, exiting rrKSO plugin")
         return False
 
     if argValid(arg.PyModPath):
