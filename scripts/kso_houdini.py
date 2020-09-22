@@ -133,8 +133,7 @@ class argParser:
         self.SkipExisting=self.getParam("-SkipExisting")
         self.ignoreLoadIssues=self.getParam("-ignoreLoadIssues")
         self.subFrames=self.getParam("-subFrames")
-        
-        
+        self.unlockAssets=self.getParam("-unlockAssets")
 
 
 
@@ -683,7 +682,26 @@ def applyRendererOptions_Redshift():
         setParmException(arg.rop,'RS_outputFileNamePrefix',outFileName)
         setParmException(arg.rop,'RS_outputFileFormat',arg.FExt)
 
-              
+
+def list_parents(targetnode):
+    nparents = len(targetnode.path().split("/"))-2
+    parentlist = []
+    for n in range(nparents,0,-1):
+        parentX = targetnode
+        for o in range(n):
+            parentX = parentX.parent()
+        parentlist.append(parentX)
+    return parentlist
+
+def unlock_assets(ropNode):
+    logMessage("Unlocking parent assets of ROP node.")
+    try:
+        parentlist = list_parents(ropNode)
+        for parent in parentlist:
+            parent.allowEditingOfContents()
+    except: 
+        logMessage("Error: Unable unlock parent assets of ROP node!")
+
 
 #main function:
 try:
@@ -752,6 +770,9 @@ try:
         
     
     arg.rop = hou.node( arg.ropName )
+    if (argValid(arg.unlockAssets) and arg.unlockAssets):
+        unlock_assets(arg.rop)
+    
     if arg.rop is None:
         logMessageError("Node \"" + arg.ropName + "\" does not exist" , True)
     else:
