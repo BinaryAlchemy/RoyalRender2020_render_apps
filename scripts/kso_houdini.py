@@ -584,6 +584,14 @@ def applyRendererOptions_PRman():
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+    try:
+        device=arg.rop.parm('ri_device_0').eval()
+        if (device=="it"):
+            logMessage("WARNING: ROP device is set to frameviewer 'it'. This does not render any files! Changing to 'openexr'...")
+            arg.rop.parm('ri_device_0').set("openexr")
+    except:
+        pass
+            
     outFileName= addFrameNumber_and_Log(arg.FName)
     if (arg.rendererExportMode):
         try:
