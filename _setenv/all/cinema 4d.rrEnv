@@ -90,6 +90,8 @@ LicenseFlags= <LicenseFlags>
             REDSHIFT_PLUG_IN_PATH  =  <RR_REDSHIFT_BASE_LOCAL>\redshift4c4d\R<rrExeVersionMajor>
         [EndIf]
         REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
+        REDSHIFT_PREFSPATH= <RR_REDSHIFT_BASE_LOCAL>
+        
 [EndIf]
 
 [If] <RR_REDSHIFT_NETWORK>  [==] 1
@@ -106,6 +108,8 @@ LicenseFlags= <LicenseFlags>
 
         g_additionalModulePath = <g_additionalModulePath>;<REDSHIFT_PLUG_IN_PATH>
     [EndIf]
+    
+    REDSHIFT_LOCALDATAPATH = <rrLocalTemp>\Redshift
 [EndIf]
 
 
