@@ -109,6 +109,8 @@ def append_prman_params(submit_args):
         
         submit_args.append("-customRenVer_prman")
         submit_args.append(prman_ver)
+        submit_args.append("-customRenVer_createRIB")
+        submit_args.append(prman_ver)
         submit_args.append("-customRenVer_usd_prman")
         submit_args.append(prman_ver)
         submit_args.append("-customRenVer_createUSD_prman")

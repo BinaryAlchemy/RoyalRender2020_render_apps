@@ -36,6 +36,8 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 #    RR_RENDERMAN_BASE= \\myfileserver\Renderer\Renderman\RenderMan
 # [EndIf]
 
+# PIXAR_LICENSE_FILE = \\fileserver\share\pixar.license
+
 
 # ###################  If you have issues accessing external file (e.g. Alembic), try to uncomment the following line ###################
 # HOUDINI_ACCESS_METHOD = 2

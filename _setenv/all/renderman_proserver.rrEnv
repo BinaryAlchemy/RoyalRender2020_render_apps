@@ -16,4 +16,4 @@ echo * renderman_proserver.rrEnv version %rrVersion%
 
  PATH = <rrBaseAppPath>\bin;<PATH>
  RMANTREE = <rrBaseAppPath>
- RMSTREE = <rrBaseAppPath>\RenderManStudio
+ RMSTREE = <rrBaseAppPath>
