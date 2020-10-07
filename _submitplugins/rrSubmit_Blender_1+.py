@@ -108,19 +108,48 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
     @staticmethod
     def writeNodeBool(fileID, name, value):
         fileID.write("    <{0}>   {1}   </{0}>\n".format(name, int(value)))
-    
-    def rrSubmit(self):
-        self.report({'DEBUG'}, "Platform: {0}".format(sys.platform))
 
-        fileID = tempfile.NamedTemporaryFile(mode='w', prefix="rrSubmitBlender_", suffix=".xml", delete=False)
-        TempFileName = fileID.name
-        self.report({'DEBUG'}, "Create temp Submission File: {0}".format(TempFileName))
+    @staticmethod
+    def hasRelativePaths():
+        for filepath in bpy.utils.blend_paths(packed=False):
+            if filepath.startswith("//"):  # relative path
+                return True
+        return False
 
-        fileID.write("<RR_Job_File syntax_version=\"6.0\">\n")
-        fileID.write("<DeleteXML>1</DeleteXML>\n")
+    @staticmethod
+    def getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, padding):
+        extension = "." + rendertarget.lower()
 
-        scn = bpy.context.scene
+        if extension.startswith(".avi"):
+            extension = ".avi"
+            rendertarget = rendertarget.replace("_", "")
 
+        extension = extension.replace(".tiff", ".tif")
+        extension = extension.replace(".jpeg", ".jpg")
+
+        extension = extension.replace(".quicktime", ".mov")
+        extension = extension.replace(".flash", ".flv")
+        extension = extension.replace(".mpeg1", ".mpg")
+        extension = extension.replace(".mpeg2", ".dvd")
+        extension = extension.replace(".mpeg4", ".mp4")
+
+        # if the video extension is not part of the output filename,
+        # blender will add the frame range
+        if renderOut.lower().endswith(extension.lower()):
+            renderOut = renderOut[:-len(extension)]
+        else:
+            if hash_position == -1:
+                renderOut = "{0}{1:0{3}d}-{2:0{3}d}".format(renderOut,
+                                                            scn.frame_start, scn.frame_end,
+                                                            padding)
+            else:
+                prefix, suffix = renderOut.rsplit("#" * padding, 1)
+                renderOut = "{0}{1:0{3}d}-{2:0{3}d}{4}".format(prefix,
+                                                               scn.frame_start, scn.frame_end,
+                                                               padding,
+                                                               suffix)
+
+    def writeSceneInfo(self, scn, fileID, scene_state="", is_active=True):
         img_type = scn.render.image_settings.file_format
         rendertarget = img_type.replace("OPEN_", "")
         if rendertarget == "FFMPEG":
@@ -137,8 +166,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         renderOut = bpy.path.abspath(scn.render.filepath)
 
         try:
-            hash_idx = renderOut.rindex('#')
-            renderPadding = hash_idx - next(i for i in range(hash_idx, 0, -1) if renderOut[i] != '#')
+            hash_position = renderOut.rindex('#')
+            renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if renderOut[i] != '#')
         except ValueError:
             hash_idx = -1
             renderPadding = 4
@@ -147,64 +176,27 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         if scn.render.use_file_extension:
             if ImageSingleOutputFile:
-                extension = "." + rendertarget.lower()
-
-                if extension.startswith(".avi"):
-                    extension = ".avi"
-                    rendertarget = rendertarget.replace("_", "")
-
-                extension = extension.replace(".tiff", ".tif")
-                extension = extension.replace(".jpeg", ".jpg")
-
-                extension = extension.replace(".quicktime", ".mov")
-                extension = extension.replace(".flash", ".flv")
-                extension = extension.replace(".mpeg1", ".mpg")
-                extension = extension.replace(".mpeg2", ".dvd")
-                extension = extension.replace(".mpeg4", ".mp4")
-
-                # if the video extension is not part of the output filename,
-                # blender will add the frame range
-                if renderOut.lower().endswith(extension.lower()):
-                    renderOut = renderOut[:-len(extension)]
-                else:
-                    if hash_idx == -1:
-                        renderOut = "{0}{1:0{3}d}-{2:0{3}d}".format(renderOut,
-                                                                    scn.frame_start, scn.frame_end,
-                                                                    renderPadding)
-                    else:
-                        prefix, suffix = renderOut.rsplit("#" * renderPadding, 1)
-                        renderOut = "{0}{1:0{3}d}-{2:0{3}d}{4}".format(prefix,
-                                                                       scn.frame_start, scn.frame_end,
-                                                                       renderPadding,
-                                                                       suffix)
+                extension = self.getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, renderPadding)
             else:
                 extension = scn.render.file_extension
-
-        local_scene_copy = 1
-        for filepath in bpy.utils.blend_paths(packed=False):
-            if filepath.startswith("//"):  # relative path
-                local_scene_copy = 0
-                break
 
         v_major, v_minor, _ = bpy.app.version
         writeNodeStr = self.writeNodeStr
         writeNodeInt = self.writeNodeInt
         writeNodeBool = self.writeNodeBool
 
-        fileID.write("<SubmitterParameter>")
-        if not local_scene_copy:
-            fileID.write("AllowLocalSceneCopy=1~{0}".format(local_scene_copy))
-        if scn.cycles.device == 'GPU':
-            fileID.write("COCyclesEnableGPU=1~1")
-        fileID.write("</SubmitterParameter>")
-        
         fileID.write("<Job>\n")
+
+        if scn.cycles.device == 'GPU':
+            fileID.write("<SubmitterParameter>")
+            fileID.write("COCyclesEnableGPU=1~1")
+            fileID.write("</SubmitterParameter>")
         writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
         writeNodeStr(fileID, "Software", "Blender")
         writeNodeStr(fileID, "Version",  "{0}.{1}".format(v_major, v_minor))
-        #writeNodeStr(fileID, "Layer", scn.render.layers[0].name)
+        writeNodeStr(fileID, "SceneState", scene_state)
+        writeNodeBool(fileID, "IsActive", is_active)
         writeNodeStr(fileID, "SceneName", bpy.data.filepath)
-        writeNodeBool(fileID, "IsActive", True)
         writeNodeBool(fileID, "ImageSingleOutputFile", ImageSingleOutputFile)
         writeNodeInt(fileID, "SeqStart", scn.frame_start)
         writeNodeInt(fileID, "SeqEnd", scn.frame_end)
@@ -221,12 +213,37 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
                             "AVIJPEG", "PNG", "BMP", "HDR", "TIFF", "EXR", "MULTILAYER",
                             "MPEG", "FRAMESERVER", "CINEON", "DPX", "DDS", "JP2"):
             writeNodeStr(fileID, "CustomFrameFormat", rendertarget)
+
         fileID.write("</Job>\n")
+
+
+    def rrSubmit(self):
+        self.report({'DEBUG'}, "Platform: {0}".format(sys.platform))
+
+        fileID = tempfile.NamedTemporaryFile(mode='w', prefix="rrSubmitBlender_", suffix=".xml", delete=False)
+        TempFileName = fileID.name
+        self.report({'DEBUG'}, "Create temp Submission File: {0}".format(TempFileName))
+
+        fileID.write("<RR_Job_File syntax_version=\"6.0\">\n")
+        fileID.write("<DeleteXML>1</DeleteXML>\n")
+
+        fileID.write("<SubmitterParameter>")
+        if self.hasRelativePaths():  # then we cannot use local scene copy
+            fileID.write("AllowLocalSceneCopy=1~0")
+        fileID.write("</SubmitterParameter>")
+
+        is_multi_scene = len(bpy.data.scenes) > 1
+        self.writeSceneInfo(bpy.context.scene, fileID, is_active=not is_multi_scene)
+        if is_multi_scene:
+            for scn in bpy.data.scenes:
+                self.writeSceneInfo(scn, fileID, scn.name, scn == bpy.context.scene)
+
         fileID.write("</RR_Job_File>\n")
         fileID.close()
 
         RR_ROOT = self.get_RR_Root()
         if RR_ROOT is None:
+            self.report({'ERROR'}, "Cannot find RR install folder, please execute rrWorkstationInstaller")
             return False
 
         self.report({'DEBUG'}, "Found RR_Root:{0}".format(RR_ROOT))

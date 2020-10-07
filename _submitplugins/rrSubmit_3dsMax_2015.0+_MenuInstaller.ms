@@ -40,28 +40,28 @@
 			local nameList = #()
 			for i = rrMenu.numitems() to 1 by -1 do (
 				name=(rrMenu.getitem i).gettitle()
-				if (name=="Submit scene                                    (New. VRay, Arnold, Scanline, Corona)") then (
+				if (name=="Submit scene                                    (New Submission)") then (
 					if (foundMenu1) do (
 						print "Royal Render: deleting dublicate submit 1"
 						rrMenu.removeItemByPosition  i
 						changesMade=true
 					)
 					foundMenu1=true
-				) else if (name=="Submit scene, no auto element name (New. VRay, Arnold, Scanline, Corona)") then (
+				) else if (name=="Submit scene, no auto element name (New Submission)") then (
 					if (foundMenu11) do (
 						print "Royal Render: deleting dublicate submit 11"
 						rrMenu.removeItemByPosition  i
 						changesMade=true
 					)
 					foundMenu11=true
-				) else if (name=="Submit scene, element subfolders   (New. VRay, Arnold, Scanline, Corona)") then (
+				) else if (name=="Submit scene, element subfolders   (New Submission)") then (
 					if (foundMenu2) do (
 						print "Royal Render: deleting dublicate submit 2"
 						rrMenu.removeItemByPosition  i
 						changesMade=true
 					)
 					foundMenu2=true
-				) else if (name=="Submit scene    (Old; all renderer)") then (
+				) else if (name=="Submit scene    (Old Submission)") then (
 					if (foundMenu3) do (
 						print "Royal Render: deleting dublicate submit 3"
 						rrMenu.removeItemByPosition  i

@@ -11,7 +11,7 @@
 
 macroScript rrSubmit_new
 category:"RoyalRender"
-buttontext:"Submit scene                                    (New. VRay, Arnold, Scanline, Corona)"
+buttontext:"Submit scene                                    (New Submission)"
 tooltip:"Submit scene to rrServer (new)"
 (
     global rrSubmit_channelIntoSubfolder = false
@@ -23,7 +23,7 @@ tooltip:"Submit scene to rrServer (new)"
 
 macroScript rrSubmit_new_subfolder
 category:"RoyalRender"
-buttontext:"Submit scene, element subfolders   (New. VRay, Arnold, Scanline, Corona)"
+buttontext:"Submit scene, element subfolders   (New Submission)"
 tooltip:"Submit scene to rrServer (new)"
 (
     global rrSubmit_channelIntoSubfolder = true
@@ -36,7 +36,7 @@ tooltip:"Submit scene to rrServer (new)"
 
 macroScript rrSubmit_new_noautoelement
 category:"RoyalRender"
-buttontext:"Submit scene, no auto element name (New. VRay, Arnold, Scanline, Corona)"
+buttontext:"Submit scene, no auto element name (New Submission)"
 tooltip:"Submit scene to rrServer, no auto element name (new)"
 (
     global rrSubmit_channelIntoSubfolder = false
@@ -48,7 +48,7 @@ tooltip:"Submit scene to rrServer, no auto element name (new)"
 			
 macroScript rrSubmit
 category:"RoyalRender"
-buttontext:"Submit scene    (Old; all renderer)"
+buttontext:"Submit scene    (Old Submission)"
 tooltip:"Submit scene to Server (old)"
 --fn rrSubmit =
 (
