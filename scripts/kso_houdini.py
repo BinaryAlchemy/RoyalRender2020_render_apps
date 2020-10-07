@@ -575,9 +575,19 @@ def applyRendererOptions_Arnold():
         arg.rop.parm('ar_ass_export_enable').set(0)
         arg.rop.parm('ar_picture').set( outFileName)
     
+    
+    
 def applyRendererOptions_PRman():
+    try:
+        import about
+        rfh_path = os.environ['RFHTREE']
+        version = about._rfhReadVersion(os.path.join(rfh_path, about._rfhGetVersion(), 'etc', 'buildid.txt'))
+        logMessage("Rendering with "+str(version["versionStr"]))
+    except:
+        return False
+        logMessage("Rendering with PRman (unidentified version)")
+
     global arg
-    logMessage("Rendering with PRman")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
