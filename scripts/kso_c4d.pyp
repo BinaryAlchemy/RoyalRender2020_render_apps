@@ -399,7 +399,7 @@ def arnoldConvertDriver(ob, fromOS, toOS):
         try:
             save_attr = ArnoldSymbols.driver_save_attr[driver_type]
         except KeyError:
-            logMessageWarning("invalid path attribute for driver of type " + driver_type)
+            logMessageWarning("invalid path attribute for driver of type " + str(driver_type))
             return
 
         path_parameter = c4d.DescID(

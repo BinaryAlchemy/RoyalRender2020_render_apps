@@ -58,10 +58,33 @@ PLUGIN_ID = 1027715
 ARNOLD_DRIVER = 1030141
 ARNOLD_AOV = 1030369
 ARNOLD_SCENE_HOOK = 1032309
+ARNOLD_DUMMY_BITMAP_SAVER = 1035823
 
 # From plugins/C4DtoA/res/description/ainode_driver_exr.h
 C4DAIP_DRIVER_EXR_FILENAME  = 1285755954
 C4DAIP_DRIVER_EXR_NAME = 55445461
+
+# # C4DtoA/res/description/ainode_driver_deepexr.h
+C4DAIP_DRIVER_DEEPEXR_FILENAME = 1429220916
+C4DAIP_DRIVER_DEEPEXR_NAME = 278349996
+
+# C4DtoA/res/description/ainode_driver_jpeg.h
+C4DAIP_DRIVER_JPEG_FILENAME = 766183461
+C4DAIP_DRIVER_JPEG_NAME = 965425797
+
+# C4DtoA/res/description/ainode_driver_png.h
+C4DAIP_DRIVER_PNG_FILENAME = 1807654404
+C4DAIP_DRIVER_PNG_NAME = 363284252
+
+# C4DtoA/res/description/ainode_driver_tiff.h
+C4DAIP_DRIVER_TIFF_FILENAME = 1913388456
+C4DAIP_DRIVER_TIFF_NAME = 1690311032
+
+# C4DtoA/api/include/customgui/ArnoldSavePathCustomGui.h
+C4DAI_SAVEPATH_TYPE__CUSTOM = 0
+C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME = 1
+C4DAI_SAVEPATH_TYPE__C4D_REGULAR = 2
+C4DAI_SAVEPATH_TYPE__C4D_MULTIPASS = 3
 
 # From plugins/C4DtoA/res/description/arnold_driver.h
 C4DAI_DRIVER_TYPE = 101
@@ -1461,6 +1484,46 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return file_path
 
+    def getArnoldDriverOutput(self):
+        LOGGER.debug("Looking for arnold drivers output path")
+        doc = c4d.documents.GetActiveDocument()
+        ob = doc.GetFirstObject()
+
+        driver_save_attr = {
+            C4DAIN_DRIVER_DEEPEXR: C4DAIP_DRIVER_EXR_FILENAME,
+            C4DAIN_DRIVER_EXR: C4DAIP_DRIVER_EXR_FILENAME,
+            C4DAIN_DRIVER_JPEG: C4DAIP_DRIVER_JPEG_FILENAME,
+            C4DAIN_DRIVER_PNG: C4DAIP_DRIVER_PNG_FILENAME,
+            C4DAIN_DRIVER_TIFF: C4DAIP_DRIVER_TIFF_FILENAME
+        }
+
+        while ob:
+            type_id = ob.GetType()
+            if type_id != ARNOLD_DRIVER:
+                ob = ob.GetNext()
+                continue
+
+            driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
+            try:
+                save_attr = driver_save_attr[driver_type]
+            except KeyError:
+                LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
+                ob = ob.GetNext()
+                continue
+
+            type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
+
+            save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
+            if save_type not in (C4DAI_SAVEPATH_TYPE__CUSTOM, C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
+                ob = ob.GetNext()
+                continue
+
+            path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
+
+            outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
+            if outpath:
+                return outpath
+
     def setFileout(self):
         if self.isMP:
             LOGGER.debug("MultiPass: yes")
@@ -1471,10 +1534,19 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("Channel: MultiPass")
                 self.job[0].channel = "MultiPass"
             self.job[0].imageName = self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME]
+            if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
+                driver_outpath = self.getArnoldDriverOutput()
+                if driver_outpath:
+                    self.job[0].imageName = driver_outpath
         else:
             LOGGER.debug("MultiPass: no")
             self.job[0].channel = ""
             self.job[0].imageName = self.renderSettings[c4d.RDATA_PATH]
+
+            if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_FORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
+                driver_outpath = self.getArnoldDriverOutput()
+                if driver_outpath:
+                    self.job[0].imageName = driver_outpath
 
         self.job[0].layerName = ""
 
