@@ -733,6 +733,14 @@ def loadPlugins(arg):
             except:
                 pass
 
+    if (arg.Renderer == "renderman"):
+        try:
+            maya.mel.eval('loadPlugin RenderMan_for_Maya;;')      
+            version=cmds.pluginInfo( 'RenderMan_for_Maya', query=True, version=True )
+            logMessage("RenderMan_for_Maya version: "+version) 
+        except:
+            pass
+            
 
 def doCrossOSPathConversionMaya(arg):        
     if (argValid(arg.sceneOS)): 
