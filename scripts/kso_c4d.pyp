@@ -638,19 +638,33 @@ def c4d_pass_id(channel):
     return getattr(c4d, vbuf_attr)
 
 
-def searchTakes_recursiveLoop(parentTake, take_name):
+def searchTakes_recursiveLoop(take, name):
     """Returns take with given name, looks recursively"""
-    if parentTake.GetName() == take_name:
-        return parentTake
 
-    childTake = parentTake.GetDown()
-    while childTake:
-        if childTake.GetName() == take_name:
-            return childTake
-        jobtake= searchTakes_recursiveLoop(childTake, take_name)
+    parent = ""
+    separator = '*'
+    if separator in name:
+        parent, name = name.split('*', 1)
+
+    if take.GetName() == name:
+        return take
+
+    child_take = take.GetDown()
+    while child_take:
+        child_name = child_take.GetName()
+        if child_name == name:
+            return child_take
+
+        if parent and not parent == child_name:
+            child_take = child_take.GetNext()
+            continue
+
+        jobtake = searchTakes_recursiveLoop(child_take, name)
         if jobtake:
             return jobtake
-        childTake = childTake.GetNext()
+
+        child_take = child_take.GetNext()
+
 
 def arnold_ass_export(fr_start, fr_end, fr_step):
     global arg
@@ -775,7 +789,7 @@ def setRenderParams(doc, arg):
         elif not argValid(arg.Channel):
             logMessage("INFO: setRenderParams: main outpout only")
             #main output only
-            rd[c4d.RDATA_SAVEIMAGE]= True
+            rd[c4d.RDATA_SAVEIMAGE] = True
             rd[c4d.RDATA_PATH] = arg.FNameVar
             try:
                 if argValid(arg.FExt):
