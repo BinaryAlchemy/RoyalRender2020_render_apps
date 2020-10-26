@@ -55,12 +55,19 @@ class rrOSConversion(object):
         self.tableLx=[]
         self.tableOsx=[]
         self.settingsLoaded= False
+        self.overrideIniFile=""
+    
+    def setIniFile(self, filename):   
+        self.overrideIniFile= filename
     
     def loadSettings(self):
         if (self.settingsLoaded):
             return True
         self.clear()
-        iniLocation=(getRR_Root()+ "/sub/cfg_global/OSConversion.ini")
+        if len(self.overrideIniFile>0):
+            iniLocation= self.overrideIniFile
+        else:
+            iniLocation=(getRR_Root()+ "/sub/cfg_global/OSConversion.ini")
         import ConfigParser
         config = ConfigParser.ConfigParser()
         if (len(config.read(iniLocation))<=0):

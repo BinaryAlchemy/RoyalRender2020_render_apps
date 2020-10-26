@@ -536,7 +536,7 @@ def insertPathTake(img_path):
     return os.path.join(os.path.dirname(img_path), "$take", os.path.basename(img_path))
 
 
-def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData):
+def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
     """Create a new job with current parameters but different take. Used to submit c4d takes as RR layers
 
     :param doc: c4d document
@@ -547,6 +547,10 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData):
     """
 
     takeName = take.GetName()
+    if parentTakeName:
+        separator = "*"
+        takeName = parentTakeName + separator + takeName
+
     newJob = copy.deepcopy(jobList[0])
     if "$take" not in newJob.imageName:
         # user has forgotten to add $take, which means you overwrite the same file
@@ -557,6 +561,7 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData):
 
     newJob.imageName = newJob.imageName.replace("$take", takeName)
     newJob.layerName = takeName
+    newJob.isActive = take.IsChecked()
     if currentTakeName == takeName:
         newJob.isActive = True
     for ch in range(0, newJob.maxChannels):
@@ -570,7 +575,7 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData):
     jobList.append(newJob)
 
 
-def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData):
+def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData, fullPath=True):
     """ Travel all takes looking for job layers
 
     :param doc: c4d document
@@ -582,7 +587,10 @@ def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData):
     """
     childTake = parentTake.GetDown()
     while childTake is not None:
-        duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData)
+        if fullPath:
+            duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData, parentTake.GetName())
+        else:
+            duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData)
         addTakes_recursiveLoop(doc, jobList, childTake, currentTakeName, takeData)
         childTake = childTake.GetNext()
 
@@ -598,7 +606,7 @@ def addTakes(doc, jobList, takeData):
     LOGGER.debug("takeData: " + str(takeData))
     currentTakeName = takeData.GetCurrentTake().GetName()
     mainTake = takeData.GetMainTake()
-    addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData)
+    addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath=False)
 
     jobList[0].imageName = jobList[0].imageName.replace("$take", mainTake.GetName())
     jobList[0].layerName = mainTake.GetName()

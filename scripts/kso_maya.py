@@ -733,6 +733,14 @@ def loadPlugins(arg):
             except:
                 pass
 
+    if (arg.Renderer == "renderman"):
+        try:
+            maya.mel.eval('loadPlugin RenderMan_for_Maya;;')      
+            version=cmds.pluginInfo( 'RenderMan_for_Maya', query=True, version=True )
+            logMessage("RenderMan_for_Maya version: "+version) 
+        except:
+            pass
+            
 
 def doCrossOSPathConversionMaya(arg):        
     if (argValid(arg.sceneOS)): 
@@ -747,6 +755,18 @@ def doCrossOSPathConversionMaya(arg):
                 for i in range(len(fromOS)):
                     logMessage("Add OS conversion to Maya dirmap:  %-30s  =>  %-30s" % (fromOS[i] , toOS[i]) )
                     cmds.dirmap( m=(fromOS[i], toOS[i]))
+
+def doCrossOSPathConversionMaya_CustomFile(arg, customIniFilename, ID_fromOS, ID_toOS):        
+    if (ID_fromOS != ID_toOS):
+        osConvert= rrScriptHelper.rrOSConversion()
+        osConvert.setIniFile(customIniFilename)
+        osConvert.loadSettings()
+        fromOS, toOS = osConvert.getTableOS(ID_fromOS, ID_toOS,True)
+        if (len(fromOS)>0):
+            cmds.dirmap( en=True )
+            for i in range(len(fromOS)):
+                logMessage("Add OS conversion to Maya dirmap:  %-30s  =>  %-30s" % (fromOS[i] , toOS[i]) )
+                cmds.dirmap( m=(fromOS[i], toOS[i]))
 
 
 def ireplaceStartsWith(text, old, new ):
@@ -854,6 +874,92 @@ def doCrossOSYetiConversion(fromOS, toOS):
                     maya.mel.eval(melString)
                     logMessage('Replaced "{0}" with "{1}" in node {1}'.format(fromOS_path, toOS[i], fur))
 
+def doCrossOSPathConversion_sub(arg, fromOS, toOS):        
+    for i, fromOS_path in enumerate(fromOS):
+        fromOS[i] = allForwardSlashes(fromOS_path)
+
+    for i, toOS_path in enumerate(toOS):
+        toOS[i] = allForwardSlashes(toOS_path)
+
+    print("______________________________________________________ doCrossOSPathConversion() _____________________________________________________________________" )            
+    #logMessage("fromOS  is "+str(type(fromOS))+"     "+str(fromOS))            
+    if (len(fromOS)>0):
+        #Mayas conversion does not work for texture file nodes of VRay with a <variable> in it
+        textureFileList=cmds.ls(type='file')
+        #logMessage("textureFileList  is "+str(type(textureFileList))+"     "+str(textureFileList))            
+        if (textureFileList!=None):
+            for o in textureFileList:
+                fileName = cmds.getAttr(o + '.fileTextureName')
+
+                if (fileName!=None and (len(fileName)>0)):
+                    fileName = allForwardSlashes(fileName)
+                    for i in range(len(fromOS)):
+                        if fromOS[i].lower() in fileName.lower():
+                            # Test for < character in filename
+                            if '<' in fileName:
+                                # Store color space
+                                colorSpace = cmds.getAttr(o + '.colorSpace')
+                                fileName = ireplaceStartsWith(fileName, fromOS[i], toOS[i])
+                                # Change texture path
+                                cmds.setAttr(o + '.fileTextureName', fileName, type = 'string')
+                                # Restore color space
+                                cmds.setAttr(o + '.colorSpace', colorSpace, type = 'string')
+                                # Print info
+                                logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in node ' + o)       
+
+
+
+        if (isPluginLoaded('xgenToolkit')):
+            doCrossOSPathConversion_node('xgmCurveToSpline', '.fileName', fromOS, toOS)  # xgen
+            doCrossOSPathConversion_node('xgmSplineCache', '.fileName', fromOS, toOS)  # xgen
+        
+        if (isPluginLoaded('Boss')):
+            doCrossOSPathConversion_node('BossWaveSolver', '.absoluteCacheName', fromOS, toOS)
+            doCrossOSPathConversion_node('BossWaveSolver', '.cacheFolder', fromOS, toOS)
+            doCrossOSPathConversion_node('BossWaveSolver', '.velocityCacheName', fromOS, toOS)
+            doCrossOSPathConversion_node('BossWaveSolver', '.foamCacheName', fromOS, toOS)
+            doCrossOSPathConversion_node('BossWaveSolver', '.remappedInputCacheName', fromOS, toOS)
+
+            doCrossOSPathConversion_node('BossSpectralWave', '.absoluteCacheName', fromOS, toOS)
+            doCrossOSPathConversion_node('BossSpectralWave', '.cacheFolder', fromOS, toOS)
+            doCrossOSPathConversion_node('BossSpectralWave', '.velocityCacheName', fromOS, toOS)
+            doCrossOSPathConversion_node('BossSpectralWave', '.foamCacheName', fromOS, toOS)
+        
+        if ("vray" in arg.Renderer):
+            doCrossOSPathConversion_node('VRayVolumeGrid', '.inPath', fromOS, toOS)
+            doCrossOSPathConversion_node_OnlyWithVariable('VRayMesh', '.fileName2', fromOS, toOS)
+
+        if ("redshift" in arg.Renderer):
+            doCrossOSPathConversion_node('RedshiftProxyMesh', '.fileName', fromOS, toOS)
+            
+        if ("arnold" in arg.Renderer):
+            doCrossOSPathConversion_node('aiVolume', '.filename', fromOS, toOS)
+            doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.procedural_searchpath', fromOS, toOS)
+            doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.plugin_searchpath', fromOS, toOS)
+            doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.texture_searchpath', fromOS, toOS)
+            
+        if (isPluginLoaded('Yeti')):
+            doCrossOSPathConversion_node('pgYetiMaya', '.cacheFileName', fromOS, toOS)
+            doCrossOSYetiConversion(fromOS, toOS)
+            
+        fileNodeList= cmds.ls(type='colorManagementGlobals')
+        #logMessage("fileNodeList  is "+str(type(fileNodeList))+"     "+str(fileNodeList))            
+        if (fileNodeList!=None):
+            for o in fileNodeList:
+                fileName = cmds.getAttr(o + '.configFilePath')
+
+                if (fileName!=None and (len(fileName)>0) ):
+                    fileName = allForwardSlashes(fileName)
+                    for i in range(len(fromOS)):
+                        if fromOS[i].lower() in fileName.lower():
+                            fileName = ireplaceStartsWith(fileName,fromOS[i], toOS[i])
+                            #cmds.setAttr(o + '.configFilePath', fileName, type = 'string')
+                            #fileName = cmds.getAttr(o + '.configFilePath')
+                            cmds.colorManagementPrefs(e=True, configFilePath=fileName)
+                            cmds.colorManagementPrefs(e=True, cmEnabled=True)
+                            cmds.colorManagementPrefs(e=True, cmConfigFileEnabled=True)
+                            logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in colorManagementPrefs')   
+
 
 def doCrossOSPathConversion(arg):        
     if (argValid(arg.sceneOS)): 
@@ -862,92 +968,18 @@ def doCrossOSPathConversion(arg):
             osConvert= rrScriptHelper.rrOSConversion()
             osConvert.loadSettings()
             fromOS, toOS = osConvert.getTable(arg.sceneOS,True)
-
-            for i, fromOS_path in enumerate(fromOS):
-                fromOS[i] = allForwardSlashes(fromOS_path)
-
-            for i, toOS_path in enumerate(toOS):
-                toOS[i] = allForwardSlashes(toOS_path)
-
-            print("______________________________________________________ doCrossOSPathConversion() _____________________________________________________________________" )            
-            #logMessage("fromOS  is "+str(type(fromOS))+"     "+str(fromOS))            
-            if (len(fromOS)>0):
-                #Mayas conversion does not work for texture file nodes of VRay with a <variable> in it
-                textureFileList=cmds.ls(type='file')
-                #logMessage("textureFileList  is "+str(type(textureFileList))+"     "+str(textureFileList))            
-                if (textureFileList!=None):
-                    for o in textureFileList:
-                        fileName = cmds.getAttr(o + '.fileTextureName')
-
-                        if (fileName!=None and (len(fileName)>0)):
-                            fileName = allForwardSlashes(fileName)
-                            for i in range(len(fromOS)):
-                                if fromOS[i].lower() in fileName.lower():
-                                    # Test for < character in filename
-                                    if '<' in fileName:
-                                        # Store color space
-                                        colorSpace = cmds.getAttr(o + '.colorSpace')
-                                        fileName = ireplaceStartsWith(fileName, fromOS[i], toOS[i])
-                                        # Change texture path
-                                        cmds.setAttr(o + '.fileTextureName', fileName, type = 'string')
-                                        # Restore color space
-                                        cmds.setAttr(o + '.colorSpace', colorSpace, type = 'string')
-                                        # Print info
-                                        logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in node ' + o)       
-
-
-
-                if (isPluginLoaded('xgenToolkit')):
-                    doCrossOSPathConversion_node('xgmCurveToSpline', '.fileName', fromOS, toOS)  # xgen
-                    doCrossOSPathConversion_node('xgmSplineCache', '.fileName', fromOS, toOS)  # xgen
-				
-                if (isPluginLoaded('Boss')):
-                    doCrossOSPathConversion_node('BossWaveSolver', '.absoluteCacheName', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossWaveSolver', '.cacheFolder', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossWaveSolver', '.velocityCacheName', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossWaveSolver', '.foamCacheName', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossWaveSolver', '.remappedInputCacheName', fromOS, toOS)
-
-                    doCrossOSPathConversion_node('BossSpectralWave', '.absoluteCacheName', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossSpectralWave', '.cacheFolder', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossSpectralWave', '.velocityCacheName', fromOS, toOS)
-                    doCrossOSPathConversion_node('BossSpectralWave', '.foamCacheName', fromOS, toOS)
-                
-                if ("vray" in arg.Renderer):
-                    doCrossOSPathConversion_node('VRayVolumeGrid', '.inPath', fromOS, toOS)
-                    doCrossOSPathConversion_node_OnlyWithVariable('VRayMesh', '.fileName2', fromOS, toOS)
-
-                if ("redshift" in arg.Renderer):
-                    doCrossOSPathConversion_node('RedshiftProxyMesh', '.fileName', fromOS, toOS)
-                    
-                if ("arnold" in arg.Renderer):
-                    doCrossOSPathConversion_node('aiVolume', '.filename', fromOS, toOS)
-                    doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.procedural_searchpath', fromOS, toOS)
-                    doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.plugin_searchpath', fromOS, toOS)
-                    doCrossOSPathConversion_node_list('defaultArnoldRenderOptions', '.texture_searchpath', fromOS, toOS)
-                    
-                if (isPluginLoaded('Yeti')):
-                    doCrossOSPathConversion_node('pgYetiMaya', '.cacheFileName', fromOS, toOS)
-                    doCrossOSYetiConversion(fromOS, toOS)
-                    
-                fileNodeList= cmds.ls(type='colorManagementGlobals')
-                #logMessage("fileNodeList  is "+str(type(fileNodeList))+"     "+str(fileNodeList))            
-                if (fileNodeList!=None):
-                    for o in fileNodeList:
-                        fileName = cmds.getAttr(o + '.configFilePath')
-
-                        if (fileName!=None and (len(fileName)>0) ):
-                            fileName = allForwardSlashes(fileName)
-                            for i in range(len(fromOS)):
-                                if fromOS[i].lower() in fileName.lower():
-                                    fileName = ireplaceStartsWith(fileName,fromOS[i], toOS[i])
-                                    #cmds.setAttr(o + '.configFilePath', fileName, type = 'string')
-                                    #fileName = cmds.getAttr(o + '.configFilePath')
-                                    cmds.colorManagementPrefs(e=True, configFilePath=fileName)
-                                    cmds.colorManagementPrefs(e=True, cmEnabled=True)
-                                    cmds.colorManagementPrefs(e=True, cmConfigFileEnabled=True)
-                                    logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in colorManagementPrefs')   
+            doCrossOSPathConversion_sub(arg, fromOS, toOS)       
     logMessage("OS conversion done")                                  
+
+def doCrossOSPathConversion_CustomFile(arg, customIniFilename, ID_fromOS, ID_toOS):        
+    if (ID_fromOS != ID_toOS):
+        osConvert= rrScriptHelper.rrOSConversion()
+        osConvert.loadSettings()
+        fromOS, toOS = osConvert.getTableOS(ID_fromOS, ID_toOS, True)
+        doCrossOSPathConversion_sub(arg, fromOS, toOS)       
+    logMessage("OS conversion done '"+customIniFilename)  
+ 
+
 
 def checkColorPrefsFile():
     fileNodeList= cmds.ls(type='colorManagementGlobals')
@@ -1057,6 +1089,7 @@ def rrStart(argAll):
         loadPlugins(arg)
 
         doCrossOSPathConversionMaya(arg)
+        #doCrossOSPathConversionMaya_CustomFile(arg, rrScriptHelper.getRR_Root()+ "/sub/cfg_global/OSConversion_custom.ini" , 1, 2)
         
         if (argValid(arg.noEvaluationManager)): 
             logMessageSet("Animation Evaluation Manager to 'off' (DG).")
@@ -1078,6 +1111,7 @@ def rrStart(argAll):
         print("______________________________________________________ Scene opened _____________________________________________________________________" )            
 
         doCrossOSPathConversion(arg)
+        #doCrossOSPathConversion_CustomFile(arg, rrScriptHelper.getRR_Root()+ "/sub/cfg_global/OSConversion_custom.ini", 1, 2)
         checkColorPrefsFile()
         
         global _rrGL_mayaVersion        
