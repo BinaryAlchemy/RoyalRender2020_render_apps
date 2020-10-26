@@ -81,7 +81,7 @@ RR_YETI_NETWORK  =  1
 
 # ###################  Golaem environment variables ###################
 # Set the next line to 0 if you have installed Golaem on each client yourself:
-RR_GOLAEM_NETWORK  =  1
+RR_GOLAEM_NETWORK  =  0
 
 # Uncomment the next line to set a different shared network folder for golaem:
 # RR_GOLAEM_BASE  =  <rrBaseAppPath>\modules\Golaem\
