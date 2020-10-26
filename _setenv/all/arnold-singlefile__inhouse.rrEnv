@@ -1,0 +1,9 @@
+
+#  Arnold 4 license server:
+#  solidangle_LICENSE = [port]@[hostname]
+
+# ###################  Arnold 5 Autodesk license server ###################
+#  ADSKFLEX_LICENSE_FILE = @MyLicenseServer
+
+#  ##################  Arnold v3/v4 RLM license server: ###################
+#  solidangle_LICENSE   =  [port]@[licenseserverName]

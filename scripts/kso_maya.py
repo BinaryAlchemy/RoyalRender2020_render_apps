@@ -693,9 +693,12 @@ def loadPlugins(arg):
     if (arg.Renderer == "arnold"):
         maya.mel.eval('loadPlugin -quiet mtoa;;')      
         version=cmds.pluginInfo( 'mtoa', query=True, version=True )
+    try:
         logMessage("MtoA version: "+version)            
         pluginPath=cmds.pluginInfo( 'mtoa', query=True, path=True )
         logMessage("MtoA path: "+pluginPath)        
+    except:
+        pass
     if (arg.Renderer == "vray"):
         maya.mel.eval('loadPlugin vrayformaya;;')   
         maya.mel.eval('vrayRegisterRenderer();;')  

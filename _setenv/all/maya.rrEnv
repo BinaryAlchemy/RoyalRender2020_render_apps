@@ -209,6 +209,11 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
     echo + mtoa any <RR_MTOA_BASE_LOCAL> > <RR_MTOA_BASE_LOCAL>/mtoa.mod
 [EndIf]
 
+#keeping these files breaks PYTHONPATH in Maya 2018/2019
+[If] <rrExeVersionMajor>  [<] 2020
+    [Del] <RR_MTOA_BASE_LOCAL>/left.bmp
+    [Del] <RR_MTOA_BASE_LOCAL>/Uninstall.exe
+[EndIf]
 
 # ###################  RedShift environment variables ###################
 
