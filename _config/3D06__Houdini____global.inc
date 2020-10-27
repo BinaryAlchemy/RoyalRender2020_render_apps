@@ -42,6 +42,7 @@ permanentErrorSearchLine = OperationFailed
 permanentErrorSearchLine = Unable to initialize
 permanentErrorSearchLine = Unable to connect to hserver for license
 permanentErrorSearchLine = The installed OpenGL driver is not able to run OpenGL
+permanentErrorSearchLine = There must be a camera in the USD file
 
 errorSearchLine = aborting render script
 

@@ -5,6 +5,7 @@
 #
 ################################## Identify Render Application ################################## 
 Name= USD_StdA
+OverrideClientInstallName= Houdini
 Version=18
 Type=Archive
 
@@ -37,13 +38,13 @@ CommandLine=
 
 
 
-CommandLine=  "<Exe>"
+CommandLine=  "<Exe><ED>husk"
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>
     <verboseLevel>
     --usd-input <PD/<Scene>>
     <Cores --threads <Cores>>
-	-o <ImageSingleOutputFile	"<PD/<ImageDir><ImageFilename>>"	? "<PD/<ImageDir><ImageFilename><FNimgPadded><ImageExtension>>" >
+	-o <ImageSingleOutputFile	"<PD/<ImageDir><ImageFilename>>"	? "<PD/<ImageDir><ImageFilename>$F<ImageFramePadding><ImageExtension>>" >
     -f <SeqStart> -n <TotalFrames> -i <SeqStep>
 
 CommandLine=
@@ -84,6 +85,7 @@ licenseFailLine=  no license available
 licenseFailLine=  no licenses could be found to run this application
 
 permanentErrorSearchLine = Unable to connect to hserver for license
+permanentErrorSearchLine = There must be a camera in the USD file
 
 findFrameNoPre= Frame 
 findFrameNoPost=  done 
