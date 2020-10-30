@@ -286,8 +286,6 @@ class JobProps(object):
     height = 99
     width = 99
     imageDir = ""
-    imageExtension = ""  # Unused: use imageFormat
-    imageFileName = ""  # Unused: use imageName
     imageFormat = ""
     imageFormatID = 0
     imageFormatIDMultiPass = 0
@@ -297,8 +295,6 @@ class JobProps(object):
     imageNamingID = 0
     imagePreNumberLetter = ""
     imageSingleOutput = False
-    imageHeight = 99  # Unused: use height
-    imageWidth = 99  # Unused: use width
     isActive = False
     isTiledMode = False
     layer = ""
@@ -311,8 +307,6 @@ class JobProps(object):
     RequiredLicenses = ""
     sceneDatabaseDir = ""
     sceneFilename = ""
-    sceneName = ""  # Unused: use sceneFilename
-    sceneOS = ""  # Unused: use osString
     sendAppBit = ""
     seqEnd = 100
     seqFileOffset = 0
@@ -320,10 +314,10 @@ class JobProps(object):
     seqStart = 0
     seqStep = 1
     software = "Cinema 4D"
-    version = ""  # Unused: use versionInfo
     versionInfo = ""
     rendererVersion = ""
     Arnold_C4DtoAVersion = ""
+    Arnold_DriverOut = False
     Redshift_C4DtoRSVersion = ""
     waitForPreID = ""
     linearColorSpace = False
@@ -399,6 +393,9 @@ class rrJob(JobProps):
         rootElement.attrib["syntax_version"] = "6.0"
         self.subE(rootElement, "DeleteXML", "1")
         self.subE(rootElement, "decodeUTF8", "_")
+
+        if self.Arnold_DriverOut:
+            self.subE(rootElement, "SubmitterParameter", "COArnoldDriverOut=1~1")
         return rootElement
 
     def writeToXMLJob(self, rootElement):
@@ -430,6 +427,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "ImageFilename", self.imageName)
         self.subE(jobElement, "ImageFramePadding", self.imageFramePadding)
         self.subE(jobElement, "ImageExtension", self.imageFormat)
+        self.subE(jobElement, "ImagePreNumberLetter", self.imagePreNumberLetter)
         self.subE(jobElement, "SceneOS", self.osString)
         self.subE(jobElement, "Camera", self.camera)
         if self.linearColorSpace:
@@ -1492,17 +1490,23 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return file_path
 
-    def getArnoldDriverOutput(self):
+    def setOutputFromArnoldDriver(self):
+        """Set job  name and extension as set in the arnold driver node.
+         If a driver output is found, all the other drivers are ignored.
+         Returns True if driver settings have been used.
+
+         To use output of a different driver, move it on top in c4d outliner
+        """
         LOGGER.debug("Looking for arnold drivers output path")
         doc = c4d.documents.GetActiveDocument()
         ob = doc.GetFirstObject()
 
         driver_save_attr = {
-            C4DAIN_DRIVER_DEEPEXR: C4DAIP_DRIVER_EXR_FILENAME,
-            C4DAIN_DRIVER_EXR: C4DAIP_DRIVER_EXR_FILENAME,
-            C4DAIN_DRIVER_JPEG: C4DAIP_DRIVER_JPEG_FILENAME,
-            C4DAIN_DRIVER_PNG: C4DAIP_DRIVER_PNG_FILENAME,
-            C4DAIN_DRIVER_TIFF: C4DAIP_DRIVER_TIFF_FILENAME
+            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+            C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+            C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
+            C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
+            C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
         }
 
         while ob:
@@ -1512,8 +1516,12 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 continue
 
             driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
+            if driver_type == C4DAIN_DRIVER_C4D_DISPLAY:
+                # display driver has no output settings
+                ob = ob.GetNext()
+                continue
             try:
-                save_attr = driver_save_attr[driver_type]
+                save_attr, save_ext = driver_save_attr[driver_type]
             except KeyError:
                 LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
                 ob = ob.GetNext()
@@ -1529,8 +1537,30 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
 
             outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
-            if outpath:
-                return outpath
+
+            if not outpath:
+                ob = ob.GetNext()
+                continue
+
+            filename, file_ext = os.path.splitext(outpath)
+            if file_ext and file_ext != save_ext:
+                LOGGER.warning("Extension {0}, differs from driver extension {1}".format(file_ext, save_ext))
+                filename = outpath
+
+            self.job[0].imageName = filename
+            self.job[0].imageFormat = save_ext
+
+            if '#' in filename:
+                if not filename.endswith("#"):
+                    gui.MessageDialog("Arnold driver '{0}' has non-trailing '#' in output filename."
+                                      " Please change it so that it ends with '####' or '####.ext'".format(ob.GetName()))
+                self.job[0].imageFramePadding = filename.count('#')
+            else:
+                self.job[0].imagePreNumberLetter = "."
+
+            return True
+
+        return False  # no output set
 
     def setFileout(self):
         if self.isMP:
@@ -1543,18 +1573,14 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].channel = "MultiPass"
             self.job[0].imageName = self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME]
             if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
-                driver_outpath = self.getArnoldDriverOutput()
-                if driver_outpath:
-                    self.job[0].imageName = driver_outpath
+                self.job[0].Arnold_DriverOut = self.setOutputFromArnoldDriver()
         else:
             LOGGER.debug("MultiPass: no")
             self.job[0].channel = ""
             self.job[0].imageName = self.renderSettings[c4d.RDATA_PATH]
 
             if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_FORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
-                driver_outpath = self.getArnoldDriverOutput()
-                if driver_outpath:
-                    self.job[0].imageName = driver_outpath
+                self.job[0].Arnold_DriverOut = self.setOutputFromArnoldDriver()
 
         self.job[0].layerName = ""
 
@@ -1649,11 +1675,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 self.job[0].imageName = self.job[0].imageName.replace("<Channel_intern>", "rgb")
             self.job[0].imageName = self.job[0].imageName.replace("<Channel_name>", regularImageName)
-            self.job[0].imageName, self.job[0].imageFormat = self.getNameFormat(self.job[0].imageName, self.job[0].imageFormat)
-
+            if not self.job[0].Arnold_DriverOut:
+                self.job[0].imageName, self.job[0].imageFormat = self.getNameFormat(self.job[0].imageName, self.job[0].imageFormat)
         else:
-            # filenameComb = ""
-            # fileext = ""
             if self.isRegular and not self.isMP:
                 if self.hasAlpha:
                     channelName = "rgba"
@@ -1690,10 +1714,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             channelDescription = channelDescription.replace(" ", "_")
             filenameComb = filenameComb.replace("<Channel_intern>", "<ValueVar " + channelName + "@$pass>")
             filenameComb = filenameComb.replace("<Channel_name>","<ValueVar " + channelDescription + "@$userpass>")
-            filenameComb, fileext = self.getNameFormat(filenameComb, fileext)
+
+            if not self.job[0].Arnold_DriverOut:
+                filenameComb, fileext = self.getNameFormat(filenameComb, fileext)
+                if fileext:
+                    self.job[0].imageFormat = fileext
 
             self.job[0].imageName = filenameComb
-            self.job[0].imageFormat = fileext
 
         LOGGER.debug("imageName is: " + self.job[0].imageName)
 

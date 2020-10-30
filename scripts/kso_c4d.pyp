@@ -103,6 +103,7 @@ class argParser:
         self.avFrameTime=self.getParam("-avFrameTime")
         self.noFrameLoop=self.getParam("-noFrameLoop")
         self.sceneOS=self.getParam("-sceneOS")
+        self.arnoldDriverOut=self.getParam("-arnoldDriverOut")
 
         # replace RR tokens left for compatibility
         arg.FNameVar = self.FNameVar.replace("<Camera>", self.camera)
@@ -158,6 +159,7 @@ class ArnoldSymbols():
     ARNOLD_PROCEDURAL = 1032509
     ARNOLD_VOLUME = 1033693
     ARNOLD_SCENE_HOOK = 1032309
+    ARNOLD_DUMMY_BITMAP_SAVER = 1035823
     ARNOLD_SHADER_NETWORK = 1033991
     ARNOLD_SHADER_GV = 1033990
     ARNOLD_C4D_SHADER_GV = 1034190
@@ -258,11 +260,11 @@ class ArnoldSymbols():
     C4DAIP_IMAGE_FILENAME = 1737748425
 
     driver_save_attr = {
-        C4DAIN_DRIVER_DEEPEXR: C4DAIP_DRIVER_EXR_FILENAME,
-        C4DAIN_DRIVER_EXR: C4DAIP_DRIVER_EXR_FILENAME,
-        C4DAIN_DRIVER_JPEG: C4DAIP_DRIVER_JPEG_FILENAME,
-        C4DAIN_DRIVER_PNG: C4DAIP_DRIVER_PNG_FILENAME,
-        C4DAIN_DRIVER_TIFF: C4DAIP_DRIVER_TIFF_FILENAME
+        C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+        C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+        C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
+        C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
+        C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
     }
 
     # res/description/ainode_volume.h
@@ -397,7 +399,7 @@ def arnoldConvertDriver(ob, fromOS, toOS):
     if driver_type != ArnoldSymbols.C4DAIN_DRIVER_C4D_DISPLAY:  # DRIVER_C4D_DISPLAY has no custom main output
 
         try:
-            save_attr = ArnoldSymbols.driver_save_attr[driver_type]
+            save_attr, _ = ArnoldSymbols.driver_save_attr[driver_type]
         except KeyError:
             logMessageWarning("invalid path attribute for driver of type " + str(driver_type))
             return
@@ -520,6 +522,54 @@ def arnoldConvertPaths(fromOS, toOS):
         c4d.EventAdd()
 
 
+def arnoldEnsureDriversFrameNumber(doc, arg):
+    logMessageDebug("Looking for arnold drivers output path")
+    ob = doc.GetFirstObject()
+
+    while ob:
+        type_id = ob.GetType()
+        if type_id != ArnoldSymbols.ARNOLD_DRIVER:
+            ob = ob.GetNext()
+            continue
+
+        driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
+        if driver_type == ArnoldSymbols.C4DAIN_DRIVER_C4D_DISPLAY:
+            # display driver has no output settings
+            ob = ob.GetNext()
+            continue
+        try:
+            save_attr, save_ext = ArnoldSymbols.driver_save_attr[driver_type]
+        except KeyError:
+            logMessageWarning("invalid path attribute for driver of type " + str(driver_type))
+            ob = ob.GetNext()
+            continue
+
+        type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
+
+        save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
+        if save_type not in (ArnoldSymbols.C4DAI_SAVEPATH_TYPE__CUSTOM, ArnoldSymbols.C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
+            ob = ob.GetNext()
+            continue
+
+        path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
+
+        outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
+
+        if not outpath:
+            ob = ob.GetNext()
+            continue
+
+        filename, file_ext = os.path.splitext(outpath)
+        if '#' not in filename:
+            logMessageWarning( "arnold driver {0} output has no frame number placeholders ('#') adding".format(ob.GetName()) )
+            ob.SetParameter( path_parameter, "{0}.{1}".format(filename, '#'*int(arg.FPadding)), c4d.DESCFLAGS_SET_0 )
+            logMessageDebug("{0}, set to {1}".format(ob.GetName(), ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
+        elif not filename.endswith('#'):
+            logMessageWarning("arnold driver {0} output: '#' is not trailing".format(ob.GetName()))
+
+        ob = ob.GetNext()
+
+
 def shadertreeConvertTex(shader, fromOS, toOS):
     """Look for texture paths to convert, iterate through shaders recursively"""
     while shader:
@@ -624,6 +674,7 @@ def c4d_ext_id(ext):
         ext = "PICT"
     filter_attr = ext.upper().replace(".", "FILTER_")
     return getattr(c4d, filter_attr)
+
 
 def c4d_pass_id(channel):
     """Return cinema4D filter id for given pass
@@ -787,7 +838,7 @@ def setRenderParams(doc, arg):
             #do not change output filename as the .ass file is our output filename for the job
             pass
         elif not argValid(arg.Channel):
-            logMessage("INFO: setRenderParams: main outpout only")
+            logMessage("INFO: setRenderParams: main output only")
             #main output only
             rd[c4d.RDATA_SAVEIMAGE] = True
             rd[c4d.RDATA_PATH] = arg.FNameVar
@@ -805,8 +856,8 @@ def setRenderParams(doc, arg):
             #main and multipass output
             #submitter plugin has read the multipass output as filename, not the main output
             logMessage("INFO: setRenderParams: main and multipass output")
-            rd[c4d.RDATA_SAVEIMAGE]= True
-            rd[c4d.RDATA_MULTIPASS_ENABLE]= True
+            rd[c4d.RDATA_SAVEIMAGE] = True
+            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
             # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
             rd[c4d.RDATA_PATH] = arg.FNameVar
@@ -820,8 +871,8 @@ def setRenderParams(doc, arg):
 
         elif (arg.Channel=="MultiPass"):
             logMessage("INFO: setRenderParams: all multipass output")
-            rd[c4d.RDATA_SAVEIMAGE]=False
-            rd[c4d.RDATA_MULTIPASS_ENABLE]= True
+            rd[c4d.RDATA_SAVEIMAGE] = False
+            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
             # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
@@ -835,8 +886,8 @@ def setRenderParams(doc, arg):
         else:
             logMessage("INFO: setRenderParams: one single multipass output")
             #a specific pass was set to render
-            rd[c4d.RDATA_SAVEIMAGE]=False
-            rd[c4d.RDATA_MULTIPASS_ENABLE]= True
+            rd[c4d.RDATA_SAVEIMAGE] = False
+            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
             rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
@@ -903,6 +954,11 @@ def setRenderParams(doc, arg):
             cam = doc.SearchObject(arg.camera)
             if cam and cam.GetType() != c4d.OBJECT_STAGE:
                 doc.GetRenderBaseDraw().SetSceneCamera(cam, True)
+
+        if argValid(arg.arnoldDriverOut) and arg.arnoldDriverOut:
+            logMessage("Setting c4d output to Arnold Driver Only")
+            rd[c4d.RDATA_FORMAT] = ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER
+            rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER
 
         return True
     except Exception as e:
@@ -1203,6 +1259,9 @@ def init_c4d():
 
     if not setRenderParams(doc, arg):
         return False
+
+    if arg.renderer.lower() == "arnold":
+        arnoldEnsureDriversFrameNumber(doc, arg)
 
     logMessage("Scene init done, starting to render... ")
 

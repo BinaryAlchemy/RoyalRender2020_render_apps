@@ -49,6 +49,7 @@ CommandLine= "<Exe>"
     <Layer -take "<Layer>" -c4dtake "<Layer>">
     <AdditionalCommandlineParam>
 	<ClientConfigParam>
+	<COArnoldDriverOut -arnoldDriverOut true>
     g_prefspath=<rrLocalPrefs><ExeVersion>
 	
 CommandLine=
