@@ -846,8 +846,8 @@ class rrMayaLayer:
         
         #Now add the base path to the file prefix
         self.imageDir= cmds.workspace(fre="images")
-        if (self.renderer=="renderMan"):
-            self.imageDir= maya.mel.eval('rman workspace GetDir rfmImages 1;')
+        #if (self.renderer=="renderMan"):
+         #   self.imageDir= maya.mel.eval('rman workspace GetDir rfmImages 1;')
             
             
         isRelative=True
@@ -969,12 +969,13 @@ class rrMayaLayer:
         isRelativeOutputDir=False
         self.imageDir=""
         self.imageFileName= self.get_attr('rmanGlobals.imageOutputDir') +"/"+ self.get_attr('rmanGlobals.imageFileFormat')
-        
-        printDebug(self.imageFileName) 
+        printDebug("     getImageOut_renderman22   self.imageFileName "+self.imageFileName)
+        if (not isLayerRendering):
+            self.imageFileName= self.imageFileName.replace("<layer>","")
         if (self.imageFileName.startswith("<ws>")):
             isRelativeOutputDir=True
             self.imageFileName= self.imageFileName[5:]
-        printDebug(self.imageFileName)
+        printDebug("     getImageOut_renderman22   self.imageFileName "+self.imageFileName)
         self.imageFileName= self.imageFileName.replace("<version>",str(self.get_attr('rmanGlobals.version')))
         self.imageFileName= self.imageFileName.replace("<take>",str(self.get_attr('rmanGlobals.take')))
  
