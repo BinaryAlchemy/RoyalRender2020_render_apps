@@ -458,6 +458,78 @@ class rrJob(JobProps):
             return False
         return True
 
+    def setOutputFromArnoldDriver(self):
+        """Set job  name and extension as set in the arnold driver node.
+         If a driver output is found, all the other drivers are ignored.
+         Returns True if driver settings have been used.
+
+         To use output of a different driver, move it on top in c4d outliner
+        """
+        LOGGER.debug("Looking for arnold drivers output path")
+        doc = c4d.documents.GetActiveDocument()
+        ob = doc.GetFirstObject()
+
+        driver_save_attr = {
+            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_DEEPEXR_FILENAME, ".exr"),
+            C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+            C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
+            C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
+            C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
+        }
+
+        while ob:
+            type_id = ob.GetType()
+            if type_id != ARNOLD_DRIVER:
+                ob = ob.GetNext()
+                continue
+
+            driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
+            if driver_type == C4DAIN_DRIVER_C4D_DISPLAY:
+                # display driver has no output settings
+                ob = ob.GetNext()
+                continue
+            try:
+                save_attr, save_ext = driver_save_attr[driver_type]
+            except KeyError:
+                LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
+                ob = ob.GetNext()
+                continue
+
+            type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
+
+            save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
+            if save_type not in (C4DAI_SAVEPATH_TYPE__CUSTOM, C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
+                ob = ob.GetNext()
+                continue
+
+            path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
+
+            outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
+
+            if not outpath:
+                ob = ob.GetNext()
+                continue
+
+            filename, file_ext = os.path.splitext(outpath)
+            if file_ext and file_ext != save_ext:
+                LOGGER.warning("Extension {0}, differs from driver extension {1}".format(file_ext, save_ext))
+                filename = outpath
+
+            self.imageName = filename
+            self.imageFormat = save_ext
+
+            if '#' in filename:
+                if not filename.endswith("#"):
+                    gui.MessageDialog("Arnold driver '{0}' has non-trailing '#' in output filename."
+                                      " Please change it so that it ends with '####' or '####.ext'".format(ob.GetName()))
+                self.imageFramePadding = filename.count('#')
+            else:
+                self.imagePreNumberLetter = "."
+
+            return True
+
+        return False  # no output set
+
 
 ##############################################
 # CINEMA                                     #
@@ -550,6 +622,7 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
         takeName = parentTakeName + separator + takeName
 
     newJob = copy.deepcopy(jobList[0])
+
     if "$take" not in newJob.imageName:
         # user has forgotten to add $take, which means you overwrite the same file
         newJob.imageName = insertPathTake(newJob.imageName)
@@ -568,6 +641,8 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
     takeData.SetCurrentTake(take)
     rd = doc.GetActiveRenderData()
     setSeq(newJob, rd)
+    if newJob.Arnold_DriverOut:
+        newJob.setOutputFromArnoldDriver()
 
     LOGGER.debug("childTake: " + takeName + "  " + newJob.imageName)
     jobList.append(newJob)
@@ -1490,78 +1565,6 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return file_path
 
-    def setOutputFromArnoldDriver(self):
-        """Set job  name and extension as set in the arnold driver node.
-         If a driver output is found, all the other drivers are ignored.
-         Returns True if driver settings have been used.
-
-         To use output of a different driver, move it on top in c4d outliner
-        """
-        LOGGER.debug("Looking for arnold drivers output path")
-        doc = c4d.documents.GetActiveDocument()
-        ob = doc.GetFirstObject()
-
-        driver_save_attr = {
-            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_DEEPEXR_FILENAME, ".exr"),
-            C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
-            C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
-            C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
-            C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
-        }
-
-        while ob:
-            type_id = ob.GetType()
-            if type_id != ARNOLD_DRIVER:
-                ob = ob.GetNext()
-                continue
-
-            driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
-            if driver_type == C4DAIN_DRIVER_C4D_DISPLAY:
-                # display driver has no output settings
-                ob = ob.GetNext()
-                continue
-            try:
-                save_attr, save_ext = driver_save_attr[driver_type]
-            except KeyError:
-                LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
-                ob = ob.GetNext()
-                continue
-
-            type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
-
-            save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
-            if save_type not in (C4DAI_SAVEPATH_TYPE__CUSTOM, C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
-                ob = ob.GetNext()
-                continue
-
-            path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
-
-            outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
-
-            if not outpath:
-                ob = ob.GetNext()
-                continue
-
-            filename, file_ext = os.path.splitext(outpath)
-            if file_ext and file_ext != save_ext:
-                LOGGER.warning("Extension {0}, differs from driver extension {1}".format(file_ext, save_ext))
-                filename = outpath
-
-            self.job[0].imageName = filename
-            self.job[0].imageFormat = save_ext
-
-            if '#' in filename:
-                if not filename.endswith("#"):
-                    gui.MessageDialog("Arnold driver '{0}' has non-trailing '#' in output filename."
-                                      " Please change it so that it ends with '####' or '####.ext'".format(ob.GetName()))
-                self.job[0].imageFramePadding = filename.count('#')
-            else:
-                self.job[0].imagePreNumberLetter = "."
-
-            return True
-
-        return False  # no output set
-
     def setFileout(self):
         if self.isMP:
             LOGGER.debug("MultiPass: yes")
@@ -1573,14 +1576,14 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].channel = "MultiPass"
             self.job[0].imageName = self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME]
             if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
-                self.job[0].Arnold_DriverOut = self.setOutputFromArnoldDriver()
+                self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
         else:
             LOGGER.debug("MultiPass: no")
             self.job[0].channel = ""
             self.job[0].imageName = self.renderSettings[c4d.RDATA_PATH]
 
             if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_FORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
-                self.job[0].Arnold_DriverOut = self.setOutputFromArnoldDriver()
+                self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
 
         self.job[0].layerName = ""
 
