@@ -1502,7 +1502,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         ob = doc.GetFirstObject()
 
         driver_save_attr = {
-            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_DEEPEXR_FILENAME, ".exr"),
             C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
             C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
             C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
