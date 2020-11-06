@@ -64,7 +64,7 @@ class rrOSConversion(object):
         if (self.settingsLoaded):
             return True
         self.clear()
-        if len(self.overrideIniFile>0):
+        if len(self.overrideIniFile)>0:
             iniLocation= self.overrideIniFile
         else:
             iniLocation=(getRR_Root()+ "/sub/cfg_global/OSConversion.ini")
