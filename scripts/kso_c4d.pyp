@@ -131,7 +131,38 @@ def convertFilepath(filepath, fromOS, toOS):
     return filepath_new
 
 
-class ArnoldSymbols():
+def rrGetDirName(dirpath):
+    logMessageDebug("rrGetDirName " + dirpath)
+    PD = '/'
+
+    if len(dirpath) < 3:
+        return dirpath
+
+    endedWithPD = dirpath.endswith(PD)
+    if endedWithPD:
+        dirpath = dirpath[:-1]
+
+    driveEnd = 0  # linux has root slash at pos 0: /
+    if dirpath[1] == PD:  # UNC PATH has root slash at 1 and second "folder" is part of the "drive" \\fileserver\drive
+        driveEnd = dirpath.find(PD, 2)
+        driveEnd = dirpath.find(PD, driveEnd + 1)
+        if (driveEnd < 0):
+            dirpath += PD
+            return dirpath
+    elif dirpath[1] == ':':  # windows drive E:/
+        driveEnd = 2
+    p = dirpath.rfind(PD)
+    if p >= driveEnd:
+        dirpath = dirpath[:p]
+    elif p < 0:  # filename only or drive only
+        if not endedWithPD:
+            return ""
+    dirpath += PD
+    # logMessage("result: " + dirpath)
+    return dirpath
+
+
+class ArnoldSymbols:
     """Arnold identifiers from C4DtoA/res
 
     the numeric IDs are actually built via hashing
@@ -522,8 +553,7 @@ def arnoldConvertPaths(fromOS, toOS):
         c4d.EventAdd()
 
 
-def arnoldEnsureDriversFrameNumber(doc, arg):
-    logMessageDebug("Looking for arnold drivers output path")
+def arnoldGetOutputDrivers(doc):
     ob = doc.GetFirstObject()
 
     while ob:
@@ -559,15 +589,44 @@ def arnoldEnsureDriversFrameNumber(doc, arg):
             ob = ob.GetNext()
             continue
 
+        yield ob, path_parameter, outpath
+        ob = ob.GetNext()
+
+
+def arnoldSetDriversPath(doc, arg):
+    logMessageDebug("Setting arnold drivers output path")
+
+    newDirName0 = rrGetDirName(allForwardSlashes(arg.FNameVar))
+    newDirName1 = rrGetDirName(newDirName0)
+    newDirName2 = rrGetDirName(newDirName1)
+    newDirName3 = rrGetDirName(newDirName2)
+
+    for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
+        orgDirName0 = rrGetDirName(allForwardSlashes(outpath))
+        orgDirName1 = rrGetDirName(orgDirName0)
+        orgDirName2 = rrGetDirName(orgDirName1)
+        orgDirName3 = rrGetDirName(orgDirName2)
+
+        outpath = allForwardSlashes(outpath).replace(orgDirName0, newDirName0)
+        outpath = outpath.replace(orgDirName1, newDirName1)
+        outpath = outpath.replace(orgDirName2, newDirName2)
+        outpath = outpath.replace(orgDirName3, newDirName3)
+
+        driver.SetParameter(path_parameter, outpath, c4d.DESCFLAGS_SET_0)
+        logMessage("{0}, set to {1}".format(driver.GetName(), driver.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
+
+
+def arnoldEnsureDriversFrameNumber(doc, arg):
+    logMessageDebug("Looking for arnold drivers output path")
+
+    for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
         filename, file_ext = os.path.splitext(outpath)
         if '#' not in filename:
-            logMessageWarning( "arnold driver {0} output has no frame number placeholders ('#') adding".format(ob.GetName()) )
-            ob.SetParameter( path_parameter, "{0}.{1}".format(filename, '#'*int(arg.FPadding)), c4d.DESCFLAGS_SET_0 )
-            logMessageDebug("{0}, set to {1}".format(ob.GetName(), ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
+            logMessageWarning( "arnold driver {0} output has no frame number placeholders ('#') adding".format(driver.GetName()) )
+            driver.SetParameter( path_parameter, "{0}.{1}".format(filename, '#'*int(arg.FPadding)), c4d.DESCFLAGS_SET_0 )
+            logMessageDebug("{0}, set to {1}".format(driver.GetName(), driver.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
         elif not filename.endswith('#'):
-            logMessageWarning("arnold driver {0} output: '#' is not trailing".format(ob.GetName()))
-
-        ob = ob.GetNext()
+            logMessageWarning("arnold driver {0} output: '#' is not trailing".format(driver.GetName()))
 
 
 def shadertreeConvertTex(shader, fromOS, toOS):
@@ -1261,6 +1320,7 @@ def init_c4d():
         return False
 
     if arg.renderer.lower() == "arnold":
+        arnoldSetDriversPath(doc, arg)
         arnoldEnsureDriversFrameNumber(doc, arg)
 
     logMessage("Scene init done, starting to render... ")
