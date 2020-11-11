@@ -22,8 +22,8 @@ ExeCopyFromDir = <rrSharedExeDir>
 ExeCopyToDir   = <rrLocalExeDir>
 
 ExeCopiedWin=  <rrLocalExeDir>vray_*\bin\vray.exe
-ExeCopiedLx=   <rrLocalExeDir>vray_*/bin/vray
-ExeCopiedMac=   <rrLocalExeDir>vray_*/bin/vray
+ExeCopiedLx=   <rrLocalExeDir>vray_*/bin/vray.bin
+ExeCopiedMac=   <rrLocalExeDir>vray_*/bin/vray.bin
 
 
 
