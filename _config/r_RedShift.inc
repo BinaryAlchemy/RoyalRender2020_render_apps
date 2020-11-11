@@ -16,3 +16,4 @@ RealTimeAbortLine= CL_MEM_OBJECT_ALLOCATION_FAILURE
 RealTimeAbortLine= Output file locked or path not available for writing. Skipping frame
 
 
+::include(<ConfigFileName>__inhouse.inc)
