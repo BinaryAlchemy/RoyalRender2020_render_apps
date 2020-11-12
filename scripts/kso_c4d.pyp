@@ -15,6 +15,8 @@ import sys
 import c4d
 import os
 
+if (sys.version_info.major == 2):
+    range = xrange
 
 # LOGGING
 
@@ -469,7 +471,7 @@ def arnoldConvertShader(material, fromOS, toOS):
 
     trigger_update = False
 
-    for i in xrange(0, numShaders):
+    for i in range(0, numShaders):
         shader = msg.GetLink(10000 + i)
         if not shader:
             continue
@@ -816,7 +818,7 @@ def tiled_checkRedshift_compatibility(arg, rd):
 
     ID_CUSTOM_UI_AOV = 1036235  # Redshift AOVs ID
     num_AOV = rs_vp[c4d.REDSHIFT_RENDERER_AOV_COUNT]
-    for i in xrange(num_AOV):
+    for i in range(num_AOV):
         aov_idx = c4d.REDSHIFT_RENDERER_AOV_LAYER_FIRST + i
         aov_attrs = c4d.DescLevel(aov_idx, ID_CUSTOM_UI_AOV, 0)
         aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_ENABLED, c4d.DTYPE_BOOL, 0)
@@ -1101,7 +1103,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                 flushLog()
             else:
                 logMessage( "Rendering Frames : " + str(FrStart) + "-" + str(FrEnd))
-                for fr in xrange(FrStart, FrEnd + 1, FrStep):
+                for fr in range(FrStart, FrEnd + 1, FrStep):
                     kso_tcp.writeRenderPlaceholder_nr(arg.FName, fr, arg.FPadding, arg.FExt)
                     logMessage( "Rendering Frame #" + str(fr) +" ...")
                     doc.SetTime(c4d.BaseTime(fr, fps))
