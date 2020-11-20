@@ -25,6 +25,7 @@ HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;&
 # HOUDINI_VEX_PATH  =  <HOUDINI_VEX_PATH>;&
 # HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;&
 
+PATH= <rrBaseAppPath>\bin;<PATH>
 
 LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 
@@ -142,15 +143,15 @@ RR_VRAY_IS_USED  =
     [If] <RR_VRAY_VERSION>  [==] 
         echo * Rendering with VRay
         RR_VRAY_VERSION  =  <rrJobRendererVersion>
-        RR_VRAY_IS_USED  =  TRUE
     [EndIf]
+    RR_VRAY_IS_USED  =  TRUE
 [EndIf]
-[If] <rrJobRenderer>  [contains] createVR
+[If] <rrJobRenderer>  [contains] createVr
     [If] <RR_VRAY_VERSION>  [==] 
         echo * Creating with VRay
         RR_VRAY_VERSION  =  <rrJobRendererVersion>
-        RR_VRAY_IS_USED  =  TRUE
     [EndIf]
+    RR_VRAY_IS_USED  =  TRUE
 [EndIf]
 [If] <RR_VRAY_VERSION>  [==] 
     RR_VRAY_VERSION  =  AnyVersion
@@ -182,7 +183,7 @@ PYTHONPATH = <VRAY_APPSDK>\python27;<PYTHONPATH>
 QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 
     
-[If] RR_VRAY_IS_USED  [==] TRUE        
+[If] <RR_VRAY_IS_USED>  [==] TRUE        
     HOUDINI13_VOLUME_COMPATIBILITY  =  1
     HDF5_DISABLE_VERSION_CHECK  =  1
 [EndIf]

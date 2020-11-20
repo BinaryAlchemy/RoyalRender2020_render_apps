@@ -59,6 +59,9 @@ class rrOSConversion(object):
     
     def setIniFile(self, filename):   
         self.overrideIniFile= filename
+        if (self.overrideIniFile.find("/")<0  and self.overrideIniFile.find("\\")<0):
+            self.overrideIniFile= getRR_Root()+ "/sub/cfg_global/"+ self.overrideIniFile
+        
     
     def loadSettings(self):
         if (self.settingsLoaded):

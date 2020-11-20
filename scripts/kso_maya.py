@@ -213,6 +213,7 @@ class argParser:
         self.noIncludeAllLights= getParam(allArgList,"noIncludeAllLights")
         self.avFrameTime= getParam(allArgList,"avFrameTime")
         self.noFrameLoop= getParam(allArgList,"noFrameLoop")        
+        self.pathConversionFile= getParam(allArgList,"pathConversionFile")        
 
 globalArg = argParser() #required for KSO rendering
 
@@ -1091,8 +1092,11 @@ def rrStart(argAll):
 
         loadPlugins(arg)
 
+        if (os.environ.has_key('RR_PathConversionFile')):
+            arg.pathConversionFile= os.environ['RR_PathConversionFile'].strip("\r")
+        if (argValid(arg.pathConversionFile)):
+            doCrossOSPathConversionMaya_CustomFile(arg, arg.pathConversionFile , 1, 2)
         doCrossOSPathConversionMaya(arg)
-        #doCrossOSPathConversionMaya_CustomFile(arg, rrScriptHelper.getRR_Root()+ "/sub/cfg_global/OSConversion_custom.ini" , 1, 2)
         
         if (argValid(arg.noEvaluationManager)): 
             logMessageSet("Animation Evaluation Manager to 'off' (DG).")
@@ -1113,8 +1117,9 @@ def rrStart(argAll):
         flushLog()
         print("______________________________________________________ Scene opened _____________________________________________________________________" )            
 
+        if (argValid(arg.pathConversionFile)):
+            doCrossOSPathConversion_CustomFile(arg, arg.pathConversionFile, 1, 2)
         doCrossOSPathConversion(arg)
-        #doCrossOSPathConversion_CustomFile(arg, rrScriptHelper.getRR_Root()+ "/sub/cfg_global/OSConversion_custom.ini", 1, 2)
         checkColorPrefsFile()
         
         global _rrGL_mayaVersion        
