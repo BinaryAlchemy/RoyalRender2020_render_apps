@@ -623,14 +623,22 @@ def setRenderSettings_Redshift(arg):
         arg.FName=arg.FName.replace("<layer>","<RenderLayer>");
         logSetAttrType('redshiftOptions.imageFilePrefix',arg.FDir+"/"+arg.FName,"string")
         logSetAttr('redshiftOptions.skipExistingFrames',0)
-        availableCuda= maya.mel.eval('rsPreference -q "AllCudaDevices";')
-        logMessage("Available Cuda devices: "+availableCuda)
+        try:
+            availableCuda= maya.mel.eval('rsPreference -q "AllCudaDevices";')
+            logMessage("Available Cuda devices: "+availableCuda)
+        except Exception as e:
+            logMessage("WARNING: Unable to execute function 'rsPreference -q AllCudaDevices;'") 
+            logMessage(str(e))                   
         if (argValid(arg.CudaDevices)):
             arg.CudaDevices= arg.CudaDevices.replace(".",",")
             arg.CudaDevices="{"+arg.CudaDevices+"}"
             logMessageSet("CudaDevices to "+str(arg.CudaDevices))
             flushLog()
-            maya.mel.eval('redshiftSelectCudaDevices('+arg.CudaDevices+');')      
+            try:
+                maya.mel.eval('redshiftSelectCudaDevices('+arg.CudaDevices+');')      
+            except Exception as e:
+                logMessage("ERROR: Unable to execute function 'redshiftSelectCudaDevices("+str(arg.CudaDevices)+");'")
+                logMessage(str(e))            
         if (argValid(arg.RenderDemo)):
             if (arg.RenderDemo):
                 logSetAttr('redshiftOptions.abortOnLicenseFail',False)
