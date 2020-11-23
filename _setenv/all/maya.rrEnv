@@ -152,6 +152,10 @@ VRAY_VFB_GUI  =  0
     #dummy command 
     RR_MTOA_NETWORK= <RR_MTOA_NETWORK>
 [Else]
+    RR_MTOA_NETWORK  =  0
+[EndIf]
+
+[If] <RR_MTOA_NETWORK>  [==] 0
     [If] <RR_MTOA_BASE>  [==] 
         RR_MTOA_NETWORK  =  0
         [If] <rrExeVersionMajor>  [<] 2020
@@ -214,6 +218,21 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
     [DelFile] <RR_MTOA_BASE_LOCAL>/left.bmp
     [DelFile] <RR_MTOA_BASE_LOCAL>/Uninstall.exe
 [EndIf]
+
+
+[If] <rrJobRenderer>  [contains] arnold
+    [If] <RR_MTOA_LICTEST>  [==] 1
+        #echo * ARNOLD license check RLM 
+        #[Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -licensecheck
+        echo * ARNOLD Autodesk CLM , RLM license check
+        [If] <rrExeOS>  [==] win
+            [Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -i NUL
+        [Else]
+            [Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -i /dev/null
+        [EndIf]
+    [EndIf]
+[EndIf]
+
 
 # ###################  RedShift environment variables ###################
 
