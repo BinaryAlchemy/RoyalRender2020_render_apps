@@ -50,6 +50,8 @@ RR_VRAY_NETWORK  =  0
     RR_MTOA_NETWORK  =  0
 [EndIf]
 
+RR_MTOA_LICTEST = 0
+
 # Uncomment the next 5 lines if you want to have a separate folder for each MtoA version. RR_MTOA_NETWORK=1 is required
 
 # [If] <rrJobRenderer>  [contains] arnold
