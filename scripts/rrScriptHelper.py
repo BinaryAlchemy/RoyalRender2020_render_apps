@@ -1,3 +1,4 @@
+import sys
     
 class rrOS(object):   
 	Any=0
@@ -47,6 +48,7 @@ class rrOSConversion(object):
 
     def __init__(self):
         self.clear()
+        self.overrideIniFile=""
     
     def clear(self):
         self.errorString=""
@@ -55,7 +57,6 @@ class rrOSConversion(object):
         self.tableLx=[]
         self.tableOsx=[]
         self.settingsLoaded= False
-        self.overrideIniFile=""
     
     def setIniFile(self, filename):   
         self.overrideIniFile= filename
@@ -71,18 +72,21 @@ class rrOSConversion(object):
             iniLocation= self.overrideIniFile
         else:
             iniLocation=(getRR_Root()+ "/sub/cfg_global/OSConversion.ini")
+            if (sys.platform.lower() == "win32"):
+                iniLocation= iniLocation.replace("/","\\")
+            
         import ConfigParser
         config = ConfigParser.ConfigParser()
         if (len(config.read(iniLocation))<=0):
-            errorString="Unable to read ini file or file does not exist: '"+iniLocation+"'"
+            errorString="Error: Unable to read ini file or file does not exist: '"+iniLocation+"'"
             return False
         if (len(config.sections())<=0):
-            errorString="Ini file is empty: '"+iniLocation+"'"
+            errorString="Error: Ini file is empty: '"+iniLocation+"'"
             return False
         try:
             options = config.options("OSConversion")
         except:        
-            errorString="Ini file has no section 'OSConversion': '"+iniLocation+"'"
+            errorString="Error: Ini file has no section 'OSConversion': '"+iniLocation+"'"
             return False
         
         for option in options:
@@ -102,10 +106,13 @@ class rrOSConversion(object):
             
     def getTableOS(self, fromOS, toOS, onlySlashes):
         if len(self.tableWin)==0:
+            print("Error: No OS path conversions set in rrConfig\n\n")
             return [], []
         if (fromOS==toOS):
+            print("Error: fromOS and toOS are the same OS!\n")
             return [], []
         if (fromOS==rrOS.Any or toOS==rrOS.Any):
+            print("Error: fromOS or toOS was not specified!\n")
             return [], []
         import copy
         if (fromOS==rrOS.Osx):
@@ -162,7 +169,6 @@ def createVRayRemapFile(filename, fromOS):
     osConvert.loadSettings()
     fromOSlist, toOSlist = osConvert.getTableOS(fromOS,getOS(),False)
     if (len(fromOSlist)<=0):
-        print("No OS path conversions set in rrConfig\n\n")
         return
     from xml.etree.ElementTree import ElementTree, Element, SubElement
     rootElement = Element("RemapPaths")
