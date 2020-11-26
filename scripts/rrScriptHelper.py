@@ -170,6 +170,7 @@ def createVRayRemapFile(filename, fromOS):
     fromOSlist, toOSlist = osConvert.getTableOS(fromOS,getOS(),False)
     if (len(fromOSlist)<=0):
         return
+    import encodings
     from xml.etree.ElementTree import ElementTree, Element, SubElement
     rootElement = Element("RemapPaths")
     for i in range(len(fromOSlist)):
