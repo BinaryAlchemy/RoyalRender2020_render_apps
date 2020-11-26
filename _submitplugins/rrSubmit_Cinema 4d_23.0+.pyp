@@ -195,7 +195,7 @@ def rrGetRR_Root():
         return os.environ['RR_ROOT'].strip("\r")
 
     if sys.platform.lower() in ("win32", "win64"):
-        HCPath = "\\\\poldi\\RoyalRender"
+        HCPath = "%RRLocationWin%"
     elif sys.platform.lower() == "darwin":
         HCPath = "%RRLocationMac%"
     else:
