@@ -616,10 +616,8 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
     :param takeData: takes data of the document
     """
 
-    takeName = take.GetName()
-    if parentTakeName:
-        separator = "*"
-        takeName = parentTakeName + separator + takeName
+    take_name = take.GetName()
+    take_name_full = '*'.join([name for name in (parentTakeName, take_name) if name])
 
     newJob = copy.deepcopy(jobList[0])
 
@@ -630,13 +628,13 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
         if "$take" not in newJob.channelFileName[ch]:
             newJob.channelFileName[ch] = insertPathTake(newJob.channelFileName[ch])
 
-    newJob.imageName = newJob.imageName.replace("$take", takeName)
-    newJob.layerName = takeName
+    newJob.imageName = newJob.imageName.replace("$take", take_name)
+    newJob.layerName = take_name_full
     newJob.isActive = take.IsChecked()
-    if currentTakeName == takeName:
+    if currentTakeName == take_name_full:
         newJob.isActive = True
     for ch in range(0, newJob.maxChannels):
-        newJob.channelFileName[ch] = newJob.channelFileName[ch].replace("$take", takeName)
+        newJob.channelFileName[ch] = newJob.channelFileName[ch].replace("$take", take_name)
 
     takeData.SetCurrentTake(take)
     rd = doc.GetActiveRenderData()
@@ -644,11 +642,11 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
     if newJob.Arnold_DriverOut:
         newJob.setOutputFromArnoldDriver()
 
-    LOGGER.debug("childTake: " + takeName + "  " + newJob.imageName)
+    LOGGER.debug("childTake: " + take_name_full + "  " + newJob.imageName)
     jobList.append(newJob)
 
 
-def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData, fullPath=True):
+def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData, fullPath=""):
     """ Travel all takes looking for job layers
 
     :param doc: c4d document
@@ -660,11 +658,9 @@ def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData, 
     """
     childTake = parentTake.GetDown()
     while childTake is not None:
-        if fullPath:
-            duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData, parentTake.GetName())
-        else:
-            duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData)
-        addTakes_recursiveLoop(doc, jobList, childTake, currentTakeName, takeData)
+        duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData, fullPath)
+        current_path = '*'.join([name for name in (fullPath, childTake.GetName()) if name])
+        addTakes_recursiveLoop(doc, jobList, childTake, currentTakeName, takeData, current_path)
         childTake = childTake.GetNext()
 
 
@@ -679,7 +675,7 @@ def addTakes(doc, jobList, takeData):
     LOGGER.debug("takeData: " + str(takeData))
     currentTakeName = takeData.GetCurrentTake().GetName()
     mainTake = takeData.GetMainTake()
-    addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath=False)
+    addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath="")
 
     jobList[0].imageName = jobList[0].imageName.replace("$take", mainTake.GetName())
     jobList[0].layerName = mainTake.GetName()
