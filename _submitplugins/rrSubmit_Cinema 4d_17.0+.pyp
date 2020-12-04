@@ -32,16 +32,12 @@ import tempfile
 from subprocess import call
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
+##############################################
+# PYTHON2 COMPATIBILITY                      #
+##############################################
 
-###############################################################################
-# To enable tile rendering for sequences as well, set  SHOWTILEDIALOG = True  #
-###############################################################################
-
-# NOTE: deprecated, we are now using rrSubmiteer optionsfor tiled rendering
-SHOWTILEDIALOG = False
-NORRTILE = False  # use command line tiling rather than c4d option
-TILES = 1
-
+if sys.version_info.major == 2:
+    range = xrange
 
 ##############################################
 # GLOBAL VARIABLES                           #
@@ -50,60 +46,6 @@ TILES = 1
 PLUGIN_ID_ASS = 1038331
 PLUGIN_ID_CAM = 1039082
 PLUGIN_ID = 1027715
-
-
-# Arnold plugin constants
-
-# From plugins/C4DtoA/res/c4dtoa_symbols.h
-ARNOLD_DRIVER = 1030141
-ARNOLD_AOV = 1030369
-ARNOLD_SCENE_HOOK = 1032309
-ARNOLD_DUMMY_BITMAP_SAVER = 1035823
-
-# From plugins/C4DtoA/res/description/ainode_driver_exr.h
-C4DAIP_DRIVER_EXR_FILENAME  = 1285755954
-C4DAIP_DRIVER_EXR_NAME = 55445461
-
-# # C4DtoA/res/description/ainode_driver_deepexr.h
-C4DAIP_DRIVER_DEEPEXR_FILENAME = 1429220916
-C4DAIP_DRIVER_DEEPEXR_NAME = 278349996
-
-# C4DtoA/res/description/ainode_driver_jpeg.h
-C4DAIP_DRIVER_JPEG_FILENAME = 766183461
-C4DAIP_DRIVER_JPEG_NAME = 965425797
-
-# C4DtoA/res/description/ainode_driver_png.h
-C4DAIP_DRIVER_PNG_FILENAME = 1807654404
-C4DAIP_DRIVER_PNG_NAME = 363284252
-
-# C4DtoA/res/description/ainode_driver_tiff.h
-C4DAIP_DRIVER_TIFF_FILENAME = 1913388456
-C4DAIP_DRIVER_TIFF_NAME = 1690311032
-
-# C4DtoA/api/include/customgui/ArnoldSavePathCustomGui.h
-C4DAI_SAVEPATH_TYPE__CUSTOM = 0
-C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME = 1
-C4DAI_SAVEPATH_TYPE__C4D_REGULAR = 2
-C4DAI_SAVEPATH_TYPE__C4D_MULTIPASS = 3
-
-# From plugins/C4DtoA/res/description/arnold_driver.h
-C4DAI_DRIVER_TYPE = 101
-
-# From plugins/C4DtoA/api/include/util/NodeIds.h
-C4DAIN_DRIVER_EXR = 9504161
-C4DAIN_DRIVER_DEEPEXR = 1058716317
-C4DAIN_DRIVER_JPEG = 313466666
-C4DAIN_DRIVER_PNG = 9492523
-C4DAIN_DRIVER_TIFF = 313114887
-C4DAIN_DRIVER_C4D_DISPLAY = 1927516736
-
-# plugins/C4DtoA/api/include/util/Constants.h
-C4DTOA_MSG_TYPE = 1000
-C4DTOA_MSG_GET_VERSION = 1040
-C4DTOA_MSG_RESP1 = 2011
-C4DTOA_MSG_RESP2 = 2012
-C4DTOA_MSG_RESP3 = 2013
-
 
 ##############################################
 # GLOBAL LOGGER                              #
@@ -114,7 +56,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-#LOGGER.setLevel(logging.DEBUG)
+# LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -125,17 +67,176 @@ LOGGER.addHandler(ch)
 # GLOBAL FUNCTIONS                           #
 ##############################################
 
+# Arnold
+class ArnoldSymbols:
+    """Arnold identifiers from C4DtoA/res
+
+    the numeric IDs are actually built via hashing
+
+    def hashid(name):  # name = node_name.parameter_name
+        if name is None: return 0
+
+        h = 5381
+        for c in name:
+            h = (h << 5) + h + ord(c)
+        h = ctypes.c_int32(h).value
+        if h < 0: h = -h
+        return h
+
+    https://docs.arnoldrenderer.com/display/AFCUG/Shader+Network+%7C+Python
+    """
+
+    # C4DtoA/res/c4d_symbols.h
+    ARNOLD_RENDERER = 1029988
+    ARNOLD_RENDERER_COMMAND = 1039333
+
+    ARNOLD_AOV = 1030369
+    ARNOLD_DRIVER = 1030141
+    ARNOLD_LIGHT = 1030424
+    ARNOLD_PROCEDURAL = 1032509
+    ARNOLD_VOLUME = 1033693
+    ARNOLD_SCENE_HOOK = 1032309
+    ARNOLD_DUMMY_BITMAP_SAVER = 1035823
+    ARNOLD_SHADER_NETWORK = 1033991
+    ARNOLD_SHADER_GV = 1033990
+    ARNOLD_C4D_SHADER_GV = 1034190
+    ARNOLD_SKY = 1034624
+
+    # // shader links
+    C4DAI_SHADERLINK_CONTAINER = 9988000
+    C4DAI_SHADERLINK_TYPE = 101
+    C4DAI_SHADERLINK_VALUE = 102
+    C4DAI_SHADERLINK_TEXTURE = 103
+
+    # C4DtoA/api/include/customgui/ArnoldShaderLinkCustomGui.h
+    C4DAI_SHADERLINK_TYPE__CONSTANT = 1
+    C4DAI_SHADERLINK_TYPE__TEXTURE = 2
+    C4DAI_SHADERLINK_TYPE__SHADER_NETWORK = 3
+
+    # C4DtoA/res/description/ainode_*_light.h
+    C4DAIP_CYLINDER_LIGHT_COLOR = 557215133
+    C4DAIP_DISK_LIGHT_COLOR = 2014459500
+    C4DAIP_DISTANT_LIGHT_COLOR = 47856576
+    C4DAIP_MESH_LIGHT_COLOR = 2056342262
+    C4DAIP_QUAD_LIGHT_COLOR = 2010942260
+    C4DAIP_PHOTOMETRIC_LIGHT_COLOR = 2101923881
+    C4DAIP_POINT_LIGHT_COLOR = 1458609997
+    C4DAIP_SKYDOME_LIGHT_COLOR = 268620635
+    C4DAIP_SPOT_LIGHT_COLOR = 1823117041
+
+    # C4DtoA/res/description/ainode_photometric_light.h
+    C4DAIP_PHOTOMETRIC_LIGHT_FILENAME = 1413133543
+
+    # C4DtoA/api/include/util/NodeIds.h
+    C4DAIN_DRIVER_EXR = 9504161
+    C4DAIN_DRIVER_DEEPEXR = 1058716317
+    C4DAIN_DRIVER_JPEG = 313466666
+    C4DAIN_DRIVER_PNG = 9492523
+    C4DAIN_DRIVER_TIFF = 313114887
+    C4DAIN_DRIVER_C4D_DISPLAY = 1927516736
+    C4DAIN_DRIVER_C4D_EXR = 1927516736
+
+    C4DAIN_IMAGE = 262700200
+
+    # // lights
+    C4DAIN_CYLINDER_LIGHT = 1944046294
+    C4DAIN_DISK_LIGHT = 998592185
+    C4DAIN_DISTANT_LIGHT = 1381557517
+    C4DAIN_MESH_LIGHT = 804868393
+    C4DAIN_PHOTOMETRIC_LIGHT = 1980850506
+    C4DAIN_POINT_LIGHT = 381492518
+    C4DAIN_QUAD_LIGHT = 1218397465
+    C4DAIN_SKYDOME_LIGHT = 2054857832
+    C4DAIN_SPOT_LIGHT = 876943490
+
+    light_color_attr = {
+        C4DAIN_CYLINDER_LIGHT: C4DAIP_CYLINDER_LIGHT_COLOR,
+        C4DAIN_DISK_LIGHT: C4DAIP_DISK_LIGHT_COLOR,
+        C4DAIN_DISTANT_LIGHT: C4DAIP_DISTANT_LIGHT_COLOR,
+        C4DAIN_MESH_LIGHT: C4DAIP_MESH_LIGHT_COLOR,
+        C4DAIN_PHOTOMETRIC_LIGHT: C4DAIP_PHOTOMETRIC_LIGHT_COLOR,
+        C4DAIN_POINT_LIGHT: C4DAIP_POINT_LIGHT_COLOR,
+        C4DAIN_QUAD_LIGHT: C4DAIP_QUAD_LIGHT_COLOR,
+        C4DAIN_SKYDOME_LIGHT: C4DAIP_SKYDOME_LIGHT_COLOR,
+        C4DAIN_SPOT_LIGHT: C4DAIP_SPOT_LIGHT_COLOR
+    }
+
+    # From plugins/C4DtoA/res/description/arnold_driver.h
+    C4DAI_DRIVER_TYPE = 101
+
+    # C4DtoA/res/description/ainode_driver_exr.h
+    C4DAIP_DRIVER_EXR_FILENAME = 1285755954
+    C4DAIP_DRIVER_EXR_NAME = 55445461
+
+    # # C4DtoA/res/description/ainode_driver_deepexr.h
+    C4DAIP_DRIVER_DEEPEXR_FILENAME = 1429220916
+    C4DAIP_DRIVER_DEEPEXR_NAME = 278349996
+
+    # C4DtoA/res/description/ainode_driver_jpeg.h
+    C4DAIP_DRIVER_JPEG_FILENAME = 766183461
+    C4DAIP_DRIVER_JPEG_NAME = 965425797
+
+    # C4DtoA/res/description/ainode_driver_png.h
+    C4DAIP_DRIVER_PNG_FILENAME = 1807654404
+    C4DAIP_DRIVER_PNG_NAME = 363284252
+
+    # C4DtoA/res/description/ainode_driver_tiff.h
+    C4DAIP_DRIVER_TIFF_FILENAME = 1913388456
+    C4DAIP_DRIVER_TIFF_NAME = 1690311032
+
+    # C4DtoA/api/include/customgui/ArnoldSavePathCustomGui.h
+    C4DAI_SAVEPATH_TYPE__CUSTOM = 0
+    C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME = 1
+    C4DAI_SAVEPATH_TYPE__C4D_REGULAR = 2
+    C4DAI_SAVEPATH_TYPE__C4D_MULTIPASS = 3
+
+    # res/description/gvarnoldshader.h
+    C4DAI_GVSHADER_TYPE = 200
+
+    # res/description/gvc4dshader.h
+    C4DAI_GVC4DSHADER_TYPE = 200
+
+    # res/description/ainode_image.h
+    C4DAIP_IMAGE_FILENAME = 1737748425
+
+    driver_save_attr = {
+        C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_DEEPEXR_FILENAME, ".exr"),
+        C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
+        C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
+        C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
+        C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
+    }
+
+    # res/description/ainode_volume.h
+    C4DAIP_VOLUME_FILENAME = 1869200172
+
+    # Message IDs
+    C4DTOA_MSG_TYPE = 1000
+    C4DTOA_MSG_GET_VERSION = 1040
+    C4DTOA_MSG_PARAM1 = 2001
+    C4DTOA_MSG_PARAM2 = 2002
+    C4DTOA_MSG_PARAM3 = 2003
+    C4DTOA_MSG_PARAM4 = 2004
+    C4DTOA_MSG_RESP1 = 2011
+    C4DTOA_MSG_RESP2 = 2012
+    C4DTOA_MSG_RESP3 = 2013
+    C4DTOA_MSG_RESP4 = 2014
+
+    C4DTOA_MSG_ADD_SHADER = 1029
+    C4DTOA_MSG_QUERY_SHADER_NETWORK = 1028
+
+
 def GetC4DtoAMessage(doc):
     """ Returns the arnold plugin version used for given doc
 
     :param doc: cinema 4d document
     :return: c4dtoa version as string, "" if no arnold hook is found
     """
-    arnoldSceneHook = doc.FindSceneHook(ARNOLD_SCENE_HOOK)
+    arnoldSceneHook = doc.FindSceneHook(ArnoldSymbols.ARNOLD_SCENE_HOOK)
     if arnoldSceneHook is None:
         return
     msg = c4d.BaseContainer()
-    msg.SetInt32(C4DTOA_MSG_TYPE, C4DTOA_MSG_GET_VERSION)
+    msg.SetInt32(ArnoldSymbols.C4DTOA_MSG_TYPE, ArnoldSymbols.C4DTOA_MSG_GET_VERSION)
     arnoldSceneHook.Message(c4d.MSG_BASECONTAINER, msg)
     return msg
 
@@ -144,7 +245,7 @@ def GetArnoldVersion(doc):
     msg = GetC4DtoAMessage(doc)
     if not msg:
         return ""
-    return msg.GetString(C4DTOA_MSG_RESP2)
+    return msg.GetString(ArnoldSymbols.C4DTOA_MSG_RESP2)
 
 
 def GetC4DtoAVersion(doc):
@@ -156,30 +257,72 @@ def GetC4DtoAVersion(doc):
     msg = GetC4DtoAMessage(doc)
     if not msg:
         return ""
-    return msg.GetString(C4DTOA_MSG_RESP1)
+    return msg.GetString(ArnoldSymbols.C4DTOA_MSG_RESP1)
 
 
+def arnoldGetOutputDrivers(doc):
+    ob = doc.GetFirstObject()
+
+    while ob:
+        type_id = ob.GetType()
+        if type_id != ArnoldSymbols.ARNOLD_DRIVER:
+            ob = ob.GetNext()
+            continue
+
+        driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
+        if driver_type == ArnoldSymbols.C4DAIN_DRIVER_C4D_DISPLAY:
+            # display driver has no output settings
+            ob = ob.GetNext()
+            continue
+        try:
+            save_attr, save_ext = ArnoldSymbols.driver_save_attr[driver_type]
+        except KeyError:
+            LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
+            ob = ob.GetNext()
+            continue
+
+        type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
+
+        save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
+        if save_type not in (
+        ArnoldSymbols.C4DAI_SAVEPATH_TYPE__CUSTOM, ArnoldSymbols.C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
+            ob = ob.GetNext()
+            continue
+
+        path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
+
+        outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
+
+        if not outpath:
+            ob = ob.GetNext()
+            continue
+
+        yield ob, path_parameter, outpath
+        ob = ob.GetNext()
+
+
+# Redshift
 def GetRedshiftVersion():
     try:
-      import redshift
-      return redshift.GetCoreVersion()
+        import redshift
+        return redshift.GetCoreVersion()
     except:
-      LOGGER.warning("Error getting RedShift version, perhaps <2.6.23")
+        LOGGER.warning("Error getting RedShift version, perhaps <2.6.23")
 
-      rs_prefs = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
-      if not rs_prefs:
-          return ""
+        rs_prefs = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
+        if not rs_prefs:
+            return ""
 
-      rs_ver = rs_prefs[c4d.PREFS_REDSHIFT_REDSHIFT_VERSION]
-      rs_ver = rs_ver.split(" ")[0]  # remove " Demo" or other suffix
+        rs_ver = rs_prefs[c4d.PREFS_REDSHIFT_REDSHIFT_VERSION]
+        rs_ver = rs_ver.split(" ")[0]  # remove " Demo" or other suffix
 
-      return rs_ver
+        return rs_ver
 
 
 def GetRedshiftPluginVersion():
     try:
-      import redshift
-      return redshift.GetPluginVersion()
+        import redshift
+        return redshift.GetPluginVersion()
     except:
         LOGGER.warning("Error getting RedShift plugin version, perhaps <2.6.23")
         rs_prefs = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
@@ -192,6 +335,7 @@ def GetRedshiftPluginVersion():
         return plug_ver
 
 
+# Octane
 def GetOctaneVersion(doc):
     ID_OCTANE_LIVEPLUGIN = 1029499
     bc = doc[ID_OCTANE_LIVEPLUGIN]
@@ -199,11 +343,12 @@ def GetOctaneVersion(doc):
     if bc:
         oc_ver = str(bc[c4d.SET_OCTANE_VERSION])
         # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
-        return ".".join((oc_ver[0], oc_ver[1:3] , oc_ver[3]))
+        return ".".join((oc_ver[0], oc_ver[1:3], oc_ver[3]))
 
     return None
 
 
+# Global
 def isWin():
     if c4d.GeGetCurrentOS() == c4d.GE_WIN:
         LOGGER.debug("OS: Windows")
@@ -232,7 +377,8 @@ def rrGetRR_Root():
     if HCPath[0] != "%":
         return HCPath
 
-    LOGGER.warning("No RR_ROOT environment variable set!\n Please execute rrWorkstationInstaller and restart the machine.")
+    LOGGER.warning(
+        "No RR_ROOT environment variable set!\n Please execute rrWorkstationInstaller and restart the machine.")
     return ""
 
 
@@ -259,6 +405,7 @@ class MultipassInfo(object):
 
         3d party renderes might not use c4d multipass
     """
+
     def __init__(self, channel_name, channel_description):
         """
 
@@ -384,7 +531,8 @@ class rrJob(JobProps):
         """
         sub = SubElement(root_element, element_name)
         text_parameter = str(text_parameter)
-        text_parameter = unicode(text_parameter, "utf-8")
+        if sys.version_info.major == 2:
+            text_parameter = unicode(text_parameter, "utf-8")
         sub.text = text_parameter
         return sub
 
@@ -414,7 +562,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "rendererVersion", self.rendererVersion)
         self.subE(jobElement, "customRenVer_Arnold", self.Arnold_C4DtoAVersion)
         self.subE(jobElement, "customRenVer_ArnoldExportAss", self.Arnold_C4DtoAVersion)
-        #self.subE(jobElement, "customRenVer_Redshift", self.Redshift_C4DtoRSVersion)
+        # self.subE(jobElement, "customRenVer_Redshift", self.Redshift_C4DtoRSVersion)
         self.subE(jobElement, "SceneName", self.sceneFilename)
         self.subE(jobElement, "IsActive", self.isActive)
         self.subE(jobElement, "Layer", self.layerName)
@@ -432,7 +580,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "Camera", self.camera)
         if self.linearColorSpace:
             self.subE(jobElement, "SubmitterParameter", "PreviewGamma2.2=1~1")
-        for c in xrange(0, self.maxChannels):
+        for c in range(0, self.maxChannels):
             self.subE(jobElement, "ChannelFilename", self.channelFileName[c])
             self.subE(jobElement, "ChannelExtension", self.channelExtension[c])
             LOGGER.debug("channel {0}: {1} {2}".format(c, self.channelFileName[c], self.channelExtension[c]))
@@ -466,52 +614,17 @@ class rrJob(JobProps):
          To use output of a different driver, move it on top in c4d outliner
         """
         LOGGER.debug("Looking for arnold drivers output path")
+
         doc = c4d.documents.GetActiveDocument()
-        ob = doc.GetFirstObject()
-
-        driver_save_attr = {
-            C4DAIN_DRIVER_DEEPEXR: (C4DAIP_DRIVER_DEEPEXR_FILENAME, ".exr"),
-            C4DAIN_DRIVER_EXR: (C4DAIP_DRIVER_EXR_FILENAME, ".exr"),
-            C4DAIN_DRIVER_JPEG: (C4DAIP_DRIVER_JPEG_FILENAME, ".jpg"),
-            C4DAIN_DRIVER_PNG: (C4DAIP_DRIVER_PNG_FILENAME, ".png"),
-            C4DAIN_DRIVER_TIFF: (C4DAIP_DRIVER_TIFF_FILENAME, ".tif")
-        }
-
-        while ob:
-            type_id = ob.GetType()
-            if type_id != ARNOLD_DRIVER:
-                ob = ob.GetNext()
-                continue
-
-            driver_type = ob[c4d.C4DAI_DRIVER_TYPE]
-            if driver_type == C4DAIN_DRIVER_C4D_DISPLAY:
-                # display driver has no output settings
-                ob = ob.GetNext()
-                continue
-            try:
-                save_attr, save_ext = driver_save_attr[driver_type]
-            except KeyError:
-                LOGGER.warning("invalid path attribute for driver of type " + str(driver_type))
-                ob = ob.GetNext()
-                continue
-
-            type_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(2))
-
-            save_type = ob.GetParameter(type_parameter, c4d.DESCFLAGS_GET_0)
-            if save_type not in (C4DAI_SAVEPATH_TYPE__CUSTOM, C4DAI_SAVEPATH_TYPE__CUSTOM_WITH_NAME):
-                ob = ob.GetNext()
-                continue
-
-            path_parameter = c4d.DescID(c4d.DescLevel(save_attr), c4d.DescLevel(1))
-
-            outpath = ob.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)
+        for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
 
             if not outpath:
                 ob = ob.GetNext()
                 continue
 
+            save_attr, save_ext = ArnoldSymbols.driver_save_attr[driver[c4d.C4DAI_DRIVER_TYPE]]
             filename, file_ext = os.path.splitext(outpath)
-            if file_ext and file_ext != save_ext:
+            if file_ext and file_ext != save_ext and '#' not in file_ext:
                 LOGGER.warning("Extension {0}, differs from driver extension {1}".format(file_ext, save_ext))
                 filename = outpath
 
@@ -521,7 +634,8 @@ class rrJob(JobProps):
             if '#' in filename:
                 if not filename.endswith("#"):
                     gui.MessageDialog("Arnold driver '{0}' has non-trailing '#' in output filename."
-                                      " Please change it so that it ends with '####' or '####.ext'".format(ob.GetName()))
+                                      " Please change it so that it ends with '####' or '####.ext'".format(
+                        ob.GetName()))
                 self.imageFramePadding = filename.count('#')
             else:
                 self.imagePreNumberLetter = "."
@@ -624,7 +738,7 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
     if "$take" not in newJob.imageName:
         # user has forgotten to add $take, which means you overwrite the same file
         newJob.imageName = insertPathTake(newJob.imageName)
-    for ch in xrange(0, newJob.maxChannels):
+    for ch in range(0, newJob.maxChannels):
         if "$take" not in newJob.channelFileName[ch]:
             newJob.channelFileName[ch] = insertPathTake(newJob.channelFileName[ch])
 
@@ -708,34 +822,13 @@ class RRSubmitBase(object):
         tmpDir = tempfile.gettempdir()
         xmlObj = submitjobs[0].writeToXMLstart()
 
-        tmpFile = open(tmpDir + os.sep + "rrTmpSubmitC4d.xml", "w")
+        write_mode = 'w' if sys.version_info.major < 3 else 'wb'
+        tmpFile = open(tmpDir + os.sep + "rrTmpSubmitC4d.xml", write_mode)
 
-        if TILES > 1:  # tiled documents
-            LOGGER.warning("Tiled document submission from c4d is deprecated")
-            LOGGER.debug("tiled documents " + str(TILES))
-            doc = c4d.documents.GetActiveDocument()
-            filelist = self.saveTiledDocument(doc, TILES, submitjobs[0].sceneFilename)
-            for jobLyr in submitjobs:
-                jobLyr.isTiledMode = True
-                base, ext = os.path.splitext(jobLyr.imageName)
-                posMPass= base.find("<ValueVar ")
-                if (posMPass>0):
-                    ext= base[posMPass:]+ext
-                    base= base[:posMPass]
-                i = 0
-                for f in filelist:
-                    LOGGER.debug("tiled document  "+str(f))
-                    jobLyr.sceneFilename = f
-                    jobLyr.imageName = base + "_tile" + str(i).zfill(2) + ext
-                    i += 1
-                    junk, rest = os.path.split(f)
-                    fname, junk = os.path.splitext(rest)
-                    jobLyr.writeToXMLJob(xmlObj)
-        else:  # single document
-            # Send XML to RR Submitter
-            for jobLyr in submitjobs:
-                LOGGER.debug("submit job  " + str(jobLyr.imageName))
-                jobLyr.writeToXMLJob(xmlObj)
+        # Send XML to RR Submitter
+        for jobLyr in submitjobs:
+            LOGGER.debug("submit job  " + str(jobLyr.imageName))
+            jobLyr.writeToXMLJob(xmlObj)
 
         ret = submitjobs[0].writeToXMLEnd(tmpFile, xmlObj)
         if ret:
@@ -755,10 +848,10 @@ class RRSubmitBase(object):
     def submitRRConsole(self, filename, PID=None, WID=None):
         """Call rrSubmitterconsole and pass the XML job file as a parameter"""
         if WID is not None:
-            #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID + " -WaitForID " + WID)
+            # c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID + " -WaitForID " + WID)
             call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
         elif PID is not None:
-            #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID)
+            # c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID)
             call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID])
         else:
             c4d.storage.GeExecuteProgram(rrGetRR_Root() + self.getRRSubmitterConsole(), filename)
@@ -880,8 +973,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             imagefilename += "."
         if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
             imagefilename += "_"
-        elif ((len(imagefilename) > 3) and imagefilename[-1]==">" and imagefilename[-2]=="@" and imagefilename[-3].isdigit()):
-            imagefilename = imagefilename[ :-2] + "_" + imagefilename[-2:]
+        elif ((len(imagefilename) > 3) and imagefilename[-1] == ">" and imagefilename[-2] == "@" and imagefilename[
+            -3].isdigit()):
+            imagefilename = imagefilename[:-2] + "_" + imagefilename[-2:]
 
         return imagefilename, imageformat
 
@@ -919,7 +1013,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         pass_type_names = {
             getattr(c4d, attr): attr.rsplit("_", 1)[1].lower() for attr in dir(c4d) if attr.startswith("VPBUFFER_")
-            }
+        }
 
         return pass_type_names.get(pass_type, "")
 
@@ -1050,7 +1144,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             "SET_PASSES_NOISE", "SET_PASSES_VOLUME", "SET_PASSES_VOLUME_EMISSION", "SET_PASSES_VOLUME_MASK",
             "SET_PASSES_VOLUME_Z_DEPTH_BACK", "SET_PASSES_VOLUME_Z_DEPTH_FRONT",
             "SET_PASSES_IRRADIANCE", "SET_PASSES_LIGHT_DIRECTION",
-            #denoise group
+            # denoise group
             "SET_PASSES_BEAUTY_DENOISER", "SET_PASSES_DENOISER_DIFFUSE_D", "SET_PASSES_DENOISER_DIFFUSE_I",
             "SET_PASSES_DENOISER_REFLECT_D", "SET_PASSES_DENOISER_REFLECT_I", "SET_PASSES_DENOISER_REMAINDER",
             "SET_PASSES_DENOISER_EMISSION", "SET_PASSES_DENOISER_VOLUME", "SET_PASSES_DENOISER_VOL_EMIS",
@@ -1106,7 +1200,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             SET_PASSES_AO=("ao", "AO"), SET_PASSES_WIRE=("wireframe", "Wire"),
             SET_PASSES_RENDER_LAYER_MASK=("render layer mask", "RLMa"),
             SET_PASSES_RENDER_LAYER_ID=("render layer id", "RLID"), SET_PASSES_LIGHT_PASS_ID=("light pass id", "LPid"),
-            SET_PASSES_BAKEGROUP_ID=("baking group id", "BGid"), SET_PASSES_OBJ_LAYERCOLOR_ID=("object color id", "OCol"),
+            SET_PASSES_BAKEGROUP_ID=("baking group id", "BGid"),
+            SET_PASSES_OBJ_LAYERCOLOR_ID=("object color id", "OCol"),
             SET_PASSES_OBJID=("objectid", "OID"), SET_PASSES_MATID=("matid", "MID"),
             SET_PASSES_MOT_VECTOR=("motion vector", "MV"), SET_PASSES_TEX_TANGENT=("texture tangent", ""),
             SET_PASSES_UV_COORD=("uv", "UV"), SET_PASSES_POSITION=("position", "Pos"),
@@ -1234,6 +1329,77 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return num_channels
 
+    def addDriverChannelsArnold(self):
+        doc = c4d.documents.GetActiveDocument()
+        out_dir = os.path.dirname(self.job[0].imageName)
+
+        for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
+            if driver[c4d.C4DAI_DRIVER_ENABLE_AOVS] == 0:
+                continue
+
+            if not outpath.startswith(out_dir):
+                LOGGER.warning(
+                    "arnold driver {0} writes to a separate folder and will not be listed by RR".format(
+                        driver.GetName())
+                )
+                continue
+
+            filename, file_ext = os.path.splitext(outpath)
+            file_ext = ArnoldSymbols.driver_save_attr[driver[c4d.C4DAI_DRIVER_TYPE]][1]
+            driver_out = filename.replace(out_dir, '').lstrip('\\/')
+            main_out = driver_out.rstrip("#.")
+
+            if '#' not in driver_out:
+                LOGGER.warning(
+                    "arnold driver {0} output has no frame number placeholders ('#'), they will be added".format(
+                        driver.GetName())
+                )
+            elif not main_out.endswith('#'):
+                LOGGER.warning("arnold driver {0} output: '#' is not trailing".format(driver.GetName()))
+            else:
+                main_out = main_out.strip("#")
+
+            if outpath.endswith('.'):
+                # arnold driver will duplicate the trailing '.'
+                main_out += "."
+
+            if driver[c4d.C4DAI_DRIVER_MERGE_AOVS] == 1:
+                self.job[0].channelExtension.append(file_ext)
+                self.job[0].channelFileName.append(main_out)
+                self.job[0].maxChannels += 1
+            else:
+                channel_out = driver_out.rstrip("#.")
+                trailing_underscores = next(i for i in range(len(channel_out)) if channel_out[-(i + 1)] is not "_")
+                aov = driver.GetDown()
+                while aov:
+                    if aov[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
+                        aov = aov.GetNext()
+                        continue
+                    if aov[c4d.C4DAI_AOV_RENDER_AOV] == 0:
+                        aov = aov.GetNext()
+                        continue
+
+                    channel_out = driver_out.rstrip("#.")
+                    channel_out.rstrip('_')
+                    channel_out += '<IMS>'
+
+                    aov_name = aov.GetName()
+                    if aov_name != 'beauty':
+                        channel_out += "_" + aov_name
+                        channel_out += "_" * trailing_underscores  # arnold driver re-appends underscore at the end
+
+                    if '#' not in driver_out:
+                        channel_out += '.'  # exr drivers use "." as separator: filename.framenum.ext
+                    if outpath.endswith('.'):
+                        # arnold driver will duplicate the trailing '.'
+                        channel_out += '.'
+
+                    self.job[0].channelExtension.append(file_ext)
+                    self.job[0].channelFileName.append(channel_out)
+                    self.job[0].maxChannels += 1
+
+                    aov = aov.GetNext()
+
     def addChannelsArnold(self, mainMP):
         """Add channels for arnold AOVs and populates mainMP if empty. Return the number of Arnold channels"""
         # TODO: if multipass username, will keep uppercases
@@ -1247,70 +1413,60 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         display_driver_found = False
         while ob:
             type_id = ob.GetType()
-            if type_id == ARNOLD_DRIVER:
+            if type_id != ArnoldSymbols.ARNOLD_DRIVER:
+                ob = ob.GetNext()
+                continue
 
-                if ob[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
-                    # not enabled in c4d
-                    ob = ob.GetNext()
-                    continue
+            if ob[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
+                # not enabled in c4d
+                ob = ob.GetNext()
+                continue
 
-                if ob[c4d.C4DAI_DRIVER_ENABLE_AOVS] == 0:
-                    ob = ob.GetNext()
-                    continue
+            if ob[c4d.C4DAI_DRIVER_ENABLE_AOVS] == 0:
+                ob = ob.GetNext()
+                continue
 
-                if ob[c4d.C4DAI_DRIVER_TYPE] == C4DAIN_DRIVER_C4D_DISPLAY:
-                    if display_driver_found:
-                        print 'Warning: only one AOV driver of type "display" is considered by c4dtoa'
-                        ob = ob.GetNext()
-                        continue
+            if ob[c4d.C4DAI_DRIVER_TYPE] != ArnoldSymbols.C4DAIN_DRIVER_C4D_DISPLAY:
+                # Handled in addDriverChannelsArnold()
+                ob = ob.GetNext()
+                continue
 
-                    display_driver_found = True
-                    if not mainMP:
-                        mainMP.channel_name = "rgb"
-                        mainMP.channel_description = "rgb"
+            if display_driver_found:
+                LOGGER.warning('only one AOV driver of type "display" is considered by c4dtoa')
+                break
 
-                        elems.append("alpha")
-                else:
-                    # TODO
-                    LOGGER.warning('AOV driver "{0}" skipped: only driver of type "display" is considered at the moment'.format(ob.GetName()))
-                    ob = ob.GetNext()
-                    continue
+            display_driver_found = True
+            if not (mainMP or mainMP.channel_name):
+                mainMP.channel_name = "alpha_1"
+                elems.append("")  # we add an empty name so that AOV numbers start with '2'
+            else:
+                elems.append("alpha")
 
-                aov = ob.GetDown()
-                while aov:
-                    if aov[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
-                        aov = aov.GetNext()
-                        continue
-                    if aov[c4d.C4DAI_AOV_RENDER_AOV] == 0:
-                        aov = aov.GetNext()
-                        continue
-
-                    aov_name = aov.GetName()
-                    if aov[c4d.C4DAI_AOV_USE_CUSTOM_LAYER_NAME] == 1:
-                        # TODO: Custom name is used with drivers of type other than c4d_display
-                        LOGGER.warning("Custom name is ignored for aov " + aov_name)
-
-                    if aov[c4d.C4DAI_AOV_USE_CUSTOM_PATH] == 1:
-                        # TODO: Custom path is used with drivers of type other than c4d_display.
-                        # It has to include hashes for frame numbers `#` in case of animations,
-                        # otherwise each frame will overwrite the others
-                        LOGGER.warning("Custom path is ignored for aov " + aov_name)
-
-                    if aov_name in display_skips_passes:
-                        # the c4d display driver doesn't render some passes
-                        LOGGER.debug("Skipping aov " + aov_name + ": not considered with displaydriver")
-                        aov = aov.GetNext()
-                        continue
-
-                    elems.append(aov_name)
+            aov = ob.GetDown()
+            while aov:
+                if aov[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
                     aov = aov.GetNext()
+                    continue
+                if aov[c4d.C4DAI_AOV_RENDER_AOV] == 0:
+                    aov = aov.GetNext()
+                    continue
+
+                aov_name = aov.GetName()
+
+                if aov_name in display_skips_passes:
+                    # the c4d display driver doesn't render some passes
+                    LOGGER.debug("Skipping aov " + aov_name + ": not considered for display_drivers")
+                    aov = aov.GetNext()
+                    continue
+
+                elems.append(aov_name)
+                aov = aov.GetNext()
 
             ob = ob.GetNext()
 
-        if not elems:
-            return 0
-
         for i, elem in enumerate(elems):
+            if not elem:
+                continue
             descr_name = elem.replace(" ", "_")
             pass_name = "{0}_{1}".format(descr_name.lower(), i + 1)
 
@@ -1385,8 +1541,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         scn_dir += os.sep
 
         rs_name_idx = 1  # redshift appends an aov index to the aov multipass name
-        aov_channels = 0 # 'enabled' and at least one between 'multipass' and 'direct' must be checked
-        for i in xrange(num_AOV):
+        aov_channels = 0  # 'enabled' and at least one between 'multipass' and 'direct' must be checked
+        for i in range(num_AOV):
             added_to_channels = False
             aov_idx = c4d.REDSHIFT_RENDERER_AOV_LAYER_FIRST + i
 
@@ -1421,7 +1577,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
                 if not aov_name:
                     if use_c4d_names and aov_type in aov_c4d_names:
-                            aov_name = aov_c4d_names[aov_type]
+                        aov_name = aov_c4d_names[aov_type]
                     else:
                         aov_name = aov_names.get(aov_type, aov_type_nice)
                         # Redshift appends an index to the name, only when Redshift names (not c4d) are used
@@ -1549,12 +1705,12 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if file_path.startswith(".") and file_path[1] != ".":
             file_path = file_path[1:]
             is_relative = True
-        elif file_path[1] == ":":    #windows drive letter
-            is_relative=False
-        elif file_path.startswith("/"):  #osx root path
-            is_relative=False
-        elif file_path.startswith("\\"): #windows unc path
-            is_relative=False
+        elif file_path[1] == ":":  # windows drive letter
+            is_relative = False
+        elif file_path.startswith("/"):  # osx root path
+            is_relative = False
+        elif file_path.startswith("\\"):  # windows unc path
+            is_relative = False
 
         if is_relative:
             return "<SceneFolder>/" + file_path
@@ -1571,14 +1727,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("Channel: MultiPass")
                 self.job[0].channel = "MultiPass"
             self.job[0].imageName = self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME]
-            if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
+            if self.job[0].renderer == "Arnold" and self.renderSettings[
+                c4d.RDATA_MULTIPASS_SAVEFORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
         else:
             LOGGER.debug("MultiPass: no")
             self.job[0].channel = ""
             self.job[0].imageName = self.renderSettings[c4d.RDATA_PATH]
 
-            if self.job[0].renderer == "Arnold" and self.renderSettings[c4d.RDATA_FORMAT] == ARNOLD_DUMMY_BITMAP_SAVER:
+            if self.job[0].renderer == "Arnold" and self.renderSettings[
+                c4d.RDATA_FORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
 
         self.job[0].layerName = ""
@@ -1602,18 +1760,20 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             elif self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SR:
                 addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['MERGEDSTREAM']
             elif self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SINGLE:
-                if self.renderSettings[c4d.RDATA_STEREO_SINGLECHANNEL]==1:
+                if self.renderSettings[c4d.RDATA_STEREO_SINGLECHANNEL] == 1:
                     addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['STEREO_ANA_COL_LEFT']
                 else:
-                    addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['STEREO_ANA_COL_RIGHT']
+                    addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings[
+                        'STEREO_ANA_COL_RIGHT']
             if self.renderSettings[c4d.RDATA_STEREO_SAVE_FOLDER]:
                 self.job[0].imageName = os.path.join(dirName, addStereoString, fileName)
             else:
                 self.job[0].imageName = os.path.join(dirName, addStereoString, fileName)
 
-        LOGGER.debug("imageName: before pass "+self.job[0].imageName)
+        LOGGER.debug("imageName: before pass " + self.job[0].imageName)
         self.objectChannelID = 0
-        mainMP = MultipassInfo("", "")  # (usually channelName = getChannelNameMP(MP), channelDescription = MP.GetName())
+        mainMP = MultipassInfo("",
+                               "")  # (usually channelName = getChannelNameMP(MP), channelDescription = MP.GetName())
         post_effects_MP = None  # used for vray multipass
         if self.isMP and not self.isMPSinglefile:
             firstPassAdded = False
@@ -1654,7 +1814,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.addChannelsArnold(mainMP)
 
         if not mainMP:
-            self.isMP= False
+            self.isMP = False
             if not self.isMPSinglefile:
                 self.job[0].channel = ""
 
@@ -1675,21 +1835,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].imageName = self.job[0].imageName.replace("<Channel_intern>", "rgb")
             self.job[0].imageName = self.job[0].imageName.replace("<Channel_name>", regularImageName)
             if not self.job[0].Arnold_DriverOut:
-                self.job[0].imageName, self.job[0].imageFormat = self.getNameFormat(self.job[0].imageName, self.job[0].imageFormat)
+                self.job[0].imageName, self.job[0].imageFormat = self.getNameFormat(self.job[0].imageName,
+                                                                                    self.job[0].imageFormat)
         else:
+            # filenameComb = ""
+            # fileext = ""
             if self.isRegular and not self.isMP:
                 if self.hasAlpha:
                     channelName = "rgba"
                 else:
                     channelName = "rgb"
                 channelDescription = regularImageName
-                filenameComb =self.job[0].imageName
+                filenameComb = self.job[0].imageName
                 fileext = self.job[0].imageFormat
                 LOGGER.debug("fileext reg: " + fileext)
             else:
                 channelName = mainMP.channel_name
                 channelDescription = mainMP.channel_description
-                if (c4dVersionMajor > 18) and (any(tok in self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME] for tok in ("$userpass", "$pass"))):
+                if (c4dVersionMajor > 18) and (
+                any(tok in self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME] for tok in ("$userpass", "$pass"))):
                     # starting from R19, channel is not added to filename if already present
                     filenameComb = self.job[0].imageName
                 elif self.renderSettings[c4d.RDATA_MULTIPASS_SUFFIX]:
@@ -1712,7 +1876,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("fileext mp: " + fileext)
             channelDescription = channelDescription.replace(" ", "_")
             filenameComb = filenameComb.replace("<Channel_intern>", "<ValueVar " + channelName + "@$pass>")
-            filenameComb = filenameComb.replace("<Channel_name>","<ValueVar " + channelDescription + "@$userpass>")
+            filenameComb = filenameComb.replace("<Channel_name>", "<ValueVar " + channelDescription + "@$userpass>")
 
             if not self.job[0].Arnold_DriverOut:
                 filenameComb, fileext = self.getNameFormat(filenameComb, fileext)
@@ -1720,19 +1884,23 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     self.job[0].imageFormat = fileext
 
             self.job[0].imageName = filenameComb
+            self.job[0].imageFormat = fileext
 
         LOGGER.debug("imageName is: " + self.job[0].imageName)
 
-        if (self.renderSettings[c4d.RDATA_STEREO] and (self.renderSettings[c4d.RDATA_STEREO_CALCRESULT]==c4d.RDATA_STEREO_CALCRESULT_S)):
+        if (self.renderSettings[c4d.RDATA_STEREO] and (
+                self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_S)):
             curMaxChannels = self.job[0].maxChannels
             tempName = self.job[0].imageName
-            tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'], self.languageStrings['STEREO_ANA_COL_LEFT'])
+            tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'],
+                                        self.languageStrings['STEREO_ANA_COL_LEFT'])
             self.job[0].channelFileName.append(tempName)
             self.job[0].channelExtension.append(self.job[0].imageFormat)
             self.job[0].maxChannels += 1
             for po in range(0, curMaxChannels):
                 tempName = self.job[0].channelFileName[po]
-                tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'], self.languageStrings['STEREO_ANA_COL_LEFT'])
+                tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'],
+                                            self.languageStrings['STEREO_ANA_COL_LEFT'])
                 self.job[0].channelFileName.append(tempName)
                 self.job[0].channelExtension.append(self.job[0].channelExtension[po])
                 self.job[0].maxChannels += 1
@@ -1743,7 +1911,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 tempName = tempName.replace(addStereoString + "/", "<removeVar " + addStereoString + "/" + ">")
             else:
                 tempName = tempName.replace(addStereoString + "_", "<removeVar " + addStereoString + "_" + ">")
-            self.job[0].imageName=tempName
+            self.job[0].imageName = tempName
 
         if self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
@@ -1766,7 +1934,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             self.job[0].imageFramePadding = 4
-        return True
+
+        if self.job[0].renderer == "Arnold":  # this function requires job.imageName
+            self.addDriverChannelsArnold()
 
     def saveTiledDocument(self, doc, tiles, filename):
         """experimental function to store tiled versions of a single document. Now Unused"""
@@ -1793,7 +1963,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             self.renderSettings[c4d.RDATA_RENDERREGION] = True
             self.renderSettings[c4d.RDATA_RENDERREGION_LEFT] = int(left + (step * i))
 
-            self.renderSettings[c4d.RDATA_RENDERREGION_RIGHT] = int(((tiles - 1) * step) - (self.renderSettings[c4d.RDATA_RENDERREGION_LEFT]))
+            self.renderSettings[c4d.RDATA_RENDERREGION_RIGHT] = int(
+                ((tiles - 1) * step) - (self.renderSettings[c4d.RDATA_RENDERREGION_LEFT]))
             if self.renderSettings[c4d.RDATA_RENDERREGION_RIGHT] < right:
                 self.renderSettings[c4d.RDATA_RENDERREGION_RIGHT] = int(right)
 
@@ -1821,18 +1992,18 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         lanDesc = c4d.GeGetLanguage(lID)
         while lanDesc != None:
             if lanDesc["default_language"]:
-                language=lanDesc["extensions"]
+                language = lanDesc["extensions"]
                 break
             lID = lID + 1
             lanDesc = c4d.GeGetLanguage(lID)
         CinemaPath = os.path.dirname(c4d.storage.GeGetPluginPath())
         CinemaPath = os.path.join(
-            CinemaPath, "resource", "modules", "newman", "strings_" + str(language).lower(), "c4d_strings.str"
+            CinemaPath, "resource", "modules", "newman", "strings_" + str(language), "c4d_strings.str"
         )
 
-        LOGGER.debug("Language file 1: "+CinemaPath)
+        LOGGER.debug("Language file 1: " + CinemaPath)
         strfile = open(CinemaPath)
-        for sline in strfile :
+        for sline in strfile:
             sline = sline.rstrip()
             svalue = ""
             if ';' in sline and '"' in sline:
@@ -1848,7 +2019,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         strfile.close()
 
         CinemaPath = os.path.dirname(c4d.storage.GeGetPluginPath())
-        CinemaPath = os.path.join(CinemaPath, "resource", "modules", "c4dplugin", "strings_" + str(language).lower(), "c4d_strings.str")
+        CinemaPath = os.path.join(CinemaPath, "resource", "modules", "c4dplugin", "strings_" + str(language),
+                                  "c4d_strings.str")
         LOGGER.debug("Language file 2: " + CinemaPath)
         strfile = open(CinemaPath)
         for sline in strfile:
@@ -1960,7 +2132,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job.append(newJob)
 
     def Execute(self, doc):
-        print "rrSubmit %rrVersion%"
+        print("rrSubmit %rrVersion%")
         del self.job[:]
         self.job.append(rrJob())
         self.job[0].clear()
@@ -1972,7 +2144,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         # collects some data and populates the job with initial settings
         self.hasAlpha = self.renderSettings[c4d.RDATA_ALPHACHANNEL]
         self.isRegular = self.renderSettings[c4d.RDATA_SAVEIMAGE] and (len(self.renderSettings[c4d.RDATA_PATH]) > 0)
-        self.isMP = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEIMAGE] and self.renderSettings[c4d.RDATA_MULTIPASS_ENABLE]  # is Multipass enabled?
+        self.isMP = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEIMAGE] and self.renderSettings[
+            c4d.RDATA_MULTIPASS_ENABLE]  # is Multipass enabled?
 
         multilayer = (
             c4d.FILTER_PSD,
@@ -1983,7 +2156,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             1016606,
             1035823
         )
-        self.isMPSinglefile = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEONEFILE] and  self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT] in multilayer
+        self.isMPSinglefile = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEONEFILE] and self.renderSettings[
+            c4d.RDATA_MULTIPASS_SAVEFORMAT] in multilayer
 
         LOGGER.debug("isMPSinglefile: " + str(self.isMPSinglefile))
         self.takeData = doc.GetTakeData()
@@ -1992,18 +2166,20 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.job[0].sceneFilename = doc.GetDocumentPath() + os.sep + doc.GetDocumentName()
         self.job[0].width = round(self.renderSettings[c4d.RDATA_XRES], 3)
         self.job[0].height = round(self.renderSettings[c4d.RDATA_YRES], 3)
-        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000))+"."+str(int(c4d.GetC4DVersion() % 1000)).zfill(3)
+        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000)) + "." + str(
+            int(c4d.GetC4DVersion() % 1000)).zfill(3)
 
         if isWin():
             self.job[0].osString = "win"
         else:
             self.job[0].osString = "mac"
-        #self.job[0].camera = doc.GetRenderBaseDraw().GetSceneCamera(doc).GetName()
-        self.job[0].camera = "" #current cam
+        # self.job[0].camera = doc.GetRenderBaseDraw().GetSceneCamera(doc).GetName()
+        self.job[0].camera = ""  # current cam
         self.job[0].frameRateDoc = doc.GetFps()
         self.job[0].frameRateRender = self.renderSettings[c4d.RDATA_FRAMERATE]
         if self.job[0].frameRateDoc != self.job[0].frameRateRender:
-            ret = gui.QuestionDialog("Document (" + str(self.job[0].frameRateDoc) + ") and Render Settings (" + str(self.job[0].frameRateRender) + ") are not using the same framerate - do you wish to continue anyway?")
+            ret = gui.QuestionDialog("Document (" + str(self.job[0].frameRateDoc) + ") and Render Settings (" + str(
+                self.job[0].frameRateRender) + ") are not using the same framerate - do you wish to continue anyway?")
             if not ret:
                 return False
 
@@ -2025,7 +2201,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             pass  # missing in R21
 
         rendererID = self.renderSettings[c4d.RDATA_RENDERENGINE]
-        self.job[0].renderer = renderers.get(rendererID, "RID"+str(rendererID))
+        self.job[0].renderer = renderers.get(rendererID, "RID" + str(rendererID))
 
         if self.job[0].renderer == "Arnold":
             self.job[0].rendererVersion = GetArnoldVersion(doc)
@@ -2039,7 +2215,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if doc.GetChanged():
             rvalue = gui.QuestionDialog("Save Scene?")
             if rvalue:
-                c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
+                c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST,
+                                           c4d.FORMAT_C4DEXPORT)
 
         self.setImageFormat()
         self.setFileout()
@@ -2048,22 +2225,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if self.multiCameraMode:
             self.addCameras(doc)
 
-        if NORRTILE and ((SHOWTILEDIALOG) or (self.job[0].seqStart == self.job[0].seqEnd)):
-            self.dialog = RRDialog()
-            ret = self.dialog.Open(dlgtype=c4d.DLG_TYPE_MODAL_RESIZEABLE, pluginid=PLUGIN_ID)
-            if not ret:
-                return False
-
         self.submitToRR(self.job, False, PID=None, WID=None)
-
         self.takeData.SetCurrentTake(backupCurrentTake)
         return True
 
 
 class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
     """Launch rrSubmitter for export .ass job"""
+
     def Execute(self, doc):
-        print "rrSubmit %rrVersion%"
+        print("rrSubmit %rrVersion%")
 
         self.renderSettings = doc.GetActiveRenderData()
         rendererID = self.renderSettings[c4d.RDATA_RENDERENGINE]
@@ -2074,16 +2245,17 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
 
         del self.job[:]
         self.job.append(rrJob())
-        self.job[0].clear()        
+        self.job[0].clear()
         self.job[0].renderer = "Arnold - Export Ass"
 
         self.takeData = doc.GetTakeData()
-        backupCurrentTake= self.takeData.GetCurrentTake()
-        
+        backupCurrentTake = self.takeData.GetCurrentTake()
+
         self.job[0].sceneFilename = doc.GetDocumentPath() + os.sep + doc.GetDocumentName()
         self.job[0].width = self.renderSettings[c4d.RDATA_XRES]
         self.job[0].height = self.renderSettings[c4d.RDATA_YRES]
-        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000)) + "." + str(int(c4d.GetC4DVersion() % 1000)).zfill(3)
+        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000)) + "." + str(
+            int(c4d.GetC4DVersion() % 1000)).zfill(3)
         self.job[0].Arnold_C4DtoAVersion = GetC4DtoAVersion(doc)
 
         if isWin():
@@ -2095,11 +2267,13 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
         self.job[0].frameRateDoc = doc.GetFps()
         self.job[0].frameRateRender = self.renderSettings[c4d.RDATA_FRAMERATE]
         if self.job[0].frameRateDoc != self.job[0].frameRateRender:
-            ret = gui.QuestionDialog("Document (" + str(self.job[0].frameRateDoc) + ") and Render Settings (" + str(self.job[0].frameRateRender) + ") are not using the same framerate - do you wish to continue anyway?")
+            ret = gui.QuestionDialog("Document (" + str(self.job[0].frameRateDoc) + ") and Render Settings (" + str(
+                self.job[0].frameRateRender) + ") are not using the same framerate - do you wish to continue anyway?")
             if not ret:
                 return False
 
-        self.job[0].imageName = "<SceneFolder>/ass/<SceneFilename>/" + datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "__.#####"
+        self.job[0].imageName = "<SceneFolder>/ass/<SceneFilename>/" + datetime.datetime.now().strftime(
+            "%Y%m%d%H%M%S") + "__.#####"
         self.job[0].imageFormat = ".ass.gz"
 
         if doc.GetChanged():
@@ -2111,12 +2285,15 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
 
         addTakes(doc, self.job, self.takeData)
         self.submitToRR(self.job, False, PID=None, WID=None)
-        
+
         self.takeData.SetCurrentTake(backupCurrentTake)
         return True
 
 
 if __name__ == '__main__':
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID, "#$0rrSubmit", 0, None, "rrSubmit", RRSubmit())
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM, "#$1rrSubmit - Select Camera...", 0, None, "rrSubmit - Select Camera...", RRSubmit(multi_cam=True))
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS, "#$2rrSubmit - Export Arnold .ass files", 0, None,  "rrSubmit - Export Arnold .ass files", RRSubmitAssExport())
+    # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs) does not work with macOS + R23
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID, "rrSubmit", 0, None, "rrSubmit", RRSubmit())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM, "rrSubmit - Select Camera...", 0, None,
+                                           "rrSubmit - Select Camera...", RRSubmit(multi_cam=True))
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS, "rrSubmit - Export Arnold .ass files", 0, None,
+                                           "rrSubmit - Export Arnold .ass files", RRSubmitAssExport())

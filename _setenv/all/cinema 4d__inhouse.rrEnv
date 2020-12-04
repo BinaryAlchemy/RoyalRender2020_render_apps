@@ -26,15 +26,15 @@ C4D_rrPluginFolder =
 # # Uncomment the next line to set the license server:
 # redshift_LICENSE  =  5053@licenseserverName
 
-# Set the next line to 1 if you have installed Redshift as network install into the RR folder
+# Set the next line to 1 if you have Redshift installed as network install into the RR folder
 RR_REDSHIFT_NETWORK  =  0
 
 
 # ###################  Octane environment variables ###################
-# # Set the next line to 1 if you have installed Redshift as network install into the RR folder
+# # Set the next line to 1 if you have Octane installed as network install into the RR folder
 RR_OCTANE_NETWORK  =  0
 
 
 # ###################  Arnold environment variables ###################
-# # Set the next line to 1 if you have installed Redshift as network install into the RR folder
+# # Set the next line to 1 if you have Arnold installed as network install into the RR folder
 RR_ARNOLD_NETWORK  =  0

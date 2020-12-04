@@ -15,11 +15,11 @@ import sys
 import c4d
 import os
 
-if (sys.version_info.major == 2):
+if sys.version_info.major == 2:
     range = xrange
 
-# LOGGING
 
+# LOGGING
 def flushLog():
     sys.stdout.flush()
     sys.stderr.flush()
@@ -257,6 +257,9 @@ class ArnoldSymbols:
         C4DAIN_SPOT_LIGHT: C4DAIP_SPOT_LIGHT_COLOR
     }
 
+    # From plugins/C4DtoA/res/description/arnold_driver.h
+    C4DAI_DRIVER_TYPE = 101
+
     # C4DtoA/res/description/ainode_driver_exr.h
     C4DAIP_DRIVER_EXR_FILENAME  = 1285755954
     C4DAIP_DRIVER_EXR_NAME = 55445461
@@ -305,6 +308,7 @@ class ArnoldSymbols:
 
     # Message IDs
     C4DTOA_MSG_TYPE = 1000
+    C4DTOA_MSG_GET_VERSION = 1040
     C4DTOA_MSG_PARAM1 = 2001
     C4DTOA_MSG_PARAM2 = 2002
     C4DTOA_MSG_PARAM3 = 2003
@@ -603,6 +607,18 @@ def arnoldSetDriversPath(doc, arg):
     newDirName2 = rrGetDirName(newDirName1)
     newDirName3 = rrGetDirName(newDirName2)
 
+    tile_render = "_tile" in arg.FNameVar
+    if tile_render:
+        basename = os.path.basename(arg.FNameVar)
+        fname, fext = os.path.splitext(basename)
+
+        _, tile_num = fname.split("_tile", 1)
+        tile_num = tile_num.strip(" _")
+        try:
+            tile_num = int(tile_num)
+        except ValueError:
+            tile_render = False
+
     for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
         orgDirName0 = rrGetDirName(allForwardSlashes(outpath))
         orgDirName1 = rrGetDirName(orgDirName0)
@@ -613,6 +629,12 @@ def arnoldSetDriversPath(doc, arg):
         outpath = outpath.replace(orgDirName1, newDirName1)
         outpath = outpath.replace(orgDirName2, newDirName2)
         outpath = outpath.replace(orgDirName3, newDirName3)
+
+        if tile_render:
+            out_file, out_ext = os.path.splitext(outpath)
+            trail_hashes = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not "#")
+            trail_dots = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not ".")
+            outpath = "{0}_tile{1:02}_{2}{3}".format(out_file.rstrip('#'), tile_num, '.'*trail_dots, '#'*trail_hashes)
 
         driver.SetParameter(path_parameter, outpath, c4d.DESCFLAGS_SET_0)
         logMessage("{0}, set to {1}".format(driver.GetName(), driver.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
