@@ -64,13 +64,13 @@ class argParser:
                     argValue=True
                 elif (argValue.lower()=="false"):
                     argValue=False
-                else: 
+                else:
                     #argv is an unicode object, but C4D reads in bytes instead of unicode
                     if sys.version_info[0] == 2:
                         argValue = argValue.decode(sys.getfilesystemencoding()).encode('utf8')
                     else:
-                        
-                        argValue= argValue.encode("latin1") 
+
+                        argValue= argValue.encode("latin1")
                         argValue= argValue.decode(sys.getfilesystemencoding())
                 logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'")
                 return argValue
@@ -599,42 +599,107 @@ def arnoldGetOutputDrivers(doc):
         ob = ob.GetNext()
 
 
+def get_tile_settings(arg):
+    """Return True if the job is tiled, and the number of tiles, based on the commandline arguments"""
+    if not argValid(arg.RegionLeft):
+        return False, 0
+    if "_tile" not in arg.FNameVar:
+        logMessageWarning("job is supplied tiling region, but no '_tile' substring in filename")
+        return False, 0
+
+    basename = os.path.basename(arg.FNameVar)
+    fname, fext = os.path.splitext(basename)
+
+    _, tile_num = fname.split("_tile", 1)
+    tile_num = tile_num.strip(" _")
+    try:
+        tile_num = int(tile_num)
+    except ValueError:
+        logMessageWarning("job is supplied tiling region, but no tile number after '_tile' in filename")
+        return False, 0
+
+    return True, tile_num
+
+
+def make_tile_path(outpath, tile_num):
+    out_file, out_ext = os.path.splitext(outpath)
+    trail_hashes = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not "#")
+    trail_dots = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not ".")
+    return "{0}_tile{1:02}_{2}{3}".format(out_file.rstrip('#'), tile_num, '.' * trail_dots, '#' * trail_hashes)
+
+
+def get_common_subpath(org_dir, new_dir):
+    """find commond subpath of two paths"""
+    orgdir_tokens = org_dir.split('/')
+    newdir_tokens = new_dir.split('/')
+
+    common_idx, common_root = next(((i, token) for (i, token) in enumerate(orgdir_tokens) if token and token in newdir_tokens), (-1, None))
+    if not common_root:
+        return
+
+    tmp_org_token = orgdir_tokens[common_idx:]
+    tmp_new_token = newdir_tokens[newdir_tokens.index(common_root):]
+    common_tokens = []
+
+    while (tmp_new_token and tmp_org_token):
+        token = tmp_org_token.pop(0)
+        if token == tmp_new_token.pop(0):
+            common_tokens.append(token)
+
+    if not common_tokens:
+        return
+
+    common_subpath = '/'.join(common_tokens)
+    if common_subpath not in org_dir or common_subpath not in new_dir:
+        return
+    return common_subpath
+
+
 def arnoldSetDriversPath(doc, arg):
     logMessageDebug("Setting arnold drivers output path")
 
-    newDirName0 = rrGetDirName(allForwardSlashes(arg.FNameVar))
-    newDirName1 = rrGetDirName(newDirName0)
-    newDirName2 = rrGetDirName(newDirName1)
-    newDirName3 = rrGetDirName(newDirName2)
+    # utilities just for this scope
+    def skiplocal_msg(skipped_driver, skipped_parameter):
+        """warn about non localizable output"""
+        msg = "arnold driver {0} output cannot be rendered locally: {1}"
+        logMessageWarning(
+            msg.format(skipped_driver.GetName(),
+                       skipped_driver.GetParameter(skipped_parameter, c4d.DESCFLAGS_GET_0))
+        )
 
-    tile_render = "_tile" in arg.FNameVar
-    if tile_render:
-        basename = os.path.basename(arg.FNameVar)
-        fname, fext = os.path.splitext(basename)
+    # Setup drivers paths
+    new_out_path = allForwardSlashes(arg.FNameVar.split('$', 1)[0])  # don't use c4d tokens
+    newDirName0 = rrGetDirName(allForwardSlashes(new_out_path))
 
-        _, tile_num = fname.split("_tile", 1)
-        tile_num = tile_num.strip(" _")
-        try:
-            tile_num = int(tile_num)
-        except ValueError:
-            tile_render = False
+    tile_render, tile_num = get_tile_settings(arg)
 
     for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
-        orgDirName0 = rrGetDirName(allForwardSlashes(outpath))
-        orgDirName1 = rrGetDirName(orgDirName0)
-        orgDirName2 = rrGetDirName(orgDirName1)
-        orgDirName3 = rrGetDirName(orgDirName2)
-
-        outpath = allForwardSlashes(outpath).replace(orgDirName0, newDirName0)
-        outpath = outpath.replace(orgDirName1, newDirName1)
-        outpath = outpath.replace(orgDirName2, newDirName2)
-        outpath = outpath.replace(orgDirName3, newDirName3)
-
+        outpath = allForwardSlashes(outpath)
         if tile_render:
-            out_file, out_ext = os.path.splitext(outpath)
-            trail_hashes = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not "#")
-            trail_dots = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not ".")
-            outpath = "{0}_tile{1:02}_{2}{3}".format(out_file.rstrip('#'), tile_num, '.'*trail_dots, '#'*trail_hashes)
+            outpath = make_tile_path(outpath, tile_num)
+
+        orgDirName0 = rrGetDirName(allForwardSlashes(outpath))
+        subpath = get_common_subpath(orgDirName0, newDirName0)
+
+        if not subpath:
+            skiplocal_msg(driver, path_parameter)
+            logMessageDebug("\t newdir:" + newDirName0)
+            logMessageDebug("\t orgdir:" + orgDirName0)
+            logMessageDebug("\t subdir:" + str(subpath))
+            continue
+
+        logMessageDebug("shared path: " + subpath)
+        org_common_start = orgDirName0.index(subpath)
+        new_common_start = newDirName0.index(subpath)
+
+        org_root = orgDirName0[:org_common_start]
+        new_root = newDirName0[:new_common_start]
+
+        outpath = outpath.replace(org_root, new_root, 1)
+        logMessageDebug("\toriginal root: {0}" + org_root)
+        logMessageDebug("\tnew root: {1}" + new_root)
+        logMessageDebug("\tnew path: {2}" + outpath)
+        logMessageDebug("{0}, original {1}".format(driver.GetName(), driver.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
 
         driver.SetParameter(path_parameter, outpath, c4d.DESCFLAGS_SET_0)
         logMessage("{0}, set to {1}".format(driver.GetName(), driver.GetParameter(path_parameter, c4d.DESCFLAGS_GET_0)))
@@ -942,8 +1007,29 @@ def setRenderParams(doc, arg):
             rd[c4d.RDATA_SAVEIMAGE] = True
             rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
-            # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
-            rd[c4d.RDATA_PATH] = arg.FNameVar
+
+            reg_path = rrGetDirName(allForwardSlashes(rd[c4d.RDATA_PATH]))
+            job_path = rrGetDirName(allForwardSlashes(arg.FNameVar))
+            subpath = get_common_subpath(reg_path, job_path)
+
+            if subpath:
+                logMessageDebug("reg_path: " + reg_path)
+                logMessageDebug("job path: " + job_path)
+                logMessageDebug("common path: " + subpath)
+
+                org_common_start = reg_path.index(subpath)
+                new_common_start = job_path.index(subpath)
+
+                org_root = reg_path[:org_common_start]
+                new_root = job_path[:new_common_start]
+
+                rd[c4d.RDATA_PATH] = reg_path.replace(org_root, new_root, 1)
+                logMessage("Regular Path set to" + rd[c4d.RDATA_PATH])
+
+            tile_render, tile_num = get_tile_settings(arg)
+            if tile_render:
+                rd[c4d.RDATA_PATH] = make_tile_path(rd[c4d.RDATA_PATH], tile_num)
+
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
             try:
                 if argValid(arg.FExt):

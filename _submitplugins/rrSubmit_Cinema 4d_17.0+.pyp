@@ -62,12 +62,46 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 ch.setFormatter(formatter)
 LOGGER.addHandler(ch)
 
-
 ##############################################
 # GLOBAL FUNCTIONS                           #
 ##############################################
 
+# c4d
+
+IMG_FORMATS = {
+    c4d.FILTER_TIF: ".tif",
+    c4d.FILTER_PNG: ".png",
+    c4d.FILTER_IES: ".ies",
+    c4d.FILTER_PSB: ".psb",
+    c4d.FILTER_EXR: ".exr",
+    c4d.FILTER_DPX: ".dpx",
+    c4d.FILTER_TGA: ".tga",
+    c4d.FILTER_BMP: ".bmp",
+    c4d.FILTER_IFF: ".iff",
+    c4d.FILTER_JPG: ".jpg",
+    c4d.FILTER_PICT: ".pict",
+    c4d.FILTER_PSD: ".psd",
+    c4d.FILTER_RLA: ".rla",
+    c4d.FILTER_RPF: ".rpf",
+    c4d.FILTER_B3D: ".b3d",
+    c4d.FILTER_TIF_B3D: ".tif",
+    c4d.FILTER_HDR: ".hdr",
+    # c4d.FILTER_QTVRSAVER_PANORAMA: ".qtvr",
+    # c4d.FILTER_QTVRSAVER_OBJECT: ".qtvr",
+    1785737760: ".jp2",
+    1903454566: ".mov",
+    c4d.FILTER_MOVIE: ".mov",
+    c4d.FILTER_AVI: ".avi",
+    # Multipass file types
+    1035823: ".exr",
+    1016606: ".exr",
+    1023737: ".dpx",
+    777209673: ".sgi"
+}
+
+
 # Arnold
+
 class ArnoldSymbols:
     """Arnold identifiers from C4DtoA/res
 
@@ -349,6 +383,7 @@ def GetOctaneVersion(doc):
 
 
 # Global
+
 def isWin():
     if c4d.GeGetCurrentOS() == c4d.GE_WIN:
         LOGGER.debug("OS: Windows")
@@ -359,6 +394,10 @@ def isWin():
     else:
         LOGGER.warning("OS: not found (this should not happen)")
         return False
+
+
+def allForwardSlashes(filepath):
+    return os.path.normpath(filepath).replace('\\', '/')
 
 
 def rrGetRR_Root():
@@ -891,39 +930,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         else:
             self.job[0].imageFormatID = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT]
 
-        img_formats = {
-            c4d.FILTER_TIF: ".tif",
-            c4d.FILTER_PNG: ".png",
-            c4d.FILTER_IES: ".ies",
-            c4d.FILTER_PSB: ".psb",
-            c4d.FILTER_EXR: ".exr",
-            c4d.FILTER_DPX: ".dpx",
-            c4d.FILTER_TGA: ".tga",
-            c4d.FILTER_BMP: ".bmp",
-            c4d.FILTER_IFF: ".iff",
-            c4d.FILTER_JPG: ".jpg",
-            c4d.FILTER_PICT: ".pict",
-            c4d.FILTER_PSD: ".psd",
-            c4d.FILTER_RLA: ".rla",
-            c4d.FILTER_RPF: ".rpf",
-            c4d.FILTER_B3D: ".b3d",
-            c4d.FILTER_TIF_B3D: ".tif",
-            c4d.FILTER_HDR: ".hdr",
-            # c4d.FILTER_QTVRSAVER_PANORAMA: ".qtvr",
-            # c4d.FILTER_QTVRSAVER_OBJECT: ".qtvr",
-            1785737760: ".jp2",
-            1903454566: ".mov",
-            c4d.FILTER_MOVIE: ".mov",
-            c4d.FILTER_AVI: ".avi",
-            # Multipass file types
-            1035823: ".exr",
-            1016606: ".exr",
-            1023737: ".dpx",
-            777209673: ".sgi"
-        }
-
         try:
-            self.job[0].imageFormat = img_formats[self.job[0].imageFormatID]
+            self.job[0].imageFormat = IMG_FORMATS[self.job[0].imageFormatID]
         except KeyError:
             self.job[0].imageFormat = ".exr"
             LOGGER.error("Unknown File Format: " + str(self.job[0].imageFormatID))
@@ -936,7 +944,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         self.job[0].imageFormatIDMultiPass = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT]
         try:
-            self.job[0].imageFormatMultiPass = img_formats[self.job[0].imageFormatIDMultiPass]
+            self.job[0].imageFormatMultiPass = IMG_FORMATS[self.job[0].imageFormatIDMultiPass]
         except KeyError:
             LOGGER.error("Unknown File Format Multi Pass: " + str(self.job[0].imageFormatIDMultiPass))
             self.job[0].imageFormatMultiPass = ".exr"
@@ -1331,25 +1339,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
     def addDriverChannelsArnold(self):
         doc = c4d.documents.GetActiveDocument()
-        out_dir = os.path.dirname(self.job[0].imageName)
+        out_dir = os.path.dirname(allForwardSlashes(self.job[0].imageName))
 
         for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
             if driver[c4d.C4DAI_DRIVER_ENABLE_AOVS] == 0:
                 continue
 
-            if not outpath.startswith(out_dir):
-                LOGGER.warning(
-                    "arnold driver {0} writes to a separate folder and will not be listed by RR".format(
-                        driver.GetName())
-                )
-                continue
-
-            filename, file_ext = os.path.splitext(outpath)
             file_ext = ArnoldSymbols.driver_save_attr[driver[c4d.C4DAI_DRIVER_TYPE]][1]
-            driver_out = filename.replace(out_dir, '').lstrip('\\/')
-            main_out = driver_out.rstrip("#.")
+            main_out, _ = os.path.splitext(outpath)
 
-            if '#' not in driver_out:
+            if '#' not in outpath:
                 LOGGER.warning(
                     "arnold driver {0} output has no frame number placeholders ('#'), they will be added".format(
                         driver.GetName())
@@ -1359,6 +1358,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 main_out = main_out.strip("#")
 
+            main_out += '<IMS>'
             if outpath.endswith('.'):
                 # arnold driver will duplicate the trailing '.'
                 main_out += "."
@@ -1368,7 +1368,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].channelFileName.append(main_out)
                 self.job[0].maxChannels += 1
             else:
-                channel_out = driver_out.rstrip("#.")
+                channel_out = outpath.rstrip("#.")
                 trailing_underscores = next(i for i in range(len(channel_out)) if channel_out[-(i + 1)] is not "_")
                 aov = driver.GetDown()
                 while aov:
@@ -1379,7 +1379,6 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         aov = aov.GetNext()
                         continue
 
-                    channel_out = driver_out.rstrip("#.")
                     channel_out.rstrip('_')
                     channel_out += '<IMS>'
 
@@ -1388,7 +1387,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         channel_out += "_" + aov_name
                         channel_out += "_" * trailing_underscores  # arnold driver re-appends underscore at the end
 
-                    if '#' not in driver_out:
+                    if '#' not in outpath:
                         channel_out += '.'  # exr drivers use "." as separator: filename.framenum.ext
                     if outpath.endswith('.'):
                         # arnold driver will duplicate the trailing '.'
@@ -1723,6 +1722,10 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             if self.isRegular:
                 LOGGER.debug("Channel: Reg_Multi")
                 self.job[0].channel = "Reg_Multi"
+
+                self.job[0].channelFileName.append(self.renderSettings[c4d.RDATA_PATH] + "<IMS>")
+                self.job[0].channelExtension.append(IMG_FORMATS.get(self.renderSettings[c4d.RDATA_FORMAT], ".exr"))
+                self.job[0].maxChannels += 1
             else:
                 LOGGER.debug("Channel: MultiPass")
                 self.job[0].channel = "MultiPass"
