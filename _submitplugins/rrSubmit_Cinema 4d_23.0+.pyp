@@ -1,7 +1,7 @@
 # -*- coding: cp1252 -*-
 ######################################################################
 #
-# Royal Render Plugin script for Cinema R13+
+# Royal Render Plugin script for Cinema R23+
 # Author: Paolo Acampora - Binary Alchemy, Holger Schoenberger - Binary Alchemy,  Michael Auerswald - 908video.de
 # Last change: %rrVersion%
 # Copyright (c)  Holger Schoenberger
@@ -1427,11 +1427,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 break
 
             display_driver_found = True
-            if not (mainMP or mainMP.channel_name):
-                mainMP.channel_name = "alpha_1"
-                elems.append("")  # we add an empty name so that AOV numbers start with '2'
-            else:
-                elems.append("alpha")
+            elems.append("alpha")
 
             aov = ob.GetDown()
             while aov:
@@ -1452,18 +1448,27 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
                 elems.append(aov_name)
                 aov = aov.GetNext()
-
             ob = ob.GetNext()
 
+        passes = []
         for i, elem in enumerate(elems):
             if not elem:
                 continue
             descr_name = elem.replace(" ", "_")
             pass_name = "{0}_{1}".format(descr_name.lower(), i + 1)
+            if "diffuse" in descr_name.lower() and not (mainMP and mainMP.channel_name):
+                mainMP.channel_name = pass_name
+                elems.pop(i)
+            else:
+                passes.append((pass_name, descr_name))
 
+        if not (mainMP and mainMP.channel_name):
+            mainMP.channel_name = passes.pop(0)[0]
+
+        for pass_name, descr_name in passes:
             self.addChannel(pass_name, descr_name)
 
-        return len(elems)
+        return len([elem for elem in elems if elem])
 
     def addChannelsRedshift(self, mainMP):
         """Add channels for redshift AOVs and populates mainMP if empty. Return the number of Redshift channels"""
