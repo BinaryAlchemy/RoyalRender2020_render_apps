@@ -14,7 +14,7 @@ import subprocess
 
 
 def getRR_Root():
-    if os.environ.has_key('RR_ROOT'):
+    if ('RR_ROOT' in os.environ):
         return os.environ['RR_ROOT']
     HCPath= "%"
     if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
