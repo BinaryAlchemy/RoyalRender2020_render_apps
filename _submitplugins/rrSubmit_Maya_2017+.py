@@ -670,14 +670,14 @@ class rrMayaLayer:
                 self.imageDir=""
                 break
         
+        if (combineWithBeauty):
+            return
         for p in passes:
             if (p==beautyAovIdx):
                 continue
             if (self.get_attr( p+'.enabled') == 1):
-                aovType= cmds.getAttr(p+'.aovType')
-                if (aovType!="Cryptomatte" and combineWithBeauty):
-                    continue
                 aovName= self.get_attr( p+'.name')
+                aovType= cmds.getAttr(p+'.aovType')
                 printDebug("AOV   "+aovType+"   "+aovName)
                 filePrefix = self.get_attr( p+'.filePrefix')
                 filePrefix = filePrefix.strip()
