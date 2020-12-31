@@ -29,10 +29,13 @@ PATH= <rrBaseAppPath>\bin;<PATH>
 
 LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 
-[If] <JOB>  [==] 
-    JOB  =  <CustomHoudiniJob>
+[If] <JOB>  [==]
+    [If] <CustomHoudiniJob>  [!=]  
+        [BSlashConvert] JOB  =  <CustomHoudiniJob>
+        echo * JOB Env variable is set to  <CustomHoudiniJob>
+    [EndIf]
 [EndIf]
-echo * Houdini JOB variable is set to  <CustomHoudiniJob>
+
 
 
 # ###################  Arnold/HtoA environment variables ###################
