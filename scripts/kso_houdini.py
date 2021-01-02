@@ -158,7 +158,7 @@ def setParmException(node, parmName, value):
     try:
         arg.rop.parm('sopoutput').set(value )
     except:
-        logMessage("Error: Unable to change "+ node.name() +"."+ parmName + " to " + str(value) + " !")    
+        logMessage("Error: Unable to change '"+ node.name() +"."+ parmName + "' to " + str(value) + " !")    
 
 
 
@@ -187,17 +187,17 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
             arg.rop.render(frame_range=frameRange, res=imgRes)
         
     elif (arg.rop.isNetwork()):
-        logMessage("Output node is a network node of type "+str(arg.rop.type()) + ", searching for children ROP nodes to render...")
+        logMessage("Output node is a network node of type '"+str(arg.rop.type()) + "', searching for children ROP nodes to render...")
         rop_children= arg.rop.children()
         for child in rop_children:
             if (type(child)==hou.RopNode):
-                logMessage("Rendering ROP node "+str(child.name()) + " of type "+str(child.type().name()))
+                logMessage("Rendering ROP node '"+str(child.name()) + "' of type '"+str(child.type().name())+"'")
                 if (argValid(arg.verbose) and arg.verbose):
                     child.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
                 else:
                     child.render(frame_range=frameRange, res=imgRes)
     else:
-        logMessage("Warning: Unknown node type "+str(type(arg.rop))+", trying to render anyway")
+        logMessage("Warning: Unknown node type '"+str(type(arg.rop))+"', trying to render anyway")
         if (argValid(arg.verbose) and arg.verbose):
             arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True)
         else:
@@ -205,11 +205,12 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     nrofFrames = ((localFrEnd - localFrStart) / localFrStep) + 1
     afterFrame = datetime.datetime.now()
     afterFrame -= beforeFrame
-    afterFrame /= nrofFrames
     if (nrofFrames==1):
         logMessage("Frame Time : "+str(afterFrame)+"  h:m:s.ms.  Frame Rendered #" + str(localFrStart) )
     else:
-        logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(localFrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
+        #afterFrame /= nrofFrames
+        logMessage("BROKEN Frame Time!!  nrofFrames: "+ str(nrofFrames) + "    afterFrame "+str(afterFrame))
+        # logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(localFrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
     logMessage(" ")
     flushLog()
 
@@ -254,16 +255,16 @@ def renderFrames(FrStart,FrEnd,FrStep):
 
         else:
             for fr in xrange(FrStart,FrEnd+1,FrStep):
-                if (arg.subFrames>1):
-                    logMessage( "Rendering Frame #" + str(fr) + ", " + str(arg.subFrames) + " subFrames ...")
-                else:
-                    logMessage( "Rendering Frame #" + str(fr) + " ...")
                 if (not argValid(arg.SkipExisting) or not (arg.SkipExisting)):
                     kso_tcp.writeRenderPlaceholder_nr(mainFileName, fr, arg.FPadding, arg.FExt)
                 localFrEnd= fr
                 if (localFrStep < 1.0):
                     localFrEnd= float(localFrEnd + 1) - localFrStep
-
+              if (arg.subFrames>1):
+                    logMessage( "Rendering Frames #" + str(fr) + " - #" + str(localFrEnd)  ", " + str(arg.subFrames) + " subFrames ...")
+                else:
+                    logMessage( "Rendering Frame #" + str(fr) + " ...")
+ 
                 renderFrames_sub(fr,localFrEnd,localFrStep,imgRes)
 
     except Exception as e:
