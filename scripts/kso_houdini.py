@@ -38,7 +38,10 @@ def flushLog():
 
 def logMessageError(msg, doRaise):
     msg= str(msg).replace("\\n","\n")
-    logMessageGen("ERR", str(msg)+"\n\n")
+    logMessageGen("ERR", str(msg)+"\n")
+    import traceback
+    logMessageGen("ERR",traceback.format_exc())    
+    logMessageGen("ERR", "\n")
     flushLog()
     if doRaise:
         raise NameError("\nError reported, aborting render script\n")
@@ -203,14 +206,14 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
         else:
             arg.rop.render(frame_range=frameRange, res=imgRes)
     nrofFrames = ((localFrEnd - localFrStart) / localFrStep) + 1
+    nrofFrames = int (nrofFrames)
     afterFrame = datetime.datetime.now()
     afterFrame -= beforeFrame
     if (nrofFrames==1):
         logMessage("Frame Time : "+str(afterFrame)+"  h:m:s.ms.  Frame Rendered #" + str(localFrStart) )
     else:
-        #afterFrame /= nrofFrames
-        logMessage("BROKEN Frame Time!!  nrofFrames: "+ str(nrofFrames) + "    afterFrame "+str(afterFrame))
-        # logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(localFrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
+        afterFrame /= nrofFrames
+        logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(localFrStart, localFrEnd, localFrStep, nrofFrames, afterFrame))
     logMessage(" ")
     flushLog()
 
@@ -260,8 +263,8 @@ def renderFrames(FrStart,FrEnd,FrStep):
                 localFrEnd= fr
                 if (localFrStep < 1.0):
                     localFrEnd= float(localFrEnd + 1) - localFrStep
-              if (arg.subFrames>1):
-                    logMessage( "Rendering Frames #" + str(fr) + " - #" + str(localFrEnd)  ", " + str(arg.subFrames) + " subFrames ...")
+                if (arg.subFrames>1):
+                    logMessage( "Rendering Frames #" + str(fr) + " - #" + str(localFrEnd) + ", " + str(arg.subFrames) + " subFrames ...")
                 else:
                     logMessage( "Rendering Frame #" + str(fr) + " ...")
  
