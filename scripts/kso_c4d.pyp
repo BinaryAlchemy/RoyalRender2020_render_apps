@@ -1023,7 +1023,7 @@ def setRenderParams(doc, arg):
                 org_root = reg_path[:org_common_start]
                 new_root = job_path[:new_common_start]
 
-                rd[c4d.RDATA_PATH] = reg_path.replace(org_root, new_root, 1)
+                rd[c4d.RDATA_PATH] = rd[c4d.RDATA_PATH].replace(org_root, new_root, 1)
                 logMessage("Regular Path set to" + rd[c4d.RDATA_PATH])
 
             tile_render, tile_num = get_tile_settings(arg)
