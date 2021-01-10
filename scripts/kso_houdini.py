@@ -46,6 +46,17 @@ def logMessageError(msg, doRaise):
     if doRaise:
         raise NameError("\nError reported, aborting render script\n")
 
+def logMessageError_notraceback(msg, doRaise):
+    msg= str(msg).replace("\\n","\n")
+    logMessageGen("ERR", str(msg)+"\n\n")
+    #import traceback
+    #logMessageGen("ERR",traceback.format_exc())    
+    #logMessageGen("ERR", "\n")
+    flushLog()
+    if doRaise:
+        raise NameError("\nError reported, aborting render script\n")
+
+
 def argValid(argValue):
     return ((argValue!= None) and (len(str(argValue))>0))
 
@@ -852,4 +863,4 @@ try:
 
             
 except Exception as e:
-    logMessageError( str(e)+"\n"+str(formatExceptionInfo()), True)
+    logMessageError_notraceback( str(e)+"\n", True)
