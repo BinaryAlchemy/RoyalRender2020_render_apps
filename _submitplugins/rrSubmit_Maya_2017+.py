@@ -618,8 +618,11 @@ class rrMayaLayer:
         passes = cmds.ls(type='RedshiftAOV')
         if passes == None or len(passes) == 0:
             return
-
-        orgFileSplit= self.imageDir+ "/" + self.imageFileName
+        printDebug("AOV self.imageDir   "+self.imageDir+" self.imageFileName "+self.imageFileName)
+        if (len(self.imageDir)==0):
+            orgFileSplit= self.imageFileName
+        else:
+            orgFileSplit= self.imageDir+ "/" + self.imageFileName
         orgFileSplit= orgFileSplit.rpartition('/')
         orgFileSplitDir= orgFileSplit[0]
         orgFileSplitName= orgFileSplit[2]
@@ -678,9 +681,9 @@ class rrMayaLayer:
                 if (aovType!="Cryptomatte" and combineWithBeauty):
                     continue
                 aovName= self.get_attr( p+'.name')
-                printDebug("AOV   "+aovType+"   "+aovName)
                 filePrefix = self.get_attr( p+'.filePrefix')
                 filePrefix = filePrefix.strip()
+                printDebug("AOV   "+aovType+"   "+aovName+"   filePrefix:"+str(filePrefix))
                 if (len(filePrefix)==0):
                     filePrefix= orgFileSplitDir+'/'+orgFileSplitName
                     if (filePrefix[len(filePrefix)-1]!="."):
@@ -691,7 +694,7 @@ class rrMayaLayer:
                     filePrefix= filePrefix.replace('\\','/')
                     filePrefix= filePrefix.replace("<BeautyPath>",orgFileSplitDir)
                     filePrefix= filePrefix.replace("<BeautyFile>",orgFileSplitName)
-                    filePrefix= filePrefix.replace("<RenderPass>", aovName)   
+                    filePrefix= filePrefix.replace("<RenderPass>", "<IMS>"+aovName)   
                 printDebug("AOV add   "+aovName+": "+filePrefix)                
                 self.channelFileName.append(filePrefix)
                 self.channelExtension.append(self.imageExtension)
@@ -799,7 +802,7 @@ class rrMayaLayer:
             else:
                 self.imageFileName= self.imageFileName.replace("<Channel>","")
                 
-        #printDebug("     getImageOut_imageFilePrefix   self.imageFileName "+self.imageFileName)
+        printDebug("     getImageOut_imageFilePrefix   self.imageFileName "+self.imageFileName)
         
 
     def replaceMayaVariablesWithRR(self):
@@ -830,7 +833,7 @@ class rrMayaLayer:
 
 
     def getImageOut(self,sceneInfo,isLayerRendering):
-        printDebug ("rrSubmit - getImageOut")
+        printDebug ("getImageOut()")
         ImageperiodInExt= self.get_attr('defaultRenderGlobals.periodInExt')
         if (ImageperiodInExt==0):
             self.imagePreNumberLetter=""
@@ -859,14 +862,16 @@ class rrMayaLayer:
                 isRelative=False
                 self.imageDir=""
         if (isRelative):
-            #print ("rrSubmit - getImageOut - imageFileName isRelative, add "+self.imageDir)
+            print ("getImageOut - imageFileName isRelative(1), add "+self.imageDir)
             if (len(self.imageDir)>1):
-                self.imageDir=self.imageDir.replace("\\","/")
+                self.imageDir= self.imageDir.replace("\\","/")
                 if ((self.imageDir[0]=="/") or (self.imageDir[1]==":")):
                     isRelative=False
+        else:
+            print ("getImageOut - imageFileName isAbsolute")
         if (isRelative):
-            #print ("rrSubmit - getImageOut - imageFileName imageDir, add "+sceneInfo.DatabaseDir)
-            self.imageDir= sceneInfo.DatabaseDir+self.imageDir
+            print ("getImageOut - imageFileName isRelative(2), add "+sceneInfo.DatabaseDir)
+            self.imageDir= sceneInfo.DatabaseDir + self.imageDir
             self.imageDir+= "/"
 
         
@@ -889,7 +894,7 @@ class rrMayaLayer:
                 else:
                     filename=filename+"_<Channel-removeVar>"
                 self.imageFileName=filepath+filename
-        #printDebug("      imageDir "+self.imageDir+"   imageFileName  "+self.imageFileName)
+        printDebug("getImageOut - imageDir "+self.imageDir+"   imageFileName  "+self.imageFileName)
         return True
 
  

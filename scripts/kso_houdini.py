@@ -40,18 +40,7 @@ def logMessageError(msg, doRaise):
     msg= str(msg).replace("\\n","\n")
     logMessageGen("ERR", str(msg)+"\n")
     import traceback
-    logMessageGen("ERR",traceback.format_exc())    
-    logMessageGen("ERR", "\n")
-    flushLog()
-    if doRaise:
-        raise NameError("\nError reported, aborting render script\n")
-
-def logMessageError_notraceback(msg, doRaise):
-    msg= str(msg).replace("\\n","\n")
-    logMessageGen("ERR", str(msg)+"\n\n")
-    #import traceback
-    #logMessageGen("ERR",traceback.format_exc())    
-    #logMessageGen("ERR", "\n")
+    logMessageGen("ERR",traceback.format_exc()+"\n")    
     flushLog()
     if doRaise:
         raise NameError("\nError reported, aborting render script\n")
@@ -256,8 +245,10 @@ def renderFrames(FrStart,FrEnd,FrStep):
         mainFileName = mainFileName.replace(".$AOV", "")
         localFrStep= FrStep
         
-        if (localFrStep == 1) and (arg.subFrames>1):
+        if (arg.subFrames>1):
             localFrStep= float(localFrStep) /float(arg.subFrames)
+            if (localFrStep != 1):
+                localNoFrameLoop= False
 
         if localNoFrameLoop:
             localFrEnd= FrEnd 
@@ -318,7 +309,7 @@ def rrKSOStartServer():
                 logMessageDebug("rrKSO waiting for new command...")
                 server.handle_request()
                 time.sleep(1) # handle_request() seem to return before handle() completed execution
-            except Exception, e:
+            except Exception as e:
                 logMessageError(e, True)
                 server.continueLoop= False
                 import traceback
@@ -337,6 +328,8 @@ def rrKSOStartServer():
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
         logMessage("rrKSO closed")
+    except NameError as e:
+        logMessage(str(e)+"\n")        
     except Exception as e:
         logMessageError(str(e), True)
 
@@ -861,6 +854,7 @@ try:
     else:
         render_default()
 
-            
+except NameError as e:
+    logMessage(str(e)+"\n")      
 except Exception as e:
-    logMessageError_notraceback( str(e)+"\n", True)
+    logMessageError( str(e)+"\n", True)

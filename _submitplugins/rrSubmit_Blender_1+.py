@@ -189,7 +189,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         if scn.cycles.device == 'GPU':
             fileID.write("<SubmitterParameter>")
-            fileID.write("COCyclesEnableGPU=1~1")
+            fileID.write("COCyclesEnableGPU=1~1 GPUrequired=1~1")
             fileID.write("</SubmitterParameter>")
         writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
         writeNodeStr(fileID, "Software", "Blender")
