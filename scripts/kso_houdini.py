@@ -499,6 +499,13 @@ def applyRendererOptions_createUSD():
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('lopoutput').set(outFileName)
+    try:
+        if (arg.FSingleFile):
+            arg.rop.parm('fileperframe').set(0)
+        else:
+            arg.rop.parm('fileperframe').set(1)
+    except:
+        pass
     
 def applyRendererOptions_USD():
     global arg
@@ -510,7 +517,19 @@ def applyRendererOptions_USD():
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
-    arg.rop.parm('outputimage').set(outFileName)
+    setFirst=True
+    setSecond=True
+    try:
+        arg.rop.parm('outputimage').set(outFileName)
+    except:
+        setFirst=False
+    try:
+        arg.rop.parm('picture').set(outFileName)
+    except:
+        setSecond=False
+    if (not setFirst and not setSecond):
+        raise NameError("Error: Unable to set output filename!")
+
     
 def applyRendererOptions_openGl():
     global arg
