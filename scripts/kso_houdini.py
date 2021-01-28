@@ -500,10 +500,10 @@ def applyRendererOptions_createUSD():
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('lopoutput').set(outFileName)
     try:
-        if (arg.FSingleFile):
-            arg.rop.parm('fileperframe').set(0)
-        else:
+        if (not arg.FSingleFile):
             arg.rop.parm('fileperframe').set(1)
+        #else:     
+            #arg.rop.parm('fileperframe').set(0)  required for file per frame, BUT OPTIONAL for single .usd files.
     except:
         pass
     
