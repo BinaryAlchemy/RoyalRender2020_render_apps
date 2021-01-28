@@ -98,10 +98,10 @@ class rrJob(object):
 
     def subE(self, r, e, text):
         sub = SubElement(r, e)
-        if (type(text) == unicode ):
-            sub.text = text.encode('utf8')
-        else:
-            sub.text = str(text).decode("utf8")
+        text = str(text)
+        if sys.version_info.major == 2:
+            text = text if type(text) is unicode else text.decode("utf8")
+        sub.text = text
         return sub
     
 
