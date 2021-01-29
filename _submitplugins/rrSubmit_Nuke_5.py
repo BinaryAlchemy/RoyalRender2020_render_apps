@@ -11,9 +11,8 @@
 import nuke
 import os
 import sys
-import platform
-import random
 import string
+import tempfile
 
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
@@ -162,16 +161,20 @@ class rrJob(object):
         xml = ElementTree(rootElement)
         self.indent(xml.getroot())
 
-        if not f == None:
-            xml.write(f)
-            f.close()
-        else:
-            print("No valid file has been passed to the function")
+        if f is None:
+            print("No valid file has been passed to the write function")
             try:
                 f.close()
             except:
                 pass
             return False
+
+        if sys.version_info.major == 2:
+            xml.write(f)
+        else:
+            xml.write(f, encoding='unicode')
+        f.close()
+
         return True
 
 
@@ -193,22 +196,6 @@ def getRR_Root():
     if HCPath[0]!="%":
         return HCPath
     writeError("This plugin was not installed via rrWorkstationInstaller!")
-
-
-def getNewTempFileName():
-    random.seed()
-    if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
-        if os.environ.has_key('TEMP'):
-            nam=os.environ['TEMP']
-        else:
-            nam=os.environ['TMP']
-        nam+="\\"
-    else:
-        nam="/tmp/"
-    nam+="rrSubmitNuke_"
-    nam+=str(random.randrange(1000,10000,1))
-    nam+=".xml"
-    return nam
 
 def getRRSubmitterPath():
     ''' returns the rrSubmitter filename '''
@@ -242,13 +229,16 @@ def getOSString():
         return "lx"
 
     
-def submitJobsToRR(jobList,submitOptions, nogui=False):
-    tmpFileName = getNewTempFileName()
-    tmpFile = open(tmpFileName, "w")
+def submitJobsToRR(jobList, submitOptions, nogui=False):
+    tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
+                                          prefix="rrSubmitNuke_",
+                                          suffix=".xml",
+                                          delete=False)
+
     xmlObj= jobList[0].writeToXMLstart(submitOptions)
     for submitjob in jobList:
         submitjob.writeToXMLJob(xmlObj)
-    ret = jobList[0].writeToXMLEnd(tmpFile,xmlObj)
+    ret = jobList[0].writeToXMLEnd(tmpFile, xmlObj)
     if ret:
         #writeInfo("Job written to " + tmpFile.name)
         pass
@@ -256,9 +246,9 @@ def submitJobsToRR(jobList,submitOptions, nogui=False):
         writeError("Error - There was a problem writing the job file to " + tmpFile.name)
     commandline=""
     if nogui:
-        commandline=getRRSubmitterconsolePath() + "  \"" + tmpFileName + "\"" + ' -Wait'
+        commandline=getRRSubmitterconsolePath() + "  \"" + tmpFile.name + "\"" + ' -Wait'
     else:
-        commandline= getRRSubmitterPath()+"  \""+tmpFileName+"\""        
+        commandline= getRRSubmitterPath()+"  \""+tmpFile.name+"\""
     #writeInfo("Executing "+commandline)
     os.system(commandline)
 
