@@ -169,10 +169,7 @@ class rrJob(object):
                 pass
             return False
 
-        if sys.version_info.major == 2:
-            xml.write(f)
-        else:
-            xml.write(f, encoding='unicode')
+        xml.write(f)
         f.close()
 
         return True
