@@ -249,7 +249,7 @@ def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=True):
 
     if own_terminal:
         if sys.platform.lower().startswith("win"):
-            commandline = "START CMD /C {0}".format(commandline)
+            commandline = 'START CMD /C "{0}"'.format(commandline)
 
     #writeInfo("Executing "+commandline)
     os.system(commandline)
