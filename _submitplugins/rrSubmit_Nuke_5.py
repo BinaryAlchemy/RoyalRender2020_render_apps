@@ -226,7 +226,7 @@ def getOSString():
         return "lx"
 
     
-def submitJobsToRR(jobList, submitOptions, nogui=False):
+def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=True):
     tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
                                           prefix="rrSubmitNuke_",
                                           suffix=".xml",
@@ -246,6 +246,11 @@ def submitJobsToRR(jobList, submitOptions, nogui=False):
         commandline=getRRSubmitterconsolePath() + "  \"" + tmpFile.name + "\"" + ' -Wait'
     else:
         commandline= getRRSubmitterPath()+"  \""+tmpFile.name+"\""
+
+    if own_terminal:
+        if sys.platform.lower().startswith("win"):
+            commandline = "START CMD /C {0}".format(commandline)
+
     #writeInfo("Executing "+commandline)
     os.system(commandline)
 
