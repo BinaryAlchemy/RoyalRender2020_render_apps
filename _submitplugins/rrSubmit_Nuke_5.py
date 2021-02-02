@@ -226,7 +226,7 @@ def getOSString():
         return "lx"
 
     
-def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=True):
+def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=False):
     tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
                                           prefix="rrSubmitNuke_",
                                           suffix=".xml",
@@ -600,7 +600,7 @@ def rrSubmit_NukeXRequired():
 
 
 
-def rrSubmit_Nuke_Shotgun():
+def rrSubmit_Nuke_Shotgun(own_terminal=False):
     print ("rrSubmit %rrVersion%")
     nuke.scriptSave()
     CompName = nuke.root().name()
@@ -616,12 +616,12 @@ def rrSubmit_Nuke_Shotgun():
     if (rrSubmit_NukeXRequired()):
         submitOptions=submitOptions+" CONukeX=1~1 "
     rrSubmit_addPluginLicenses(jobList)
-    submitJobsToRR(jobList,submitOptions)
+    submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
 
 
 
 
-def rrSubmit_Nuke():
+def rrSubmit_Nuke(own_terminal=False):
     print ("rrSubmit %rrVersion%")
     nuke.scriptSave()
     CompName = nuke.root().name()
@@ -638,7 +638,7 @@ def rrSubmit_Nuke():
     if (rrSubmit_NukeXRequired()):
         submitOptions=submitOptions+" CONukeX=1~1 "
     rrSubmit_addPluginLicenses(jobList)
-    submitJobsToRR(jobList,submitOptions)
+    submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
       
       
 def start_sg_nuke_engine():
@@ -698,7 +698,7 @@ def rrSubmit_Nuke_Shotgun_convert():
     
     
 
-def rrSubmit_Nuke_Node(node, startFrame=-1, endFrame=-1, nogui=False):
+def rrSubmit_Nuke_Node(node, startFrame=-1, endFrame=-1, nogui=False, own_terminal=False):
     print ("rrSubmit %rrVersion%")
     nuke.scriptSave()
     CompName = nuke.root().name()
@@ -719,5 +719,4 @@ def rrSubmit_Nuke_Node(node, startFrame=-1, endFrame=-1, nogui=False):
             job.seqStart=startFrame
             job.seqEnd=endFrame
             writeInfo ("rrSubmit - override job sequence to " + str(job.seqStart) + "-" + str(job.seqEnd))
-    submitJobsToRR(jobList,submitOptions,nogui)
-    
+    submitJobsToRR(jobList, submitOptions, nogui=nogui, own_terminal=own_terminal)
