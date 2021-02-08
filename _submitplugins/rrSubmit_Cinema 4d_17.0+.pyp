@@ -759,6 +759,18 @@ def insertPathTake(img_path):
     return os.path.join(os.path.dirname(img_path), "$take", os.path.basename(img_path))
 
 
+def convert_filename_tokens(doc, take, filename):
+    if c4d.GetC4DVersion() < 21000:
+        LOGGER.warning("No native token conversion on versions earlier than R21")
+        return filename
+
+    render_data = doc.GetActiveRenderData()
+    render_settings = render_data.GetDataInstance()
+
+    render_path_data = {'_doc': doc, '_rData': render_data, '_rBc': render_settings, '_take': take}
+    return c4d.modules.tokensystem.FilenameConvertTokens(filename, render_path_data)
+
+
 def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
     """Create a new job with current parameters but different take. Used to submit c4d takes as RR layers
 
@@ -781,17 +793,20 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
         if "$take" not in newJob.channelFileName[ch]:
             newJob.channelFileName[ch] = insertPathTake(newJob.channelFileName[ch])
 
-    newJob.imageName = newJob.imageName.replace("$take", take_name)
+    newJob.imageName = convert_filename_tokens(doc, take, newJob.imageName)
+    newJob.imageName = newJob.imageName.replace("$take", take_name)  # manual replace for older versions
+
     newJob.layerName = take_name_full
     newJob.isActive = take.IsChecked()
     if currentTakeName == take_name_full:
         newJob.isActive = True
     for ch in range(0, newJob.maxChannels):
+        newJob.channelFileName[ch] = convert_filename_tokens(doc, take, newJob.channelFileName[ch])
         newJob.channelFileName[ch] = newJob.channelFileName[ch].replace("$take", take_name)
 
     takeData.SetCurrentTake(take)
-    rd = doc.GetActiveRenderData()
-    setSeq(newJob, rd)
+    render_data = doc.GetActiveRenderData()
+    setSeq(newJob, render_data)
     if newJob.Arnold_DriverOut:
         newJob.setOutputFromArnoldDriver()
 
@@ -828,12 +843,15 @@ def addTakes(doc, jobList, takeData):
     LOGGER.debug("takeData: " + str(takeData))
     currentTakeName = takeData.GetCurrentTake().GetName()
     mainTake = takeData.GetMainTake()
+
     addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath="")
 
+    jobList[0].imageName = convert_filename_tokens(doc, mainTake, jobList[0].imageName)
     jobList[0].imageName = jobList[0].imageName.replace("$take", mainTake.GetName())
     jobList[0].layerName = mainTake.GetName()
 
     for ch in range(0, jobList[0].maxChannels):
+        jobList[0].channelFileName[ch] = convert_filename_tokens(doc, mainTake, jobList[0].channelFileName[ch])
         jobList[0].channelFileName[ch] = jobList[0].channelFileName[ch].replace("$take", mainTake.GetName())
 
     takeData.SetCurrentTake(mainTake)
