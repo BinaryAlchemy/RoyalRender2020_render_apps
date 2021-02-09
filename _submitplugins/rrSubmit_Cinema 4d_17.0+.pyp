@@ -478,7 +478,6 @@ class JobProps(object):
     imageFormatMultiPass = ""
     imageFramePadding = 4
     imageName = ""
-    imageNamingID = 0
     imagePreNumberLetter = ""
     imageSingleOutput = False
     isActive = False
@@ -519,6 +518,32 @@ class rrJob(JobProps):
     def __init__(self):
         super(rrJob, self).__init__()
         self.clear()
+
+        self._imageNamingID = 0
+
+    def setImagePadding(self, name_id):
+        self._imageNamingID = name_id
+        if self._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+            # name0000.ext
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+            # name0000
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+            # name.0000
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+            # name000.ext
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+            # name000
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+            # name.0000
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+            # name.0000.ext
+            self.imageFramePadding = 4
 
     def clear(self):
         """Set the job attributes to their default values. This will also unlink the inherited static members
@@ -974,28 +999,29 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return True
 
+
     def getNameFormat(self, imagefilename, imageformat):
-        if self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
             imageformat = imageformat
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
             imageformat = ""
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
             self.job[0].imageFormat = ""
             imageformat += "."
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             imageformat = imageformat
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
             imageformat = ""
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
             imageformat = ""
             imagefilename += "."
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             imagefilename += "."
         if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
@@ -1711,6 +1737,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         image_name = image_name.replace("$prj", "<Scene>")
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
+        image_name = image_name.replace("$frame", '#' * self.job[0].imageFramePadding)
 
         if c4d.GetC4DVersion() < 21000:
             # native replacement
@@ -1782,8 +1809,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
 
         self.job[0].layerName = ""
-
-        self.job[0].imageNamingID = self.renderSettings[c4d.RDATA_NAMEFORMAT]
+        self.job[0].setImagePadding(name_id=self.renderSettings[c4d.RDATA_NAMEFORMAT])
 
         self.job[0].imageName = self.replacePathTokens(self.job[0].imageName)
         LOGGER.debug("imageName is: " + self.job[0].imageName)
@@ -1955,25 +1981,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 tempName = tempName.replace(addStereoString + "_", "<removeVar " + addStereoString + "_" + ">")
             self.job[0].imageName = tempName
 
-        if self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             self.job[0].imageFramePadding = 4
 
