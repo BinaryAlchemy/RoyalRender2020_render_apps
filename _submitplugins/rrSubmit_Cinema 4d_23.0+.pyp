@@ -753,7 +753,8 @@ def insertPathTake(img_path):
     return os.path.join(os.path.dirname(img_path), "$take", os.path.basename(img_path))
 
 
-def convert_filename_tokens(doc, take, filename):
+def convert_filename_tokens(doc, take, filename, exclude=[]):
+    """Convert tokens using c4d native utilities"""
     if c4d.GetC4DVersion() < 21000:
         LOGGER.warning("No native token conversion on versions earlier than R21")
         return filename
@@ -762,7 +763,7 @@ def convert_filename_tokens(doc, take, filename):
     render_settings = render_data.GetDataInstance()
 
     render_path_data = {'_doc': doc, '_rData': render_data, '_rBc': render_settings, '_take': take}
-    return c4d.modules.tokensystem.FilenameConvertTokens(filename, render_path_data)
+    return c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
 
 
 def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
@@ -1696,10 +1697,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     )
 
     def replacePathTokens(self, image_name):
+        # replace c4d tokens with RR tokens
         image_name = image_name.replace("$camera", "<Camera>")
         image_name = image_name.replace("$prj", "<Scene>")
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
+
+        if c4d.GetC4DVersion() < 21000:
+            # native replacement
+            doc = c4d.documents.GetActiveDocument()
+            exclude_tokens = ['take', 'cvTake', 'cvParentTake']
+            convert_filename_tokens(doc, image_name, doc.GetTakeData().GetCurrentTake(),
+                                    exclude=exclude_tokens)
+
+            tokens = c4d.modules.tokensystem.GetAllTokenEntries()
+            for entry in tokens:
+                # Take related tokens should be fed a take explicitly. Done on take add
+                token_str = entry['_token']
+                if 'take' in token_str.lower() and token_str not in exclude_tokens:
+                    logging.warning("custom token {0} might be evaluated incorrectly. Please, contact support")
 
         image_name = image_name.replace("$rs", self.renderSettings.GetName())
         image_name = image_name.replace("$res", "{0}x{1}".format(self.job[0].width, self.job[0].height))
@@ -2219,6 +2235,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             if rvalue:
                 c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
+        setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
         self.setFileout()
         addTakes(doc, self.job, self.takeData)
