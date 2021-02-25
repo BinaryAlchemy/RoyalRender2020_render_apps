@@ -5,6 +5,7 @@
 # Authors, based on:    Felix Bucella, Patrik Gleich
 # Authors:              Friedrich Wessel (Callisto FX GmbH)
 # Authors, updated by:  Paolo Acampora, Holger Schoenberger (Binary Alchemy)
+# Last change: %rrVersion%
 #
 # rrInstall_Copy:     \*\scripts\startup\
 # 
@@ -13,7 +14,7 @@
 bl_info = {
     "name": "Royal Render Submitter",
     "author": "Binary Alchemy",
-    "version": (2, 0),
+    "version": "%rrVersion%",
     "blender": (2, 80, 0),
     "description": "Submit scene to Royal Render",
     "category": "Render",
@@ -70,6 +71,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
     """Submit current file to Royal Render"""
     bl_idname = "royalrender.submitscene"
     bl_label = "Submit Scene"
+
+    _renderer_name = ""
 
     @classmethod
     def poll(cls, context):
@@ -193,6 +196,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             fileID.write("</SubmitterParameter>")
         writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
         writeNodeStr(fileID, "Software", "Blender")
+        writeNodeStr(fileID, "Renderer", self._renderer_name)
         writeNodeStr(fileID, "Version",  "{0}.{1}".format(v_major, v_minor))
         writeNodeStr(fileID, "SceneState", scene_state)
         writeNodeBool(fileID, "IsActive", is_active)
@@ -276,9 +280,16 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             return False
 
         return True
-        
-    def execute(self, context):
 
+    def set_renderer_name(self, context):
+        pretty_name = context.scene.render.engine.title()
+        prefix = "Blender_"
+        if pretty_name.startswith(prefix):
+            pretty_name = pretty_name[len(prefix):]
+
+        self._renderer_name = pretty_name
+
+    def execute(self, context):
         if bpy.data.is_dirty:
             try:
                 self.report({'INFO'}, "Saving mainFile...")
@@ -286,6 +297,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             except RuntimeError:
                 self.report({'WARNING'}, "Cannot save scene file")
 
+        self.set_renderer_name(context)
         if self.rrSubmit():
             self.report({'INFO'}, "Submit Launch Successfull")
         else:
