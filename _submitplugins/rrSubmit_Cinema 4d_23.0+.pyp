@@ -473,7 +473,6 @@ class JobProps(object):
     imageFormatMultiPass = ""
     imageFramePadding = 4
     imageName = ""
-    imageNamingID = 0
     imagePreNumberLetter = ""
     imageSingleOutput = False
     isActive = False
@@ -508,12 +507,39 @@ class JobProps(object):
         self.channelExtension = []
 
 
+    def setImagePadding(self, name_id):
+        self._imageNamingID = name_id
+        if self._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+            # name0000.ext
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+            # name0000
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+            # name.0000
+            self.imageFramePadding = 4
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+            # name000.ext
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+            # name000
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+            # name.0000
+            self.imageFramePadding = 3
+        elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+            # name.0000.ext
+            self.imageFramePadding = 4
+
+
 class rrJob(JobProps):
     """Collect job properties from the scene, export xml file"""
 
     def __init__(self):
         super(rrJob, self).__init__()
         self.clear()
+
+        self._imageNamingID = 0
 
     def clear(self):
         """Set the job attributes to their default values. This will also unlink the inherited static members
@@ -753,6 +779,19 @@ def insertPathTake(img_path):
     return os.path.join(os.path.dirname(img_path), "$take", os.path.basename(img_path))
 
 
+def convert_filename_tokens(doc, take, filename, exclude=[]):
+    """Convert tokens using c4d native utilities"""
+    if c4d.GetC4DVersion() < 21000:
+        LOGGER.warning("No native token conversion on versions earlier than R21")
+        return filename
+
+    render_data = doc.GetActiveRenderData()
+    render_settings = render_data.GetDataInstance()
+
+    render_path_data = {'_doc': doc, '_rData': render_data, '_rBc': render_settings, '_take': take}
+    return c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
+
+
 def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
     """Create a new job with current parameters but different take. Used to submit c4d takes as RR layers
 
@@ -775,17 +814,20 @@ def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, pare
         if "$take" not in newJob.channelFileName[ch]:
             newJob.channelFileName[ch] = insertPathTake(newJob.channelFileName[ch])
 
-    newJob.imageName = newJob.imageName.replace("$take", take_name)
+    newJob.imageName = convert_filename_tokens(doc, take, newJob.imageName)
+    newJob.imageName = newJob.imageName.replace("$take", take_name)  # manual replace for older versions
+
     newJob.layerName = take_name_full
     newJob.isActive = take.IsChecked()
     if currentTakeName == take_name_full:
         newJob.isActive = True
     for ch in range(0, newJob.maxChannels):
+        newJob.channelFileName[ch] = convert_filename_tokens(doc, take, newJob.channelFileName[ch])
         newJob.channelFileName[ch] = newJob.channelFileName[ch].replace("$take", take_name)
 
     takeData.SetCurrentTake(take)
-    rd = doc.GetActiveRenderData()
-    setSeq(newJob, rd)
+    render_data = doc.GetActiveRenderData()
+    setSeq(newJob, render_data)
     if newJob.Arnold_DriverOut:
         newJob.setOutputFromArnoldDriver()
 
@@ -824,10 +866,12 @@ def addTakes(doc, jobList, takeData):
     mainTake = takeData.GetMainTake()
     addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath="")
 
+    jobList[0].imageName = convert_filename_tokens(doc, mainTake, jobList[0].imageName)
     jobList[0].imageName = jobList[0].imageName.replace("$take", mainTake.GetName())
     jobList[0].layerName = mainTake.GetName()
 
     for ch in range(0, jobList[0].maxChannels):
+        jobList[0].channelFileName[ch] = convert_filename_tokens(doc, mainTake, jobList[0].channelFileName[ch])
         jobList[0].channelFileName[ch] = jobList[0].channelFileName[ch].replace("$take", mainTake.GetName())
 
     takeData.SetCurrentTake(mainTake)
@@ -950,27 +994,27 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         return True
 
     def getNameFormat(self, imagefilename, imageformat):
-        if self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
             imageformat = imageformat
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
             imageformat = ""
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
             self.job[0].imageFormat = ""
             imageformat += "."
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             imageformat = imageformat
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
             imageformat = ""
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
             imageformat = ""
             imagefilename += "."
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             imagefilename += "."
         if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
@@ -1679,10 +1723,26 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     )
 
     def replacePathTokens(self, image_name):
+        # replace c4d tokens with RR tokens
         image_name = image_name.replace("$camera", "<Camera>")
         image_name = image_name.replace("$prj", "<Scene>")
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
+        image_name = image_name.replace("$frame", '#' * self.job[0].imageFramePadding)
+
+        if c4d.GetC4DVersion() < 21000:
+            # native replacement
+            doc = c4d.documents.GetActiveDocument()
+            exclude_tokens = ['take', 'cvTake', 'cvParentTake']
+            convert_filename_tokens(doc, image_name, doc.GetTakeData().GetCurrentTake(),
+                                    exclude=exclude_tokens)
+
+            tokens = c4d.modules.tokensystem.GetAllTokenEntries()
+            for entry in tokens:
+                # Take related tokens should be fed a take explicitly. Done on take add
+                token_str = entry['_token']
+                if 'take' in token_str.lower() and token_str not in exclude_tokens:
+                    logging.warning("custom token {0} might be evaluated incorrectly. Please, contact support")
 
         image_name = image_name.replace("$rs", self.renderSettings.GetName())
         image_name = image_name.replace("$res", "{0}x{1}".format(self.job[0].width, self.job[0].height))
@@ -1738,8 +1798,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
 
         self.job[0].layerName = ""
-
-        self.job[0].imageNamingID = self.renderSettings[c4d.RDATA_NAMEFORMAT]
+        self.job[0].setImagePadding(name_id=self.renderSettings[c4d.RDATA_NAMEFORMAT])
 
         self.job[0].imageName = self.replacePathTokens(self.job[0].imageName)
         LOGGER.debug("imageName is: " + self.job[0].imageName)
@@ -1904,25 +1963,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 tempName = tempName.replace(addStereoString + "_", "<removeVar " + addStereoString + "_" + ">")
             self.job[0].imageName=tempName
 
-        if self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
             self.job[0].imageFramePadding = 4
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
             self.job[0].imageFramePadding = 3
-        elif self.job[0].imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             self.job[0].imageFramePadding = 4
 
@@ -2202,6 +2261,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             if rvalue:
                 c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
+        setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
         self.setFileout()
         addTakes(doc, self.job, self.takeData)
