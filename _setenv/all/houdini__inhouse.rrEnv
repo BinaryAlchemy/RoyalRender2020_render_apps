@@ -1,6 +1,6 @@
 
 
-#changes the user folder on windows to ignore the local houdini.env of the artist
+# changes the user folder on windows to ignore the local houdini.env of the artist
 USERPROFILE  =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
 LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
@@ -9,35 +9,35 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
 
 # ###################  Arnold/HtoA environment variables ###################
-#  solidangle_LICENSE = port@hostname
+# solidangle_LICENSE  =  port@hostname
 
-# [If] E <RR_HTOA_BASE> ??? 
-#   RR_HTOA_BASE= \\myfileserver\Renderer\HtoA\htoa<rrJobRendererVersion>__houdini<ExeVersionFull>
+# [If] <RR_HTOA_BASE>  [==] 
+#     RR_HTOA_BASE  =  \\myfileserver\Renderer\HtoA\htoa<rrJobRendererVersion>__houdini<ExeVersionFull>
 # [EndIf]
 
 # ###################  RedShift environment variables ###################
 # redshift_LICENSE  =  5053@licenseserverName
 
-# [If] E <RR_REDSHIFT_BASE> ??? 
-#    RR_REDSHIFT_BASE= \\myfileserver\Renderer\Redshift\Redshift_<rrJobRendererVersion>
+# [If] <RR_REDSHIFT_BASE>  [==] 
+#     RR_REDSHIFT_BASE  =  \\myfileserver\Renderer\Redshift\Redshift_<rrJobRendererVersion>
 # [EndIf]
 
-#switch to a different redshift folder for a floating license installation (floating and node-locked are different redshift installations)
-#change the rrClient config, license group and add the license group name instead of "cfgLicPool_None". 
-#Possible values are: <cfgLicPool_Default>  <cfgLicPool_Workstation> <cfgLicPool_Renderfarm> <cfgLicPool_Cloud> <cfgLicPool_WorkRenderMix>
-[If] E <cfgLicPool_None> ??? 1
-    RR_REDSHIFT_FLT= 1
+# switch to a different redshift folder for a floating license installation (floating and node-locked are different redshift installations)
+# change the rrClient config, license group and add the license group name instead of "cfgLicPool_None".
+# Possible values are: <cfgLicPool_Default>  <cfgLicPool_Workstation> <cfgLicPool_Renderfarm> <cfgLicPool_Cloud> <cfgLicPool_WorkRenderMix>
+[If] <cfgLicPool_None>  [==] 1
+    RR_REDSHIFT_FLT  =  1
 [EndIf]
 
 
 
 # ###################  Renderman environment variables ###################
-# [If] E <RR_RENDERMAN_BASE> ??? 
-#    RR_RENDERMAN_BASE= \\myfileserver\Renderer\Renderman\RenderMan
+# [If] <RR_RENDERMAN_BASE>  [==] 
+#     RR_RENDERMAN_BASE  =  \\myfileserver\Renderer\Renderman\RenderMan
 # [EndIf]
 
-# PIXAR_LICENSE_FILE = \\fileserver\share\pixar.license
+# PIXAR_LICENSE_FILE  =  \\fileserver\share\pixar.license
 
 
 # ###################  If you have issues accessing external file (e.g. Alembic), try to uncomment the following line ###################
-# HOUDINI_ACCESS_METHOD = 2
+# HOUDINI_ACCESS_METHOD  =  2
