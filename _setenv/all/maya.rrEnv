@@ -232,7 +232,7 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
         [If] <rrExeOS>  [==] win
             [Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -i NUL
         [Else]
-            [Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -i /dev/null
+            [Exec] <RR_MTOA_BASE_LOCAL>/bin/kick -i /dev/null
         [EndIf]
     [EndIf]
 [EndIf]

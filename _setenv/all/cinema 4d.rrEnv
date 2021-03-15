@@ -185,7 +185,7 @@ ARNOLD_ADP_OPTIN = 0
 [UnixColonConvert] g_additionalModulePath = <g_additionalModulePath>
 
 [If] <rrExeVersionMajor>  [>=] 20
-    [copy] ZD <rrPlugins><rrExeVersion>\plug-ins   =>   <C4D_rrRenderScriptFolder>
+    [copy] SyncNoCreateDir <rrPlugins><rrExeVersion>\plug-ins   =>   <C4D_rrRenderScriptFolder>
 [EndIf]
 
 
