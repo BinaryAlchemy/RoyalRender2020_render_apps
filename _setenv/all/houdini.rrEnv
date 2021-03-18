@@ -75,15 +75,20 @@ ARNOLD_ADP_OPTIN = 0
 
 
 # ###################  RedShift environment variables ###################
+REDSHIFT_USED = 0
 [If] <rrJobRenderer>  [contains] redshift
+    echo * Rendering with Redshift
+    REDSHIFT_USED = 1
+    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
-        echo * Rendering with Redshift
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]
 [If] <rrJobRenderer>  [contains] createRS
+    echo * Creating with Redshift
+    REDSHIFT_USED = 1
+    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
-        echo * Creating with Redshift
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]
@@ -111,13 +116,27 @@ REDSHIFT_LOCALDATAPATH  =  <RR_REDSHIFT_BASE_LOCAL>
 REDSHIFT_PREFSPATH  =  <RR_REDSHIFT_BASE_LOCAL>\preferences.xml
 REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
 [If] <REDSHIFT_HOUDINI_ROOT>  [==] 
-    echo * Important: In case this folder does not exist, please dublicate the next older version folder into this one:
     [If] <rrExeOS>  [==] win
         REDSHIFT_HOUDINI_ROOT  =  <RR_REDSHIFT_BASE_LOCAL>\Plugins\Houdini\<ExeVersionFull>
         echo * Redshift Houdini plugin folder is set to: <RR_REDSHIFT_BASE>\Plugins\Houdini\<ExeVersionFull>
+        [If] <REDSHIFT_USED> [==] 1
+            [Exists] <RR_REDSHIFT_BASE>\Plugins\Houdini\<ExeVersionFull>
+                echo .
+            [Else]
+                echo * ERROR: Required Redshift folder does not exist: <RR_REDSHIFT_BASE>/redshift4houdini/<ExeVersionFull>
+                echo * Please dublicate the next older version folder into this one.
+            [EndIf]
+        [EndIf]
     [Else]
         REDSHIFT_HOUDINI_ROOT  =  <RR_REDSHIFT_BASE_LOCAL>\redshift4houdini\<ExeVersionFull>
-        echo * Redshift Houdini plugin folder is set to: <RR_REDSHIFT_BASE>/redshift4houdini/<ExeVersionFull>
+        [If] <REDSHIFT_USED> [==] 1
+            [Exists] <RR_REDSHIFT_BASE>/redshift4houdini/<ExeVersionFull>
+                echo .
+            [Else]
+                echo * ERROR: Required Redshift folder does not exist: <RR_REDSHIFT_BASE>/redshift4houdini/<ExeVersionFull>
+                echo * Please dublicate the next older version folder into this one.
+            [EndIf]
+        [EndIf]
     [EndIf]
 [EndIf]
 REDSHIFT_PLUG_IN_PATH  =  <REDSHIFT_HOUDINI_ROOT>\dso;
