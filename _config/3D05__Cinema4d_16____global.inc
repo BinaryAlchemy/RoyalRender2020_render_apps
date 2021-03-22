@@ -41,7 +41,7 @@ licenseFailLine=  Missing serial number
 licenseFailLine= Error: Invalid License
 licenseFailLine= Could not get a license
 licenseFailLine= Error running authentication
-
+licenseFailLine= Invalid License from License Server
 
 RealTimeAbortLine= Missing serial number
 RealTimeAbortLine= Render failure detected
@@ -51,6 +51,7 @@ RealTimeAbortLine= MacOSException::SuspendAllThreads
 RealTimeAbortLine= aborting render script
 RealTimeAbortLine= Could not get a license
 RealTimeAbortLine= Error running authentication
+RealTimeAbortLine= Invalid License from License Server
 
 
 
@@ -60,7 +61,7 @@ ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
 ErrorSearchLine = Not enough memory...
 ErrorSearchLine = net.maxon.ui.class.osclipboard is missing
-
+ErrorSearchLine = Invalid License from License Server
 
 RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= Application Error ~  ~ 1 ~ Button ~ OK

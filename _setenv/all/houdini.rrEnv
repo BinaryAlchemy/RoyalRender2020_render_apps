@@ -156,6 +156,23 @@ HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;<REDSHIFT_HOUDINI_ROOT>\soho;
     [EndIf]
 [EndIf]
 
+[If] <rrLocalExeDir_NoApp>  [!=]
+    [If] <REDSHIFT_CACHEPATH>  [==] 
+        REDSHIFT_CACHEPATH = <rrLocalExeDir_NoApp>Redshift\TextureCache
+        [If] <rrExeOS>  [==] win
+            [Exists] <LocalAppData>\Redshift\Cache
+            [DelFolder] <LocalAppData>\Redshift\Cache
+            [EndIf]
+        [EndIf]
+        [Exists] <REDSHIFT_LOCALDATAPATH>/cache
+        [DelFolder] <REDSHIFT_LOCALDATAPATH>/cache
+        [EndIf]
+    [EndIf]
+[EndIf]
+
+[If] <REDSHIFT_TEXTURECACHEBUDGET>  [==] 
+    REDSHIFT_TEXTURECACHEBUDGET = 20
+[EndIf]   
 
 # ###################  VRay environment variables ###################
 
