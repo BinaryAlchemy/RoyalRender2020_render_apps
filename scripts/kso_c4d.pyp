@@ -789,7 +789,6 @@ def doCrossOSPathConversionC4d(arg):
         logMessageDebug("No OS conversion necessary")
         return
 
-
     # get conversion table
     osConvert = rrScriptHelper.rrOSConversion()
     osConvert.loadSettings()
@@ -804,13 +803,23 @@ def doCrossOSPathConversionC4d(arg):
 
     # convert texture paths
     mat = doc.GetFirstMaterial()
-    while (mat):
+    while mat:
         shd = mat.GetFirstShader()
         shadertreeConvertTex(shd, fromOS, toOS)
         mat = mat.GetNext()
 
     if arg.renderer.lower() == "arnold":
         arnoldConvertPaths(fromOS, toOS)
+
+    if arg.Channel == "Reg_Multi":
+        # we compare the regular output as it was set and job render output in Reg_Multi jobs
+        # so we need to convert
+        rd = doc.GetActiveRenderData()
+        orig_regular_out = rd[c4d.RDATA_PATH]
+        rd[c4d.RDATA_PATH] = convertFilepath(orig_regular_out, fromOS, toOS)
+
+        if orig_regular_out != rd[c4d.RDATA_PATH]:
+            logMessage("INFO: Regular Render Out was converted to: " + rd[c4d.RDATA_PATH])
 
 
 def c4d_ext_id(ext):
@@ -980,6 +989,24 @@ def setRenderParams(doc, arg):
                     return False
 
         rd = doc.GetActiveRenderData()
+
+        orig_global_save = rd[c4d.RDATA_GLOBALSAVE]
+        orig_regular_status = rd[c4d.RDATA_SAVEIMAGE]
+        orig_multipass_status = rd[c4d.RDATA_MULTIPASS_ENABLE]
+        orig_multipass_save_status = rd[c4d.RDATA_MULTIPASS_SAVEIMAGE]
+
+        logMessage("")
+        logMessage("INFO: Global save status is: " + str(orig_global_save))
+        logMessage("INFO: Regular Render Out status is: " + str(orig_regular_status))
+        logMessage("INFO: MultiPass save status is: " + str(orig_multipass_status))
+        logMessage("INFO: MultiPass Render Out status is: " + str(orig_multipass_save_status))
+
+        orig_regular_out = rd[c4d.RDATA_PATH]
+        orig_multipass_out = rd[c4d.RDATA_MULTIPASS_FILENAME]
+        logMessage("INFO: Regular Render Out is: " + orig_regular_out)
+        logMessage("INFO: MultiPass Render Out is: " + orig_multipass_out)
+        logMessage("")
+
         rd[c4d.RDATA_GLOBALSAVE] = True
 
         if arg.exportmode:
@@ -996,21 +1023,35 @@ def setRenderParams(doc, arg):
             except AttributeError:
                 logMessage("Couldn't set output image format to {0}".format(arg.FExt))
                 return False
-            logMessage("INFO: Multipass is: "+str(rd[c4d.RDATA_MULTIPASS_ENABLE]))
-            logMessage("INFO: Multipass save image is: "+str(rd[c4d.RDATA_MULTIPASS_SAVEIMAGE]))
-            logMessage("INFO: Multipass filename is: "+str(rd[c4d.RDATA_MULTIPASS_FILENAME]))
 
         elif (arg.Channel=="Reg_Multi"):
             #main and multipass output
             #submitter plugin has read the multipass output as filename, not the main output
             logMessage("INFO: setRenderParams: main and multipass output")
+
             rd[c4d.RDATA_SAVEIMAGE] = True
             rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
 
+            # check if prefix/suffix have been added to filename
+            scene_output = os.path.basename(rd[c4d.RDATA_MULTIPASS_FILENAME])
+            rr_output = os.path.basename(arg.FNameVar)
+            try:
+                prefix, suffix = rr_output.split(scene_output, 1)
+            except ValueError:
+                pass
+            else:
+                reg_out_dir, reg_out_file = os.path.split(rd[c4d.RDATA_PATH])
+                rd[c4d.RDATA_PATH] = os.path.join(reg_out_dir, prefix + reg_out_file + suffix)
+
             reg_path = rrGetDirName(allForwardSlashes(rd[c4d.RDATA_PATH]))
             job_path = rrGetDirName(allForwardSlashes(arg.FNameVar))
             subpath = get_common_subpath(reg_path, job_path)
+
+            if rd[c4d.RDATA_PATH] and not reg_path:
+                # reg_path has no dir
+                logMessageDebug("appending {0} to {1}".format(rd[c4d.RDATA_PATH], job_path))
+                rd[c4d.RDATA_PATH] = os.path.join(job_path, rd[c4d.RDATA_PATH])
 
             if subpath:
                 logMessageDebug("reg_path: " + reg_path)
@@ -1024,42 +1065,46 @@ def setRenderParams(doc, arg):
                 new_root = job_path[:new_common_start]
 
                 rd[c4d.RDATA_PATH] = rd[c4d.RDATA_PATH].replace(org_root, new_root, 1)
-                logMessage("Regular Path set to" + rd[c4d.RDATA_PATH])
 
             tile_render, tile_num = get_tile_settings(arg)
             if tile_render:
                 rd[c4d.RDATA_PATH] = make_tile_path(rd[c4d.RDATA_PATH], tile_num)
 
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+
             try:
                 if argValid(arg.FExt):
                     rd[c4d.RDATA_FORMAT] = c4d_ext_id(arg.FExt)
             except AttributeError:
-                logMessage("Couldn't set output image format to {0}".format(arg.FExt))
+                logMessageWarning("Couldn't set output image format to {0}".format(arg.FExt))
                 return False
-
         elif (arg.Channel=="MultiPass"):
             logMessage("INFO: setRenderParams: all multipass output")
+
+            orig_multipass_out = rd[c4d.RDATA_MULTIPASS_FILENAME]
+
             rd[c4d.RDATA_SAVEIMAGE] = False
             rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
             # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+
             try:
                 if argValid(arg.FExt):
                     rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
             except AttributeError:
                 logMessage("Couldn't set output image format to {0}".format(arg.FExt))
                 return False
-
         else:
             logMessage("INFO: setRenderParams: one single multipass output")
+
             #a specific pass was set to render
             rd[c4d.RDATA_SAVEIMAGE] = False
             rd[c4d.RDATA_MULTIPASS_ENABLE] = True
             rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
             rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+
             try:
                 if argValid(arg.FExt):
                     rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
@@ -1086,6 +1131,22 @@ def setRenderParams(doc, arg):
                     logMessageError("Couldn't find pass element for {0}".format(arg.Channel))
                     return False
                 rd.InsertMultipass(new_pass)
+
+        logMessage("")
+        if orig_global_save != rd[c4d.RDATA_GLOBALSAVE]:
+            logMessage("INFO: Global save status was set to: " + str(orig_global_save))
+        if orig_regular_status != rd[c4d.RDATA_SAVEIMAGE]:
+            logMessage("INFO: Regular Render Out status was set to: " + str(rd[c4d.RDATA_SAVEIMAGE]))
+        if orig_multipass_status != rd[c4d.RDATA_MULTIPASS_ENABLE]:
+            logMessage("INFO: MultiPass save status was set to: " + str(rd[c4d.RDATA_MULTIPASS_ENABLE]))
+        if orig_multipass_save_status != rd[c4d.RDATA_MULTIPASS_SAVEIMAGE]:
+            logMessage("INFO: MultiPass Render Out status was set to: " + str(rd[c4d.RDATA_MULTIPASS_SAVEIMAGE]))
+
+        if orig_regular_out != rd[c4d.RDATA_PATH]:
+            logMessage("INFO: Regular Render Out was set to: " + rd[c4d.RDATA_PATH])
+        if orig_multipass_out != rd[c4d.RDATA_MULTIPASS_FILENAME]:
+            logMessage("INFO: MultiPass Render Out was set to: " + rd[c4d.RDATA_MULTIPASS_FILENAME])
+        logMessage("")
 
         rd[c4d.RDATA_SIZEUNIT] = 0  # Pixels
         if argValid(arg.width):
@@ -1256,7 +1317,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
 
                     nrofFrames=1
                     afterFrame=datetime.datetime.now()
-                    afterFrame=afterFrame-beforeFrame;
+                    afterFrame=afterFrame-beforeFrame
                     afterFrame=afterFrame/nrofFrames
                     logMessage("Frame Time : "+str(afterFrame)+"  h:m:s.ms.  Frame Rendered #" + str(fr) )
                     logMessage(" ")
