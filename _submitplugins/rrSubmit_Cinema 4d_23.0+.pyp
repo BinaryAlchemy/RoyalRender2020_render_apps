@@ -789,7 +789,12 @@ def convert_filename_tokens(doc, take, filename, exclude=[]):
     render_settings = render_data.GetDataInstance()
 
     render_path_data = {'_doc': doc, '_rData': render_data, '_rBc': render_settings, '_take': take}
-    return c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
+    resolved = c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
+    if resolved.startswith('./<SceneFolder>') or resolved.startswith('.\\<SceneFolder>'):
+        # FilenameConvertTokensFilter has duplicated relative path
+        resolved = resolved[2:]
+
+    return resolved
 
 
 def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
@@ -1762,11 +1767,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             file_path = file_path[1:]
             is_relative = True
         elif file_path[1] == ":":  # windows drive letter
-            is_relative=False
+            is_relative = False
         elif file_path.startswith("/"):  # osx root path
-            is_relative=False
+            is_relative = False
         elif file_path.startswith("\\"):  # windows unc path
-            is_relative=False
+            is_relative = False
 
         if is_relative:
             return "<SceneFolder>/" + file_path
@@ -1780,7 +1785,12 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("Channel: Reg_Multi")
                 self.job[0].channel = "Reg_Multi"
 
-                self.job[0].channelFileName.append(self.renderSettings[c4d.RDATA_PATH] + "<IMS>")
+                reg_out = self.renderSettings[c4d.RDATA_PATH]
+                reg_out = self.handleRelativeFileOut(reg_out)
+                reg_out = self.replacePathTokens(reg_out)
+                reg_out += "<IMS>"
+
+                self.job[0].channelFileName.append(reg_out)
                 self.job[0].channelExtension.append(IMG_FORMATS.get(self.renderSettings[c4d.RDATA_FORMAT], ".exr"))
                 self.job[0].maxChannels += 1
             else:
