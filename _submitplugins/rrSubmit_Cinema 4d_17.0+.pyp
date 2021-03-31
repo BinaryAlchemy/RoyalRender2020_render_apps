@@ -511,16 +511,6 @@ class JobProps(object):
         self.channelFileName = []
         self.channelExtension = []
 
-
-class rrJob(JobProps):
-    """Collect job properties from the scene, export xml file"""
-
-    def __init__(self):
-        super(rrJob, self).__init__()
-        self.clear()
-
-        self._imageNamingID = 0
-
     def setImagePadding(self, name_id):
         self._imageNamingID = name_id
         if self._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
@@ -544,6 +534,16 @@ class rrJob(JobProps):
         elif self._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             self.imageFramePadding = 4
+
+
+class rrJob(JobProps):
+    """Collect job properties from the scene, export xml file"""
+
+    def __init__(self):
+        super(rrJob, self).__init__()
+        self.clear()
+
+        self._imageNamingID = 0
 
     def clear(self):
         """Set the job attributes to their default values. This will also unlink the inherited static members
@@ -794,7 +794,12 @@ def convert_filename_tokens(doc, take, filename, exclude=[]):
     render_settings = render_data.GetDataInstance()
 
     render_path_data = {'_doc': doc, '_rData': render_data, '_rBc': render_settings, '_take': take}
-    return c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
+    resolved = c4d.modules.tokensystem.FilenameConvertTokensFilter(filename, render_path_data, exclude)
+    if resolved.startswith('./<SceneFolder>') or resolved.startswith('.\\<SceneFolder>'):
+        # FilenameConvertTokensFilter has duplicated relative path
+        resolved = resolved[2:]
+
+    return resolved
 
 
 def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
@@ -869,7 +874,6 @@ def addTakes(doc, jobList, takeData):
     LOGGER.debug("takeData: " + str(takeData))
     currentTakeName = takeData.GetCurrentTake().GetName()
     mainTake = takeData.GetMainTake()
-
     addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath="")
 
     jobList[0].imageName = convert_filename_tokens(doc, mainTake, jobList[0].imageName)
@@ -998,7 +1002,6 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             self.job[0].linearColorSpace = True
 
         return True
-
 
     def getNameFormat(self, imagefilename, imageformat):
         if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
@@ -1789,7 +1792,12 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("Channel: Reg_Multi")
                 self.job[0].channel = "Reg_Multi"
 
-                self.job[0].channelFileName.append(self.renderSettings[c4d.RDATA_PATH] + "<IMS>")
+                reg_out = self.renderSettings[c4d.RDATA_PATH]
+                reg_out = self.handleRelativeFileOut(reg_out)
+                reg_out = self.replacePathTokens(reg_out)
+                reg_out += "<IMS>"
+
+                self.job[0].channelFileName.append(reg_out)
                 self.job[0].channelExtension.append(IMG_FORMATS.get(self.renderSettings[c4d.RDATA_FORMAT], ".exr"))
                 self.job[0].maxChannels += 1
             else:

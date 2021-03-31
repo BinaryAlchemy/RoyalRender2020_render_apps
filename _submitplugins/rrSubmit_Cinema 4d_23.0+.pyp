@@ -506,7 +506,6 @@ class JobProps(object):
         self.channelFileName = []
         self.channelExtension = []
 
-
     def setImagePadding(self, name_id):
         self._imageNamingID = name_id
         if self._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
