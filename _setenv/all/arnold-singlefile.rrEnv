@@ -20,7 +20,7 @@ echo * arnold.rrEnv version %rrVersion%
 echo * (Houdini) JOB env variable is set to  <JOB>
 
 
-ARNOLD_PLUGIN_PATH  =  <rrBaseAppPath>\shaders;<rrBaseAppPath>\arnold\plugins;<ARNOLD_PLUGIN_PATH>
+ARNOLD_PLUGIN_PATH  =  <ARNOLD_PLUGIN_PATH>;<rrBaseAppPath>\shaders;<rrBaseAppPath>\arnold\plugins;
 
 #ARNOLD_PROCEDURAL_PATH is an HtoA environment variable. It’s not used by kick.  But we have to add it to the path.
 ARNOLD_PROCEDURAL_PATH  =  <rrBaseAppPath>\procedurals;<rrBaseAppPath>\arnold\procedurals;<ARNOLD_PROCEDURAL_PATH>
