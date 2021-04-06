@@ -1,0 +1,17 @@
+
+# Set the value below to add a licensed cores limit
+RR_KeyShot_LicCoreCount=
+
+# Uncomment the line of your workstation license
+
+RR_KeyShot_WS_lic = keyshot_enterprise
+#RR_KeyShot_WS_lic = keyshot2
+
+# Uncomment this line if you do not want to RR to set the RR_KeyShot_Licmode flag
+# NoLicenseChange = NO
+
+# Uncomment this line to use an external license folder
+# RR_KeysShot_lic_folder = -xlic <external license folder>
+
+# Uncomment this line to use a floating license server
+# RR_Keyshot_FlexLM_server = -floating_license_server port@server_address

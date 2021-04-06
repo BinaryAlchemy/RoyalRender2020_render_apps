@@ -163,7 +163,7 @@ if __name__ == '__main__':
     if args.cores:
         render_manager.set_cores(args.cores)
 
-    if any((args.RegionLeft, args.RegionTop, args.RegionRight, args.RegionBtm)):
+    if any((args.RegionLeft > 0, args.RegionTop > 0, args.RegionRight > 0, args.RegionBtm > 0)):
         render_manager.set_region(args.RegionLeft, args.RegionTop, args.RegionRight + 1, args.RegionBtm + 1)
 
     render_manager.render_scene()
