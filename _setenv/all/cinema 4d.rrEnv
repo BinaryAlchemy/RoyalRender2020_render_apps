@@ -63,8 +63,11 @@ LicenseFlags= <LicenseFlags>
         [EndIf]
         RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
     [EndIf]
-    [Exists] <rrBaseAppPath>\plugins\Redshift
-        RR_REDSHIFT_NETWORK = 0
+    [If] <rrExeVersionMajor>  [<] 22
+        # Local install conflicts with network Redshift in older release
+        [Exists] <rrBaseAppPath>\plugins\Redshift
+            RR_REDSHIFT_NETWORK = 0
+        [EndIf]
     [EndIf]
 [Else]
     RR_REDSHIFT_NETWORK = 0
