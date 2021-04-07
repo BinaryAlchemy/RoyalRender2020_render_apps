@@ -17,20 +17,21 @@ echo * keyshot.rrEnv version %rrVersion%
 
 # if there is no RR_KeyShot_Licmode set in the __inhouse file, then this sets the license according to the settings in rrConfig
 
+RR_KeysShot_lic_folder  =  <RR_KeysShot_lic_folder>
+RR_Keyshot_FlexLM_server  =  <RR_Keyshot_FlexLM_server>
 RR_KeyShot_Licmode  =  <RR_KeyShot_Licmode>
+
 [If] <NoLicenseChange>  [==]
-    [If] <RR_KeyShot_Licmode>  [==]
         [If] <cfgLicPool_Workstation>  [==] 1
             RR_KeyShot_Licmode  =  <RR_KeyShot_WS_lic>
         [Else]
             RR_KeyShot_Licmode  =  keyshot_network_rendering
         [EndIf]
-    [EndIf]
 [EndIf]
 
 [If] <NoLicenseChange>  [==]
     [If] <RR_KeyShot_Licmode> [==]
-        RR_KeyShot_Licmode= keyshot_network_rendering
+        RR_KeyShot_Licmode = keyshot_network_rendering
     [Endif]
 [Endif]
 
