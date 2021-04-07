@@ -113,9 +113,9 @@ LicenseFlags= <LicenseFlags>
         [EndIf]
 
         g_additionalModulePath = <g_additionalModulePath>;<REDSHIFT_PLUG_IN_PATH>
+        REDSHIFT_LICENSEPATH=<RR_REDSHIFT_BASE_LOCAL>
 [Else]
     [If] <rrJobRenderer>  [contains] redshift
-        REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
         [If] <rrExeOS>  [==] win
                 REDSHIFT_LICENSEPATH = C:\ProgramData\Redshift
         [Else]
@@ -126,17 +126,17 @@ LicenseFlags= <LicenseFlags>
     [EndIf]
 [EndIf]
 
-[If] <rrLocalExeDir_NoApp>  [!=]
-    [If] <REDSHIFT_CACHEPATH>  [==] 
-        REDSHIFT_CACHEPATH = <rrLocalExeDir_NoApp>Redshift\TextureCache
-        [If] <rrExeOS>  [==] win
-            [Exists] <LocalAppData>\Redshift\Cache
+REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
+[If] <REDSHIFT_CACHEPATH>  [==] 
+    REDSHIFT_CACHEPATH = <rrLocalExeDir_NoApp>Redshift\TextureCache
+    #delete old cache folders used in times before RR had set them:
+    [If] <rrExeOS>  [==] win
+        [Exists] <LocalAppData>\Redshift\Cache
             [DelFolder] <LocalAppData>\Redshift\Cache
-            [EndIf]
         [EndIf]
-        [Exists] <REDSHIFT_LOCALDATAPATH>/cache
+    [EndIf]
+    [Exists] <REDSHIFT_LOCALDATAPATH>/cache
         [DelFolder] <REDSHIFT_LOCALDATAPATH>/cache
-        [EndIf]
     [EndIf]
 [EndIf]
 

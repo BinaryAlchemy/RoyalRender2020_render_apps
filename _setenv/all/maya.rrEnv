@@ -270,6 +270,7 @@ REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
     REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
     REDSHIFT_MAYAEXTENSIONSPATH  =  <REDSHIFT_PLUG_IN_PATH>\extensions;<REDSHIFT_MAYAEXTENSIONSPATH>
 [EndIf]   
+#do not join these blocks as windows executes one block at once (by default), then updates env vars for next block
 [If] <rrJobRenderer>  [contains] redshift   
     PYTHONPATH  =  <REDSHIFT_COMMON_ROOT>\scripts;<PYTHONPATH>
     MAYA_RENDER_DESC_PATH  =  <REDSHIFT_RENDER_DESC_PATH>;<MAYA_RENDER_DESC_PATH>
@@ -286,25 +287,26 @@ REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
             [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
         [EndIf]
     [EndIf]
-[EndIf]
+    REDSHIFT_LICENSEPATH=<RR_REDSHIFT_BASE_LOCAL>
 
-[If] <rrLocalExeDir_NoApp>  [!=]
+
     [If] <REDSHIFT_CACHEPATH>  [==] 
         REDSHIFT_CACHEPATH = <rrLocalExeDir_NoApp>Redshift\TextureCache
+        #delete old cache folders used in times before RR had set them:
         [If] <rrExeOS>  [==] win
             [Exists] <LocalAppData>\Redshift\Cache
-            [DelFolder] <LocalAppData>\Redshift\Cache
+                [DelFolder] <LocalAppData>\Redshift\Cache
             [EndIf]
         [EndIf]
         [Exists] <REDSHIFT_LOCALDATAPATH>/cache
-        [DelFolder] <REDSHIFT_LOCALDATAPATH>/cache
+            [DelFolder] <REDSHIFT_LOCALDATAPATH>/cache
         [EndIf]
     [EndIf]
-[EndIf]
 
-[If] <REDSHIFT_TEXTURECACHEBUDGET>  [==] 
-    REDSHIFT_TEXTURECACHEBUDGET = 20
-[EndIf]   
+    [If] <REDSHIFT_TEXTURECACHEBUDGET>  [==] 
+        REDSHIFT_TEXTURECACHEBUDGET = 20
+    [EndIf]
+[EndIf]
 
 # ###################  PhoenixFD environment variables ###################
 PHX_FOR_MAYA<rrExeVersionMinReq>_MAIN_x64  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd
