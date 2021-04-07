@@ -11,23 +11,27 @@
 # 
 ######################################################################
 
-import platform
-import random
 import os
 import sys
-import types
+import re
+import tempfile
+
+from xml.etree.ElementTree import ElementTree, Element, SubElement
+
 import maya.OpenMaya as OpenMaya
 import maya.OpenMayaMPx as OpenMayaMPx
 import maya.cmds as cmds
 import maya.mel
 import maya.utils as mu
 import pymel.core as pm
-import copy
-import re
-import datetime
-from xml.etree.ElementTree import ElementTree, Element, SubElement
 import maya.app.renderSetup.model.renderSetup as renderSetup
 
+
+if sys.version_info.major == 2:
+    range = xrange
+else:
+    def unichr(x):
+        return str(x)
 
 
 #Classes:
@@ -274,7 +278,7 @@ class rrDelightRenderPass:
                         self.imageFileName= self.imageFileName[:len(self.imageFileName)-1]
                     primary = False
                 else:
-                    channelFile=tokens[-1]+os.sep+tokens[0];
+                    channelFile=tokens[-1]+os.sep+tokens[0]
                     if ((channelFile[len(channelFile)-1]) == '#'):
                         channelFile= channelFile[:len(channelFile)-1]
                     self.channelFilenames.append(channelFile)
@@ -382,12 +386,12 @@ def get_attr_in_RenderSetup(qAtrib, qLayer):
         #TODO: replace with     allOverrides= maya.app.renderSetup.model.utils.getOverridesRecursive(layer)     for oride in allOverrides:
         value, override, foundItem= get_attr_in_RenderSetup_loopCollection(qAtrib, layer,objectName,layer.name(), printLog )
         if (foundItem):
-            return value, override;
+            return value, override
         colList= layer.getCollections()
         for col in colList:
             value, override, foundItem= get_attr_in_RenderSetup_loopCollection(qAtrib, col,objectName,layer.name()+" - "+col.name(), printLog )
             if (foundItem):
-                return value, override;
+                return value, override
             
     #check if the current scene layer (not the current in this script) has an override applied to it:
     for layer in rLayers:
@@ -395,12 +399,12 @@ def get_attr_in_RenderSetup(qAtrib, qLayer):
             continue
         value, override, foundItem= get_attr_in_RenderSetup_loopCollectionB(qAtrib, layer,objectName,layer.name(), printLog )
         if (foundItem):
-            return value, override;
+            return value, override
         colList= layer.getCollections()
         for col in colList:
             value, override, foundItem= get_attr_in_RenderSetup_loopCollectionB(qAtrib, col,objectName,layer.name()+" - "+col.name(), printLog )
             if (foundItem):
-                return value, override;
+                return value, override
     #there are no overrides for this one
     return cmds.getAttr(qAtrib), False          
         
@@ -415,7 +419,7 @@ def get_attr_in_LegacyLayer(qAtrib, qLayer):
     retValue = 0
     global _rrGL_RenderLayer_MasterOverrides
     if (_rrGL_RenderLayer_MasterOverrides != None):
-        for o in range(0, len(_rrGL_RenderLayer_MasterOverrides) /2  ):
+        for o in range(0, int(len(_rrGL_RenderLayer_MasterOverrides) / 2)):
             OWhat=_rrGL_RenderLayer_MasterOverrides[o*2+1]
             _rrGL_RenderLayer_MasterOverrides[o*2]=_rrGL_RenderLayer_MasterOverrides[o*2].replace(".plug",".value")
             OValue=cmds.getAttr(_rrGL_RenderLayer_MasterOverrides[o*2])
@@ -426,7 +430,7 @@ def get_attr_in_LegacyLayer(qAtrib, qLayer):
     layerOverrides= cmds.listConnections( qLayer+".adjustments", p=True, c=True)
     #printDebug("get_attr_in_LegacyLayer "+str(layerOverrides))
     if (layerOverrides != None):
-        for o in range(0, len(layerOverrides) /2  ):
+        for o in range(0, int(len(layerOverrides) / 2)):
             OWhat=layerOverrides[o*2+1]
             layerOverrides[o*2]=layerOverrides[o*2].replace(".plug",".value")
             OValue=cmds.getAttr(layerOverrides[o*2])
@@ -644,7 +648,7 @@ class rrMayaLayer:
                 filePrefix = self.get_attr(p+'.filePrefix')
                 filePrefix = filePrefix.strip()
                 if (len(filePrefix)==0):
-                    continue;
+                    continue
                 filePrefix= filePrefix.replace('\\','/')
                 filePrefix= filePrefix.replace("<RenderPass>","<Channel>")
                 newFileName=""
@@ -904,16 +908,16 @@ class rrMayaLayer:
         self.tempCamNames= []
         cameraList=cmds.ls(ca=True)
         for cam in cameraList:
-            self.tempCamNames.append(cam);
+            self.tempCamNames.append(cam)
             if (self.get_attr(cam+'.renderable')):
                 self.tempCamRenderable.append(True)
             else:
                 self.tempCamRenderable.append(False)
                 
-        self.nbRenderableCams=0;
+        self.nbRenderableCams=0
         for c in range(0, len(self.tempCamNames)):
             if (self.tempCamRenderable[c]):
-                self.nbRenderableCams=self.nbRenderableCams+1;
+                self.nbRenderableCams=self.nbRenderableCams+1
             
         
         #convert CameraShape into camera name:
@@ -1204,12 +1208,12 @@ class rrMayaLayer:
                 self.imageFileName=self.imageFileName.replace("\\","/")
             imageFileName_nopre=self.imageFileName
             imageDirName_nopre=self.imageFileName
-            posDir=self.imageFileName.find("/");
+            posDir=self.imageFileName.find("/")
             if (posDir>0):
                 imageFileName_nopre= os.path.basename(imageFileName_nopre)
                 imageDirName_nopre= os.path.dirname(imageDirName_nopre)+ "/"
             else:
-                imageDirName_nopre="";
+                imageDirName_nopre=""
 
             self.imageFileName= self.imageFileName + self.imagePreNumberLetter
 
@@ -1366,7 +1370,7 @@ class rrMayaLayer:
         if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<Camera>")<0)):
             self.camera=""
         if (self.renderer=="mayaSoftware") or (self.renderer=="redshift") or (self.renderer=="vray"):
-            self.imageFileName=self.imageFileName.replace('<Camera>','<CameraKeepVBar>');
+            self.imageFileName=self.imageFileName.replace('<Camera>','<CameraKeepVBar>')
         if ((len(self.camera)>150) and (self.camera.find(":")>0)):
             splitted=self.camera.split(":")
             self.camera=splitted[len(splitted)-1]
@@ -1418,27 +1422,7 @@ def rrGetRR_Root():
         if HCPath[0]!="%":
             return HCPath
         rrWriteLog("No RR_ROOT environment variable set!\n Please execute rrWorkstationInstaller and restart the machine.")
-        return"";
-
-
-def rrSetNewTempFileName(UIMode):
-        random.seed()
-        if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
-            if os.environ.has_key('TEMP'):
-                nam=os.environ['TEMP']
-            else:
-                nam=os.environ['TMP']
-            nam+="\\"
-        else:
-            nam="/tmp/"
-        nam+="rrSubmitMaya_"
-        if (UIMode):
-            nam+= datetime.datetime.now().strftime("%m%d%H%M%S_") + str(random.randrange(1,10,1))
-        nam+=".xml"
-        return nam
-
-
-        
+        return""
 
 
 class rrPlugin(OpenMayaMPx.MPxCommand):
@@ -1477,15 +1461,15 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
     def rrWriteNodeStr(self,fileID,name,text):
         #print ("    <"+name+">  "+text+"   </"+name+">")
-        text=text.replace("&","&amp;")
-        text=text.replace("<","&lt;")
-        text=text.replace(">","&gt;")
-        text=text.replace("\"","&quot;")
-        text=text.replace("'","&apos;")
-        text=text.replace(unichr(228),"&#228;")
-        text=text.replace(unichr(246),"&#246;")
-        text=text.replace(unichr(252),"&#252;")
-        text=text.replace(unichr(223),"&#223;")
+        text = text.replace("&", "&amp;")
+        text = text.replace("<", "&lt;")
+        text = text.replace(">", "&gt;")
+        text = text.replace("\"", "&quot;")
+        text = text.replace("'", "&apos;")
+        text = text.replace(unichr(228), "&#228;")
+        text = text.replace(unichr(246), "&#246;")
+        text = text.replace(unichr(252), "&#252;")
+        text = text.replace(unichr(223), "&#223;")
         try:
             fileID.write("    <"+name+">  "+text+"   </"+name+">\n")
         except:
@@ -1596,7 +1580,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 self.layer[self.maxLayer-1].imageFileName="cache/alembic"
             self.layer[self.maxLayer-1].imageFileName=self.layer[self.maxLayer-1].imageFileName.replace("\\","/")
             if ((self.layer[self.maxLayer-1].imageFileName[0]!="/") and (self.layer[self.maxLayer-1].imageFileName[1]!=":")):
-                self.layer[self.maxLayer-1].imageFileName=self.sceneInfo.DatabaseDir+self.layer[self.maxLayer-1].imageFileName;
+                self.layer[self.maxLayer-1].imageFileName=self.sceneInfo.DatabaseDir+self.layer[self.maxLayer-1].imageFileName
             self.layer[self.maxLayer-1].imageFileName=self.layer[self.maxLayer-1].imageFileName+"/"+sel[i]+".abc"
             self.layer[self.maxLayer-1].seqStep = 1
             self.layer[self.maxLayer-1].seqStart=cmds.playbackOptions( query=True, minTime= True)
@@ -1648,7 +1632,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 )
                 continue
             elif len(children) == 0:
-                print "[-] %s  has no children" % node.name()
+                print("[-] %s  has no children" % node.name())
                 child = node
             else:
                 child = children[0]
@@ -1683,7 +1667,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
             # If output path has no root set it relative to project
             if output_path[0] != "/" and output_path[1] != ":":
-                output_path = self.sceneInfo.DatabaseDir + output_path;
+                output_path = self.sceneInfo.DatabaseDir + output_path
 
             # Output file path and name but with no file extension
             output_path = output_path + "/" + filename_prefix + "-"  + child.name()
@@ -1769,22 +1753,22 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                     return False
                     
                 #Maya 2017 update 2+ fix:
-                mayaUpd2_layerName= maya.mel.eval('exists("renderLayerDisplayName")')!=0;
+                mayaUpd2_layerName= maya.mel.eval('exists("renderLayerDisplayName")')!=0
                 if (mayaUpd2_layerName):
-                    mayaUpd2_layerName=False; #first check completed, we have the required new maya version 
+                    mayaUpd2_layerName=False #first check completed, we have the required new maya version
                     #now check if we have the right renderer version
                     if (self.layer[self.maxLayer-1].renderer=="arnold" or self.layer[self.maxLayer-1].renderer=="mayaSoftware" ):
-                        mayaUpd2_layerName=True;
+                        mayaUpd2_layerName=True
                     elif (self.layer[self.maxLayer-1].renderer=="redshift"):
                         redVersion=self.layer[self.maxLayer-1].rendererVersion
                         if (redVersion>="2.0.88"):
-                            mayaUpd2_layerName=True;
+                            mayaUpd2_layerName=True
                     elif (self.layer[self.maxLayer-1].renderer=="vray"):
                         renVersion=self.layer[self.maxLayer-1].rendererVersion
                         if (renVersion>="3.53" or renVersion>="3.52.03"):
-                            mayaUpd2_layerName=True;      
+                            mayaUpd2_layerName=True
                     elif (self.layer[self.maxLayer-1].renderer=="renderMan" and (self.layer[self.maxLayer-1].rendererVersion[:2]>21)):          
-                        mayaUpd2_layerName=True;                          
+                        mayaUpd2_layerName=True
                 if (mayaUpd2_layerName):
                     if (self.layer[self.maxLayer-1].name.startswith("rs_")):
                         self.layer[self.maxLayer-1].name= self.layer[self.maxLayer-1].name[3:]
@@ -1794,7 +1778,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                         
                     
         if (self.maxLayer==1) and (self.layer[0].imageFileName.lower().find("<layer>")<0):
-            self.layer[0].name="";
+            self.layer[0].name=""
             
         printDebug("rrSubmit - "+str(self.maxLayer)+" Maya jobs added to submission")
         
@@ -1823,10 +1807,13 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
     def subE(self, r, e, text):
         sub = SubElement(r, e)
-        if (type(text) == unicode ):
-            sub.text = text
+        if sys.version_info.major == 2:
+            if type(text) == unicode:
+                sub.text = text
+            else:
+                sub.text = str(text).decode("utf-8")
         else:
-            sub.text = str(text).decode("utf-8")
+            sub.text = str(text)
         return sub
 
     def writeToXMLstart(self, submitOptions ):
@@ -1842,19 +1829,21 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 
 
-    def writeToXMLEnd(self, f,rootElement):
+    def writeToXMLEnd(self, f, rootElement):
         xml = ElementTree(rootElement)
         self.indent(xml.getroot())
-        if not f == None:
-            xml.write(f,encoding="UTF-8")
-            f.close()
-        else:
-            print("No valid file has been passed to the function")
+
+        if f is None:
+            print("No valid file has been passed to the write function")
             try:
                 f.close()
             except:
                 pass
             return False
+
+        xml.write(f)
+        f.close()
+
         return True
 
    
@@ -1942,32 +1931,37 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.subE(jobElement,"CustomScriptFile",Layer.customScriptFile)
 
     #write all information (layer/passes) into RR job file
-    def writeAllLayers(self,UIMode):
-        self.TempFileName=rrSetNewTempFileName(UIMode)
-        submitOptions=""
-        tmpFile = open(self.TempFileName, "w")
+    def writeAllLayers(self, UIMode):
+        submitOptions = ""
+        tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
+                                              prefix="rrSubmitMaya_",
+                                              suffix=".xml",
+                                              delete=False)
+        self.TempFileName = tmpFile.name
         xmlObj= self.writeToXMLstart(submitOptions)
-        if (self.multiCameraMode):
+
+        if self.multiCameraMode:
             self.getAllCameras()
             for cam in self.cameras:
                 for L in range(0, self.maxLayer):
-                    if (self.layer[L].renderer=="_3delight"):
+                    if self.layer[L].renderer == "_3delight":
                         if not self.getAllPasses():
                             return False
                         for p in self.passes:
-                            self.rrWritePassToFile(xmlObj,self.layer[L].name, p, self.sceneInfo,cam,self.locTexFile)
+                            self.rrWritePassToFile(xmlObj, self.layer[L].name, p, self.sceneInfo, cam, self.locTexFile)
                     else:
-                        self.rrWriteLayerToFile(xmlObj,self.layer[L],self.layer[L].channelName,self.sceneInfo,cam,self.locTexFile)
+                        self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].channelName, self.sceneInfo, cam, self.locTexFile)
         else:        
             for L in range(0, self.maxLayer):
-                if (self.layer[L].renderer=="_3delight"):
+                if self.layer[L].renderer == "_3delight":
                     if not self.getAllPasses():
                         return False
                     for p in self.passes:
-                        self.rrWritePassToFile(xmlObj,self.layer[L].name, p, self.sceneInfo,p.camera ,self.locTexFile)
+                        self.rrWritePassToFile(xmlObj, self.layer[L].name, p, self.sceneInfo, p.camera, self.locTexFile)
                 else:
-                    self.rrWriteLayerToFile(xmlObj,self.layer[L],self.layer[L].channelName,self.sceneInfo,self.layer[L].camera,self.locTexFile)
-        ret = self.writeToXMLEnd(tmpFile,xmlObj)
+                    self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].channelName, self.sceneInfo, self.layer[L].camera, self.locTexFile)
+
+        ret = self.writeToXMLEnd(tmpFile, xmlObj)
         if not ret:
             rrWriteLog("Error - There was a problem writing the job file to " + tmpFile.name)
 
@@ -2126,7 +2120,7 @@ def initializePlugin(mobject):
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Pick python script to execute on scene file" -c "rrSubmit false false false false false true";')
         frSet_option = maya.mel.eval('menuItem -p $RRMenuCtrl -l "Ask for Frameset" -checkBox off;')
     except:
-        print ("We are running in batch mode")
+        print("We are running in batch mode")
         
     
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
@@ -2143,9 +2137,9 @@ def uninitializePlugin(mobject):
     maya.mel.eval('if (`menu -exists $RRMenuCtrl `) deleteUI $RRMenuCtrl;')
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
     try:
-        mplugin.deregisterCommand( "rrSubmit" )
+        mplugin.deregisterCommand("rrSubmit")
     except:
-        sys.stderr.write( "Failed to unregister RR commands\n" )
+        sys.stderr.write("Failed to unregister RR commands\n")
         raise
 
 

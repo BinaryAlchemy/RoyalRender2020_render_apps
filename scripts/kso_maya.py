@@ -11,6 +11,10 @@ import rrScriptHelper
 import os
 
 
+if sys.version_info.major == 2:
+    range = xrange
+
+
 def flushLog():
     sys.stdout.flush()        
     sys.stderr.flush()    
@@ -272,7 +276,7 @@ def renderFrames(arg,FrStart,FrEnd,FrStep,FrOffset,Renderer, Layer):
             logMessage("Frame "+str(FrStart)+" - "+str(FrEnd)+", "+str(FrStep)+" ("+str(frameCount)+" frames) done. Average frame time: "+str(afterFrame)+"  h:m:s.ms")
             flushLog()
         else:
-            for frameNr in xrange(FrStart,FrEnd+1,FrStep):
+            for frameNr in range(FrStart,FrEnd+1,FrStep):
                 logMessage("Starting to render frame #"+str(frameNr)+" ...")
                 if (argValid(arg.FNameNoVar) and (arg.Renderer != "mayaSoftware")):
                     if (Renderer == "vray" and not arg.FNameNoVar.endswith('.')):
@@ -337,7 +341,7 @@ def rrKSOStartServer(arg):
                 logMessageDebug("rrKSO waiting for new command...")
                 server.handle_request()
                 time.sleep(1) # handle_request() seem to return before handle() completed execution
-            except Exception, e:
+            except Exception as e:
                 logMessageError(e)
                 server.continueLoop= False;
                 import traceback
@@ -388,13 +392,16 @@ def render_overwrite(arg):
         cmdline=cmdline.replace("aCamera",str(arg.Camera))
     logMessage("Executing custom mel line "+cmdline)
     ret=maya.mel.eval(cmdline)
-    print ret
+    print(ret)
     
 def execute_scriptfile(arg):
     try:
         logMessage("Executing custom python code from file "+arg.customScriptFile)
         flushLog()
-        execfile(arg.customScriptFile)
+        if sys.version_info.major == 2:
+            execfile(arg.customScriptFile)
+        else:
+            exec(open("./filename").read())
     except Exception as e:
         logMessageError(str(e))        
 
@@ -1054,17 +1061,19 @@ def rrYetiChanges(arg):
             cmds.setAttr('defaultRenderGlobals.postRenderLayerMel',melStrg, type="string")                 
     else:
         #changing YETI temp folder to localhosts temp instead of the Maya scene/project folder
-        if (os.environ.has_key('TEMP') and not os.environ.has_key('YETI_TMP')):
-            tempPath= os.environ['TEMP']
-            tempPath= allForwardSlashes(tempPath)
-            os.environ['currentYetiTempDirectory']= tempPath              
-        melStrg= cmds.getAttr('defaultRenderGlobals.preMel') 
-        if (os.environ.has_key('TEMP') or os.environ.has_key('YETI_TMP')):
-            if (melStrg!=None):
-                melStrg=melStrg.replace("putenv \"YETI_TMP\" \"\\\\\\\\jfpsohostorage\\\\render\\\\yeti_render_data\"","")
-                melStrg=melStrg.replace("pgYetiPreRender","")
-                melStrg=melStrg.replace(";;",";")
-                cmds.setAttr('defaultRenderGlobals.preMel',melStrg, type="string") 
+        if 'TEMP' in os.environ and 'YETI_TMP' in os.environ:
+            tempPath = os.environ['TEMP']
+            tempPath = allForwardSlashes(tempPath)
+            os.environ['currentYetiTempDirectory'] = tempPath
+
+        melStrg = cmds.getAttr('defaultRenderGlobals.preMel')
+
+        if 'TEMP' in os.environ or 'YETI_TMP' in os.environ:
+            if melStrg:
+                melStrg = melStrg.replace("putenv \"YETI_TMP\" \"\\\\\\\\jfpsohostorage\\\\render\\\\yeti_render_data\"","")
+                melStrg = melStrg.replace("pgYetiPreRender", "")
+                melStrg = melStrg.replace(";;", ";")
+                cmds.setAttr('defaultRenderGlobals.preMel', melStrg, type="string")
                  
 
 def rrStart(argAll):
@@ -1099,23 +1108,22 @@ def rrStart(argAll):
 
 
         loadPlugins(arg)
-
-        if (os.environ.has_key('RR_PathConversionFile')):
-            arg.pathConversionFile= os.environ['RR_PathConversionFile'].strip("\r")
-        if (argValid(arg.pathConversionFile)):
-            doCrossOSPathConversionMaya_CustomFile(arg, arg.pathConversionFile , 1, 2)
+        if 'RR_PathConversionFile' in os.environ:
+            arg.pathConversionFile = os.environ['RR_PathConversionFile'].strip("\r")
+        if argValid(arg.pathConversionFile):
+            doCrossOSPathConversionMaya_CustomFile(arg, arg.pathConversionFile, 1, 2)
         doCrossOSPathConversionMaya(arg)
         
-        if (argValid(arg.noEvaluationManager)): 
+        if argValid(arg.noEvaluationManager):
             logMessageSet("Animation Evaluation Manager to 'off' (DG).")
             cmds.evaluationManager(mode="off")
             
         restore_includeAllLights = False
-        includeAllLights_default = cmds.optionVar( q='renderSetup_includeAllLights')
-        if (argValid(arg.noIncludeAllLights)):
+        includeAllLights_default = cmds.optionVar(q='renderSetup_includeAllLights')
+        if argValid(arg.noIncludeAllLights):
             logMessageDebug("renderSetup_includeAllLights is set to " + str(includeAllLights_default))
             logMessageSet("renderSetup_includeAllLights to 'off'.")
-            cmds.optionVar( iv=('renderSetup_includeAllLights', 0))
+            cmds.optionVar(iv=('renderSetup_includeAllLights', 0))
             restore_includeAllLights = True
         
         print("______________________________________________________ About to open scene file ___________________________________________________________________" )            
