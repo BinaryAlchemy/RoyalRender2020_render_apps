@@ -1409,7 +1409,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.job[0].maxChannels += 1
             else:
                 channel_out = outpath.rstrip("#.")
-                trailing_underscores = next(i for i in range(len(channel_out)) if channel_out[-(i + 1)] is not "_")
+                trailing_underscores = next(i for i in range(len(channel_out)) if channel_out[-(i + 1)] != "_")
                 aov = driver.GetDown()
                 while aov:
                     if aov[c4d.ID_BASEOBJECT_GENERATOR_FLAG] == 0:
