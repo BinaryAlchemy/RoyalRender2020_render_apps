@@ -99,6 +99,16 @@ IMG_FORMATS = {
     777209673: ".sgi"
 }
 
+MULTILAYER_FORMATS = (
+    c4d.FILTER_PSD,
+    c4d.FILTER_EXR,
+    c4d.FILTER_TIF,
+    c4d.FILTER_B3D,
+    c4d.FILTER_PSB,
+    1016606,
+    1035823
+)
+
 
 # Arnold
 
@@ -710,7 +720,7 @@ class rrJob(JobProps):
 
 
 ##############################################
-# CINEMA                                     #
+# CINEMA 4D                                  #
 ##############################################
 
 class RRDialog(c4d.gui.GeDialog):
@@ -802,91 +812,121 @@ def convert_filename_tokens(doc, take, filename, exclude=[]):
     return resolved
 
 
-def duplicateJobsWithNewTake(doc, jobList, take, currentTakeName, takeData, parentTakeName=""):
-    """Create a new job with current parameters but different take. Used to submit c4d takes as RR layers
+class TakeManager(object):
+    def __init__(self, rr_submit, doc, is_archive=False):
+        """
+        :param rr_submit: submitter class
+        :param doc: c4d document
+        :param archive: is archive export (i.e. arnold ass)
+        """
+        self._submitter = rr_submit
+        self._doc = doc
+        self._is_archive = is_archive
 
-    :param doc: c4d document
-    :param jobList: list of current jobs
-    :param take: take for the newjob
-    :param currentTakeName: name of current take
-    :param takeData: takes data of the document
-    """
+        self._takedata = self._doc.GetTakeData()
 
-    take_name = take.GetName()
-    take_name_full = '*'.join([name for name in (parentTakeName, take_name) if name])
+    @property
+    def _joblist(self):
+        return self._submitter.job
 
-    newJob = copy.deepcopy(jobList[0])
+    @property
+    def _main_rdata(self):
+        return self._submitter.renderSettings
 
-    if "$take" not in newJob.imageName:
-        # user has forgotten to add $take, which means you overwrite the same file
-        newJob.imageName = insertPathTake(newJob.imageName)
-    for ch in range(0, newJob.maxChannels):
-        if "$take" not in newJob.channelFileName[ch]:
-            newJob.channelFileName[ch] = insertPathTake(newJob.channelFileName[ch])
+    @property
+    def main_job(self):
+        return self._joblist[0]
 
-    newJob.imageName = convert_filename_tokens(doc, take, newJob.imageName)
-    newJob.imageName = newJob.imageName.replace("$take", take_name)  # manual replace for older versions
+    def _duplicate_with_new_take(self, take, current_take_name, parent_take_name=""):
+        """Create a new job with current parameters but different take. Used to submit c4d takes as RR layers
 
-    newJob.layerName = take_name_full
-    newJob.isActive = take.IsChecked()
-    if currentTakeName == take_name_full:
-        newJob.isActive = True
-    for ch in range(0, newJob.maxChannels):
-        newJob.channelFileName[ch] = convert_filename_tokens(doc, take, newJob.channelFileName[ch])
-        newJob.channelFileName[ch] = newJob.channelFileName[ch].replace("$take", take_name)
+        :param take: take for the newjob
+        :param current_take_name: name of current take
+        """
 
-    takeData.SetCurrentTake(take)
-    render_data = doc.GetActiveRenderData()
-    setSeq(newJob, render_data)
-    if newJob.Arnold_DriverOut:
-        newJob.setOutputFromArnoldDriver()
+        take_name = take.GetName()
+        take_name_full = '*'.join([name for name in (parent_take_name, take_name) if name])
 
-    LOGGER.debug("childTake: " + take_name_full + "  " + newJob.imageName)
-    jobList.append(newJob)
+        new_job = copy.deepcopy(self.main_job)
 
+        new_job.isActive = take.IsChecked()
+        if current_take_name == take_name_full:
+            new_job.isActive = True
 
-def addTakes_recursiveLoop(doc, jobList, parentTake, currentTakeName, takeData, fullPath=""):
-    """ Travel all takes looking for job layers
+        self._takedata.SetCurrentTake(take)
 
-    :param doc: c4d document
-    :param jobList: list of RR jobs
-    :param parentTake: up-level take
-    :param currentTakeName: name of current take
-    :param takeData: takes data of the document
-    :return: None
-    """
-    childTake = parentTake.GetDown()
-    while childTake is not None:
-        duplicateJobsWithNewTake(doc, jobList, childTake, currentTakeName, takeData, fullPath)
-        current_path = '*'.join([name for name in (fullPath, childTake.GetName()) if name])
-        addTakes_recursiveLoop(doc, jobList, childTake, currentTakeName, takeData, current_path)
-        childTake = childTake.GetNext()
+        render_data = take[c4d.TAKEBASE_RDATA]
 
+        if render_data and not self._is_archive:
+            new_job.channelFileName = []
+            new_job.channelExtension = []
+            new_job.maxChannels = 0
 
-def addTakes(doc, jobList, takeData):
-    """Add takes as RR layer jobs
+            self._submitter.setImageFormat(job=new_job, render_data=render_data)
+            self._submitter.setFileout(job=new_job, render_data=render_data)
+        else:
+            render_data = self._main_rdata
 
-    :param doc: c4d document
-    :param jobList: list of jobs
-    :param takeData: document takes data
-    :return:
-    """
-    LOGGER.debug("takeData: " + str(takeData))
-    currentTakeName = takeData.GetCurrentTake().GetName()
-    mainTake = takeData.GetMainTake()
-    addTakes_recursiveLoop(doc, jobList, mainTake, currentTakeName, takeData, fullPath="")
+            if "$take" not in new_job.imageName:
+                # user forgot to add $take, which means you overwrite the same file
+                new_job.imageName = insertPathTake(new_job.imageName)
+            for ch in range(0, new_job.maxChannels):
+                if "$take" not in new_job.channelFileName[ch]:
+                    new_job.channelFileName[ch] = insertPathTake(new_job.channelFileName[ch])
 
-    jobList[0].imageName = convert_filename_tokens(doc, mainTake, jobList[0].imageName)
-    jobList[0].imageName = jobList[0].imageName.replace("$take", mainTake.GetName())
-    jobList[0].layerName = mainTake.GetName()
+        new_job.layerName = take_name_full
+        new_job.imageName = convert_filename_tokens(self._doc, take, new_job.imageName)
+        new_job.imageName = new_job.imageName.replace("$take", take_name)  # manual replace for older versions
 
-    for ch in range(0, jobList[0].maxChannels):
-        jobList[0].channelFileName[ch] = convert_filename_tokens(doc, mainTake, jobList[0].channelFileName[ch])
-        jobList[0].channelFileName[ch] = jobList[0].channelFileName[ch].replace("$take", mainTake.GetName())
+        for ch in range(0, new_job.maxChannels):
+            new_job.channelFileName[ch] = convert_filename_tokens(self._doc, take, new_job.channelFileName[ch])
+            new_job.channelFileName[ch] = new_job.channelFileName[ch].replace("$take", take_name)
 
-    takeData.SetCurrentTake(mainTake)
-    rd = doc.GetActiveRenderData()
-    setSeq(jobList[0], rd)
+        setSeq(new_job, render_data)
+        if new_job.Arnold_DriverOut:
+            new_job.setOutputFromArnoldDriver()
+
+        LOGGER.debug("childTake: " + take_name_full + "  " + new_job.imageName)
+        self._joblist.append(new_job)
+
+    def _add_takes_recursive(self, parent_take, current_take_name, fullPath=""):
+        """ Travel all takes looking for job layers
+
+        :param parent_take: up-level take
+        :param current_take_name: name of current take
+
+        :return: None
+        """
+        child_take = parent_take.GetDown()
+        while child_take is not None:
+            self._duplicate_with_new_take(child_take, current_take_name, fullPath)
+            current_path = '*'.join([name for name in (fullPath, child_take.GetName()) if name])
+            self._add_takes_recursive(child_take, current_take_name, current_path)
+            child_take = child_take.GetNext()
+
+    def add_takes(self):
+        """Add takes as RR layer jobs
+
+        :return:
+        """
+        LOGGER.debug("takeData: " + str(self._takedata))
+        current_take_name = self._takedata.GetCurrentTake().GetName()
+        main_take = self._takedata.GetMainTake()
+        self._add_takes_recursive(main_take, current_take_name, fullPath="")
+
+        main_job = self.main_job
+
+        main_job.imageName = convert_filename_tokens(self._doc, main_take, main_job.imageName)
+        main_job.imageName = main_job.imageName.replace("$take", main_take.GetName())
+        main_job.layerName = main_take.GetName()
+
+        for ch in range(0, main_job.maxChannels):
+            main_job.channelFileName[ch] = convert_filename_tokens(self._doc, main_take, main_job.channelFileName[ch])
+            main_job.channelFileName[ch] = main_job.channelFileName[ch].replace("$take", main_take.GetName())
+
+        self._takedata.SetCurrentTake(main_take)
+        rd = self._doc.GetActiveRenderData()
+        setSeq(main_job, rd)
 
 
 class RRSubmitBase(object):
@@ -900,7 +940,6 @@ class RRSubmitBase(object):
 
         self.languageStrings = {}
         self.job = [rrJob()]
-        self.job[0].clear()
 
     def submitToRR(self, submitjobs, useConsole, PID=None, WID=None):
         """Write XML Job file into a temporary file, then call the method
@@ -971,60 +1010,66 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         super(RRSubmit, self).__init__()
         self.multiCameraMode = multi_cam
 
-    def setImageFormat(self):
+    def setImageFormat(self, job=None, render_data=None):
         """evaluates the image format extension from the currently selected render settings"""
-        if self.isRegular:
-            self.job[0].imageFormatID = self.renderSettings[c4d.RDATA_FORMAT]
+
+        if not job:
+            job = self.job[0]
+        if not render_data:
+            render_data = self.renderSettings
+
+        if job.channel:
+            job.imageFormatID = render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT]
         else:
-            self.job[0].imageFormatID = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT]
+            job.imageFormatID = render_data[c4d.RDATA_FORMAT]
 
         try:
-            self.job[0].imageFormat = IMG_FORMATS[self.job[0].imageFormatID]
+            job.imageFormat = IMG_FORMATS[job.imageFormatID]
         except KeyError:
-            self.job[0].imageFormat = ".exr"
-            LOGGER.error("Unknown File Format: " + str(self.job[0].imageFormatID))
+            job.imageFormat = ".exr"
+            LOGGER.error("Unknown File Format: " + str(job.imageFormatID))
 
-        if self.job[0].imageFormat in (".mov", ".avi"):
-            self.job[0].imageSingleOutput = True
+        if job.imageFormat in (".mov", ".avi"):
+            job.imageSingleOutput = True
             LOGGER.debug("SingleOutput: yes")
         else:
             LOGGER.debug("SingleOutput: no")
 
-        self.job[0].imageFormatIDMultiPass = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEFORMAT]
+        job.imageFormatIDMultiPass = render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT]
         try:
-            self.job[0].imageFormatMultiPass = IMG_FORMATS[self.job[0].imageFormatIDMultiPass]
+            job.imageFormatMultiPass = IMG_FORMATS[job.imageFormatIDMultiPass]
         except KeyError:
-            LOGGER.error("Unknown File Format Multi Pass: " + str(self.job[0].imageFormatIDMultiPass))
-            self.job[0].imageFormatMultiPass = ".exr"
+            LOGGER.error("Unknown File Format Multi Pass: " + str(job.imageFormatIDMultiPass))
+            job.imageFormatMultiPass = ".exr"
 
-        colorProfile = self.renderSettings[c4d.RDATA_IMAGECOLORPROFILE]
+        colorProfile = render_data[c4d.RDATA_IMAGECOLORPROFILE]
         if colorProfile.HasProfile() and colorProfile.GetInfo(0) == colorProfile.GetDefaultLinearRGB().GetInfo(0):
-            self.job[0].linearColorSpace = True
+            job.linearColorSpace = True
 
         return True
 
-    def getNameFormat(self, imagefilename, imageformat):
-        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+    def getNameFormat(self, job, imagefilename, imageformat):
+        if job._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
             imageformat = imageformat
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
             imageformat = ""
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
-            self.job[0].imageFormat = ""
+            job.imageFormat = ""
             imageformat += "."
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             imageformat = imageformat
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
             imageformat = ""
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
             imageformat = ""
             imagefilename += "."
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             imagefilename += "."
         if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
@@ -1073,15 +1118,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return pass_type_names.get(pass_type, "")
 
-    def getChannelNameMP(self, MP):
+    def getChannelNameMP(self, MP, render_data):
         """Return channel name for given MP
 
         :param MP: c4d MultiPass
+        :param render_data: c4d render settings
         :return: Channel name
         """
         displayName = MP.GetName()
 
-        if self.renderSettings[c4d.RDATA_MULTIPASS_USERNAMES]:
+        if render_data[c4d.RDATA_MULTIPASS_USERNAMES]:
             return displayName
 
         passType = MP[c4d.MULTIPASSOBJECT_TYPE]
@@ -1091,14 +1137,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return self.getChannelName(passType, displayName)
 
-    def getChannelNameExt(self, channelName, channelDescription):
+    def getChannelNameExt(self, job, channelName, channelDescription, as_suffix=True):
         """Return filename and file extension for given channel name and description
 
+        :param job: job containing the channel
         :param channelName: name of the channel
         :param channelDescription: nice format for channel type
+        :param as_suffix: append channel name after image name if True, otherwise channel is a prefix
         :return: filename, fileextension
         """
-        imageName = self.job[0].imageName
+        imageName = job.imageName
 
         if len(channelName) < 2:
             return "", ""
@@ -1106,7 +1154,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if "<Channel_" in imageName:  # <Channel_intern>, <Channel_name>
             filenameComb = imageName.replace("<Channel_intern>", channelName)
             filenameComb = filenameComb.replace("<Channel_name>", channelDescription)
-        elif self.renderSettings[c4d.RDATA_MULTIPASS_SUFFIX]:
+        elif as_suffix:
             # if imageName.rstrip("<IMS>").endswith("_"):
             #     filenameComb = imageName + channelName
             # else:
@@ -1121,39 +1169,44 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             filenameComb = channelName + "_" + filename
             filenameComb = os.path.join(filedir, filenameComb)
 
-        fileext = self.job[0].imageFormatMultiPass
-        filenameComb, fileext = self.getNameFormat(filenameComb, fileext)
+        fileext = job.imageFormatMultiPass
+        filenameComb, fileext = self.getNameFormat(job, filenameComb, fileext)
 
         return filenameComb, fileext
 
-    def addChannel(self, channelName, channelDescription):
+    def addChannel(self, job, channelName, channelDescription, as_suffix=True):
         """Add given channel to the job
 
+        :param job: job containing the channel
         :param channelName: channel name
         :param channelDescription: nice name for channel type
+        :param as_suffix: append channel name after image name if True, otherwise channel is a prefix
+
         :return: None
         """
-        filenameComb, fileext = self.getChannelNameExt(channelName, channelDescription)
+        filenameComb, fileext = self.getChannelNameExt(job, channelName, channelDescription, as_suffix)
 
-        self.job[0].channelExtension.append(fileext)
-        self.job[0].channelFileName.append(filenameComb)
-        self.job[0].maxChannels = self.job[0].maxChannels + 1
+        job.channelExtension.append(fileext)
+        job.channelFileName.append(filenameComb)
+        job.maxChannels += 1
 
-    def addChannelMultipass(self, MP):
+    def addChannelMultipass(self, job, MP, render_data):
         """Add channel for given MultiPass
 
+        :param job: job containing the channel
         :param MP: c4d multipass
+        :param render_data: c4d render settings
         :return: None
         """
-        channelName = self.getChannelNameMP(MP)
+        channelName = self.getChannelNameMP(MP, render_data)
         channelDescription = MP.GetName().replace(" ", "_")
 
-        self.addChannel(channelName, channelDescription)
+        self.addChannel(job, channelName, channelDescription, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
 
-    def addChannelsOctane(self, mainMP):
+    def addChannelsOctane(self, job, mainMP, render_data, has_alpha=False):
         """Add channels for Octane render passes and populate mainMP if empty. Return the number of Octane channels"""
 
-        _vp = self.renderSettings.GetFirstVideoPost()
+        _vp = render_data.GetFirstVideoPost()
         oc_vp = None  # Octane VideoPost
 
         while _vp:
@@ -1170,7 +1223,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         if not mainMP and c4d.GetC4DVersion() < 20000:
             # octane writes rgb or rgba image when multipass is enabled
-            mainMP.channel_name = "rgba" if self.hasAlpha else "rgb"
+            mainMP.channel_name = "rgba" if has_alpha else "rgb"
             mainMP.channel_description = mainMP.channel_name
 
         pass_formats = (
@@ -1341,12 +1394,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         nondiffuse_main = True
                 elif nondiffuse_main and oc_pass in diffuse_passes:
                     # we want a diffuse or beauty pass as main output, for better previews
-                    self.addChannel(mainMP.channel_name, mainMP.channel_description)
+                    self.addChannel(job, mainMP.channel_name, mainMP.channel_description,
+                                    render_data[c4d.RDATA_MULTIPASS_SUFFIX])
                     mainMP.channel_name = nice_name
                     mainMP.channel_description = mainMP.channel_name
                     nondiffuse_main = False
                 else:
-                    self.addChannel(nice_name, nice_name)
+                    self.addChannel(job, nice_name, nice_name, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
                     num_channels += 1
 
                 num_channels_idx += 1
@@ -1370,24 +1424,24 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 pass_path = os.path.join(passes_dir, pass_fname)
 
-            self.job[0].channelExtension.append(passes_ext)
-            self.job[0].channelFileName.append(pass_path)
-            self.job[0].maxChannels += 1
+            job.channelExtension.append(passes_ext)
+            job.channelFileName.append(pass_path)
+            job.maxChannels += 1
             if not added:
                 num_channels += 1
                 added = True
 
         if use_multi_layer and passes_path:
-            self.job[0].channelExtension.append(passes_ext)
-            self.job[0].channelFileName.append(passes_path)
-            self.job[0].maxChannels += 1
+            job.channelExtension.append(passes_ext)
+            job.channelFileName.append(passes_path)
+            job.maxChannels += 1
             num_channels += 1
 
         return num_channels
 
-    def addDriverChannelsArnold(self):
+    def addDriverChannelsArnold(self, job):
         doc = c4d.documents.GetActiveDocument()
-        out_dir = os.path.dirname(allForwardSlashes(self.job[0].imageName))
+        out_dir = os.path.dirname(allForwardSlashes(job.imageName))
 
         for driver, path_parameter, outpath in arnoldGetOutputDrivers(doc):
             if driver[c4d.C4DAI_DRIVER_ENABLE_AOVS] == 0:
@@ -1412,9 +1466,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 main_out += "."
 
             if driver[c4d.C4DAI_DRIVER_MERGE_AOVS] == 1:
-                self.job[0].channelExtension.append(file_ext)
-                self.job[0].channelFileName.append(main_out)
-                self.job[0].maxChannels += 1
+                job.channelExtension.append(file_ext)
+                job.channelFileName.append(main_out)
+                job.maxChannels += 1
             else:
                 channel_out = outpath.rstrip("#.")
                 trailing_underscores = next(i for i in range(len(channel_out)) if channel_out[-(i + 1)] != "_")
@@ -1441,13 +1495,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         # arnold driver will duplicate the trailing '.'
                         channel_out += '.'
 
-                    self.job[0].channelExtension.append(file_ext)
-                    self.job[0].channelFileName.append(channel_out)
-                    self.job[0].maxChannels += 1
+                    job.channelExtension.append(file_ext)
+                    job.channelFileName.append(channel_out)
+                    job.maxChannels += 1
 
                     aov = aov.GetNext()
 
-    def addChannelsArnold(self, mainMP):
+    def addChannelsArnold(self, job, mainMP, render_data):
         """Add channels for arnold AOVs and populates mainMP if empty. Return the number of Arnold channels"""
         # TODO: if multipass username, will keep uppercases
         doc = c4d.documents.GetActiveDocument()
@@ -1522,13 +1576,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             mainMP.channel_name = passes.pop(0)[0]
 
         for pass_name, descr_name in passes:
-            self.addChannel(pass_name, descr_name)
+            self.addChannel(job, pass_name, descr_name, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
 
         return len([elem for elem in elems if elem])
 
-    def addChannelsRedshift(self, mainMP):
+    def addChannelsRedshift(self, job, mainMP, render_data):
         """Add channels for redshift AOVs and populates mainMP if empty. Return the number of Redshift channels"""
-        _vp = self.renderSettings.GetFirstVideoPost()
+        _vp = render_data.GetFirstVideoPost()
         rs_vp = None  # Redshift VideoPost
 
         while _vp:
@@ -1586,8 +1640,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         ID_CUSTOM_UI_AOV = 1036235  # Redshift AOVs ID
 
         # AOV can use these tokens
-        img_dir, img_name = os.path.split(os.path.normpath(self.job[0].imageName))
-        scn_dir, scn_name = os.path.split(os.path.normpath(self.job[0].sceneFilename))
+        img_dir, img_name = os.path.split(os.path.normpath(job.imageName))
+        scn_dir, scn_name = os.path.split(os.path.normpath(job.sceneFilename))
         scn_name, _ = os.path.splitext(scn_name)
         img_dir += os.sep
         scn_dir += os.sep
@@ -1637,7 +1691,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
 
                 if mainMP:
-                    self.addChannel(aov_name, "$userpass")  # aov don't support $userpass
+                    self.addChannel(job, aov_name, "$userpass",
+                                    render_data[c4d.RDATA_MULTIPASS_SUFFIX])  # aov don't support $userpass
                     added_to_channels = True
                 else:
                     mainMP.channel_name = aov_name
@@ -1666,17 +1721,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 aov_file = aov_file.replace("$filename", scn_name)
                 aov_file = aov_file.replace("$pass", aov_name)
 
-                aov_file = self.replacePathTokens(aov_file)
+                aov_file = self.replacePathTokens(job, aov_file, render_data)
                 aov_file = aov_file.replace("<Channel_intern>", aov_name)
                 # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
-                aov_file, aov_ext = self.getNameFormat(aov_file, aov_formats[aov_format])
+                aov_file, aov_ext = self.getNameFormat(job, aov_file, aov_formats[aov_format])
 
                 if mainMP:
-                    self.job[0].channelExtension.append(aov_ext)
-                    self.job[0].channelFileName.append(aov_file)
-                    self.job[0].maxChannels += 1
+                    job.channelExtension.append(aov_ext)
+                    job.channelFileName.append(aov_file)
+                    job.maxChannels += 1
                     added_to_channels = True
-                    self.isMPSinglefile = False
                 else:
                     mainMP.channel_name = aov_name
                     mainMP.channel_description = "$userpass"
@@ -1691,13 +1745,14 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return aov_channels
 
-    def addChannelsVray(self, mainMP):
+    def addChannelsVray(self, job, mainMP, render_data):
         doc = c4d.documents.GetActiveDocument()
         mp_hook = doc.FindSceneHook(1028268)  # VRayBridge/res/c4d_symbols.h, ID_MPHOOK
         if not mp_hook:
             return
 
         mp_branches = mp_hook.GetBranchInfo()
+        num_elems = 0
 
         for branch in mp_branches:
             if branch['id'] != 431000051:
@@ -1724,7 +1779,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 descr_name = elem.replace(" ", "_")
                 pass_name = "{0}_{1}".format(descr_name.lower(), i + 2)
                 if mainMP:
-                    self.addChannel(pass_name, descr_name)
+                    self.addChannel(job, pass_name, descr_name, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
                 else:
                     mainMP.channel_name = pass_name
                     mainMP.channel_description = descr_name
@@ -1733,14 +1788,17 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         """Using {0} as first pass, but adding at least
                          a 'rgba' multipass is reccomended""".format(elem)
                     )
+            num_elems += len(elems)
 
-    def replacePathTokens(self, image_name):
+        return num_elems
+
+    def replacePathTokens(self, job, image_name, render_data):
         # replace c4d tokens with RR tokens
         image_name = image_name.replace("$camera", "<Camera>")
         image_name = image_name.replace("$prj", "<Scene>")
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
-        image_name = image_name.replace("$frame", '#' * self.job[0].imageFramePadding)
+        image_name = image_name.replace("$frame", '#' * job.imageFramePadding)
 
         if c4d.GetC4DVersion() < 21000:
             # native replacement
@@ -1756,10 +1814,10 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 if 'take' in token_str.lower() and token_str not in exclude_tokens:
                     logging.warning("custom token {0} might be evaluated incorrectly. Please, contact support")
 
-        image_name = image_name.replace("$rs", self.renderSettings.GetName())
-        image_name = image_name.replace("$res", "{0}x{1}".format(self.job[0].width, self.job[0].height))
-        image_name = image_name.replace("$range", "{0}_{1}".format(self.job[0].seqStart, self.job[0].seqEnd))
-        image_name = image_name.replace("$fps", str(self.job[0].frameRateRender))
+        image_name = image_name.replace("$rs", render_data.GetName())
+        image_name = image_name.replace("$res", "{0}x{1}".format(job.width, job.height))
+        image_name = image_name.replace("$range", "{0}_{1}".format(job.seqStart, job.seqEnd))
+        image_name = image_name.replace("$fps", str(job.frameRateRender))
 
         return image_name
 
@@ -1785,76 +1843,86 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return file_path
 
-    def setFileout(self):
-        if self.isMP:
-            LOGGER.debug("MultiPass: yes")
-            if self.isRegular:
-                LOGGER.debug("Channel: Reg_Multi")
-                self.job[0].channel = "Reg_Multi"
+    def setFileout(self, job=None, render_data=None):
+        if not job:
+            job = self.job[0]
+        if not render_data:
+            render_data = self.renderSettings
 
-                reg_out = self.renderSettings[c4d.RDATA_PATH]
+        has_alpha = render_data[c4d.RDATA_ALPHACHANNEL]
+        is_regular = render_data[c4d.RDATA_SAVEIMAGE] and render_data[c4d.RDATA_PATH]
+        is_multipass = render_data[c4d.RDATA_MULTIPASS_SAVEIMAGE] and render_data[c4d.RDATA_MULTIPASS_ENABLE]
+        is_mp_single = render_data[c4d.RDATA_MULTIPASS_SAVEONEFILE] and render_data[
+            c4d.RDATA_MULTIPASS_SAVEFORMAT] in MULTILAYER_FORMATS
+
+        if is_multipass:
+            LOGGER.debug("MultiPass: yes")
+            if is_regular:
+                LOGGER.debug("Channel: Reg_Multi")
+                job.channel = "Reg_Multi"
+
+                reg_out = render_data[c4d.RDATA_PATH]
                 reg_out = self.handleRelativeFileOut(reg_out)
-                reg_out = self.replacePathTokens(reg_out)
+                reg_out = self.replacePathTokens(job, reg_out, render_data)
                 reg_out += "<IMS>"
 
-                self.job[0].channelFileName.append(reg_out)
-                self.job[0].channelExtension.append(IMG_FORMATS.get(self.renderSettings[c4d.RDATA_FORMAT], ".exr"))
-                self.job[0].maxChannels += 1
+                job.channelFileName.append(reg_out)
+                job.channelExtension.append(IMG_FORMATS.get(render_data[c4d.RDATA_FORMAT], ".exr"))
+                job.maxChannels += 1
             else:
                 LOGGER.debug("Channel: MultiPass")
-                self.job[0].channel = "MultiPass"
-            self.job[0].imageName = self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME]
-            if self.job[0].renderer == "Arnold" and self.renderSettings[
+                job.channel = "MultiPass"
+            job.imageName = render_data[c4d.RDATA_MULTIPASS_FILENAME]
+            if job.renderer == "Arnold" and render_data[
                 c4d.RDATA_MULTIPASS_SAVEFORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
-                self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
+                job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
         else:
             LOGGER.debug("MultiPass: no")
-            self.job[0].channel = ""
-            self.job[0].imageName = self.renderSettings[c4d.RDATA_PATH]
+            job.channel = ""
+            job.imageName = render_data[c4d.RDATA_PATH]
 
-            if self.job[0].renderer == "Arnold" and self.renderSettings[
-                c4d.RDATA_FORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
-                self.job[0].Arnold_DriverOut = self.job[0].setOutputFromArnoldDriver()
+            if job.renderer == "Arnold" and render_data[c4d.RDATA_FORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
+                job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
 
-        self.job[0].layerName = ""
-        self.job[0].setImagePadding(name_id=self.renderSettings[c4d.RDATA_NAMEFORMAT])
+        job.layerName = ""
+        job.setImagePadding(name_id=render_data[c4d.RDATA_NAMEFORMAT])
 
-        self.job[0].imageName = self.replacePathTokens(self.job[0].imageName)
-        LOGGER.debug("imageName is: " + self.job[0].imageName)
+        job.imageName = self.replacePathTokens(job, job.imageName, render_data)
+        LOGGER.debug("imageName is: " + job.imageName)
 
-        self.job[0].imageName = self.handleRelativeFileOut(self.job[0].imageName)
-        self.job[0].imageName = self.job[0].imageName + "<IMS>"
+        job.imageName = self.handleRelativeFileOut(job.imageName)
+        job.imageName = job.imageName + "<IMS>"
 
         addStereoString = ""
-        if self.renderSettings[c4d.RDATA_STEREO]:
-            dirName = os.path.dirname(self.job[0].imageName)
-            fileName = os.path.basename(self.job[0].imageName)
-            if self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_S:
+        if render_data[c4d.RDATA_STEREO]:
+            dirName = os.path.dirname(job.imageName)
+            fileName = os.path.basename(job.imageName)
+            if render_data[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_S:
                 addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['STEREO_ANA_COL_RIGHT']
-            elif self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_R:
+            elif render_data[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_R:
                 addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['MERGEDSTREAM']
-            elif self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SR:
+            elif render_data[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SR:
                 addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['MERGEDSTREAM']
-            elif self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SINGLE:
-                if self.renderSettings[c4d.RDATA_STEREO_SINGLECHANNEL] == 1:
+            elif render_data[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_SINGLE:
+                if render_data[c4d.RDATA_STEREO_SINGLECHANNEL] == 1:
                     addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings['STEREO_ANA_COL_LEFT']
                 else:
                     addStereoString = self.languageStrings['STREAM'] + " " + self.languageStrings[
                         'STEREO_ANA_COL_RIGHT']
-            if self.renderSettings[c4d.RDATA_STEREO_SAVE_FOLDER]:
-                self.job[0].imageName = os.path.join(dirName, addStereoString, fileName)
+            if render_data[c4d.RDATA_STEREO_SAVE_FOLDER]:
+                job.imageName = os.path.join(dirName, addStereoString, fileName)
             else:
-                self.job[0].imageName = os.path.join(dirName, addStereoString, fileName)
+                job.imageName = os.path.join(dirName, addStereoString, fileName)
 
-        LOGGER.debug("imageName: before pass " + self.job[0].imageName)
+        LOGGER.debug("imageName: before pass " + job.imageName)
         self.objectChannelID = 0
         mainMP = MultipassInfo("",
                                "")  # (usually channelName = getChannelNameMP(MP), channelDescription = MP.GetName())
         post_effects_MP = None  # used for vray multipass
-        if self.isMP and not self.isMPSinglefile:
+        if is_multipass and not is_mp_single:
             firstPassAdded = False
-            ignoreFirstPass = not self.isRegular
-            MP = self.renderSettings.GetFirstMultipass()
+            ignoreFirstPass = not is_regular
+            MP = render_data.GetFirstMultipass()
             while MP:
                 if MP.GetBit(c4d.BIT_VPDISABLED):
                     MP = MP.GetNext()
@@ -1867,151 +1935,153 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("pass: " + MP.GetName())
                 if not firstPassAdded:
                     firstPassAdded = True
-                    mainMP = MultipassInfo(self.getChannelNameMP(MP), MP.GetName())
+                    mainMP = MultipassInfo(self.getChannelNameMP(MP, render_data), MP.GetName())
                 if ignoreFirstPass:
                     ignoreFirstPass = False
-                    mainMP = MultipassInfo(self.getChannelNameMP(MP), MP.GetName())
+                    mainMP = MultipassInfo(self.getChannelNameMP(MP, render_data), MP.GetName())
                     LOGGER.debug("pass: Add main output: " + MP.GetName())
                 else:
-                    self.addChannelMultipass(MP)
+                    self.addChannelMultipass(job, MP, render_data)
                     LOGGER.debug("pass: Add addChannel : " + MP.GetName())
 
                 MP = MP.GetNext()
 
             # 3d party multipass channels
-            if self.job[0].renderer == "Redshift":
+            if job.renderer == "Redshift":
                 # RR will set the first aov as main pass if mainMP is still empty
-                self.addChannelsRedshift(mainMP)
-            elif self.job[0].renderer == "Octane":
-                self.addChannelsOctane(mainMP)
-            elif self.job[0].renderer == "vray" and post_effects_MP:
-                self.addChannelsVray(mainMP)
-            elif self.job[0].renderer == "Arnold":
-                self.addChannelsArnold(mainMP)
+                self.addChannelsRedshift(job, mainMP, render_data)
+            elif job.renderer == "Octane":
+                self.addChannelsOctane(job, mainMP, render_data, has_alpha=has_alpha)
+            elif job.renderer == "vray" and post_effects_MP:
+                self.addChannelsVray(job, mainMP, render_data)
+            elif job.renderer == "Arnold":
+                self.addChannelsArnold(job, mainMP, render_data)
 
         if not mainMP:
-            self.isMP = False
-            if not self.isMPSinglefile:
-                self.job[0].channel = ""
+            is_multipass = False
+            if not is_mp_single:
+                job.channel = ""
 
         if self.hasAlpha:
             regularImageName = "RGBA"
         else:
             regularImageName = "RGB"
-        if self.job[0].renderer == "Arnold":
+        if job.renderer == "Arnold":
             regularImageName = "RGBA"
-        LOGGER.debug("imageName is: " + self.job[0].imageName)
+        LOGGER.debug("imageName is: " + job.imageName)
 
         c4dVersionMajor = int(c4d.GetC4DVersion() / 1000)
 
-        if not self.isMP or self.isMPSinglefile:
+        if not is_multipass or is_mp_single:
             if self.hasAlpha:
-                self.job[0].imageName = self.job[0].imageName.replace("<Channel_intern>", "rgba")
+                job.imageName = job.imageName.replace("<Channel_intern>", "rgba")
             else:
-                self.job[0].imageName = self.job[0].imageName.replace("<Channel_intern>", "rgb")
-            self.job[0].imageName = self.job[0].imageName.replace("<Channel_name>", regularImageName)
-            if not self.job[0].Arnold_DriverOut:
-                self.job[0].imageName, self.job[0].imageFormat = self.getNameFormat(self.job[0].imageName,
-                                                                                    self.job[0].imageFormat)
+                job.imageName = job.imageName.replace("<Channel_intern>", "rgb")
+            job.imageName = job.imageName.replace("<Channel_name>", regularImageName)
+            if not job.Arnold_DriverOut:
+                job.imageName, job.imageFormat = self.getNameFormat(job, job.imageName, job.imageFormat)
         else:
             # filenameComb = ""
             # fileext = ""
-            if self.isRegular and not self.isMP:
+            if is_regular and not is_multipass:
                 if self.hasAlpha:
                     channelName = "rgba"
                 else:
                     channelName = "rgb"
                 channelDescription = regularImageName
-                filenameComb = self.job[0].imageName
-                fileext = self.job[0].imageFormat
+                filenameComb = job.imageName
+                fileext = job.imageFormat
                 LOGGER.debug("fileext reg: " + fileext)
             else:
                 channelName = mainMP.channel_name
                 channelDescription = mainMP.channel_description
-                if (c4dVersionMajor > 18) and (
-                any(tok in self.renderSettings[c4d.RDATA_MULTIPASS_FILENAME] for tok in ("$userpass", "$pass"))):
+
+                if not channelName:
+                    filenameComb = job.imageName
+                elif c4dVersionMajor > 18 and any(
+                        tok in render_data[c4d.RDATA_MULTIPASS_FILENAME] for tok in ("$userpass", "$pass")):
                     # starting from R19, channel is not added to filename if already present
-                    filenameComb = self.job[0].imageName
-                elif self.renderSettings[c4d.RDATA_MULTIPASS_SUFFIX]:
-                    # if self.job[0].imageName[-1].endswith("_"):
+                    filenameComb = job.imageName
+                elif render_data[c4d.RDATA_MULTIPASS_SUFFIX]:
+                    # if job.imageName[-1].endswith("_"):
                     #     suffix = "<ValueVar " + channelName + "@>"
                     # else:
                     #     suffix = "<ValueVar _" + channelName + "@>"
 
-                    filenameComb = self.job[0].imageName + "<ValueVar _" + channelName + "@>"
+                    filenameComb = job.imageName + "<ValueVar _" + channelName + "@>"
                 else:
-                    # if self.job[0].imageName.startswith("_"):
+                    # if job.imageName.startswith("_"):
                     #     prefix = "<ValueVar " + channelName + "@>"
                     # else:
                     #     prefix = "<ValueVar _" + channelName + "@>"
 
-                    filedir, filename = os.path.split(self.job[0].imageName)
+                    filedir, filename = os.path.split(job.imageName)
                     filenameComb = os.path.join(filedir, "<ValueVar " + channelName + "_@>" + filename)
 
-                fileext = self.job[0].imageFormatMultiPass
+                fileext = job.imageFormatMultiPass
                 LOGGER.debug("fileext mp: " + fileext)
             channelDescription = channelDescription.replace(" ", "_")
             filenameComb = filenameComb.replace("<Channel_intern>", "<ValueVar " + channelName + "@$pass>")
             filenameComb = filenameComb.replace("<Channel_name>", "<ValueVar " + channelDescription + "@$userpass>")
 
-            if not self.job[0].Arnold_DriverOut:
-                filenameComb, fileext = self.getNameFormat(filenameComb, fileext)
+            if not job.Arnold_DriverOut:
+                filenameComb, fileext = self.getNameFormat(job, filenameComb, fileext)
                 if fileext:
-                    self.job[0].imageFormat = fileext
+                    job.imageFormat = fileext
 
-            self.job[0].imageName = filenameComb
-            self.job[0].imageFormat = fileext
+            job.imageName = filenameComb
+            job.imageFormat = fileext
 
-        LOGGER.debug("imageName is: " + self.job[0].imageName)
+        LOGGER.debug("imageName is: " + job.imageName)
 
-        if (self.renderSettings[c4d.RDATA_STEREO] and (
-                self.renderSettings[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_S)):
-            curMaxChannels = self.job[0].maxChannels
-            tempName = self.job[0].imageName
+        if (render_data[c4d.RDATA_STEREO] and (
+                render_data[c4d.RDATA_STEREO_CALCRESULT] == c4d.RDATA_STEREO_CALCRESULT_S)):
+            curMaxChannels = job.maxChannels
+            tempName = job.imageName
             tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'],
                                         self.languageStrings['STEREO_ANA_COL_LEFT'])
-            self.job[0].channelFileName.append(tempName)
-            self.job[0].channelExtension.append(self.job[0].imageFormat)
-            self.job[0].maxChannels += 1
+            job.channelFileName.append(tempName)
+            job.channelExtension.append(job.imageFormat)
+            job.maxChannels += 1
             for po in range(0, curMaxChannels):
-                tempName = self.job[0].channelFileName[po]
+                tempName = job.channelFileName[po]
                 tempName = tempName.replace(self.languageStrings['STEREO_ANA_COL_RIGHT'],
                                             self.languageStrings['STEREO_ANA_COL_LEFT'])
-                self.job[0].channelFileName.append(tempName)
-                self.job[0].channelExtension.append(self.job[0].channelExtension[po])
-                self.job[0].maxChannels += 1
+                job.channelFileName.append(tempName)
+                job.channelExtension.append(job.channelExtension[po])
+                job.maxChannels += 1
 
-        if self.renderSettings[c4d.RDATA_STEREO]:
-            tempName = self.job[0].imageName
-            if self.renderSettings[c4d.RDATA_STEREO_SAVE_FOLDER]:
+        if render_data[c4d.RDATA_STEREO]:
+            tempName = job.imageName
+            if render_data[c4d.RDATA_STEREO_SAVE_FOLDER]:
                 tempName = tempName.replace(addStereoString + "/", "<removeVar " + addStereoString + "/" + ">")
             else:
                 tempName = tempName.replace(addStereoString + "_", "<removeVar " + addStereoString + "_" + ">")
-            self.job[0].imageName = tempName
+            job.imageName = tempName
 
-        if self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
+        if job._imageNamingID == c4d.RDATA_NAMEFORMAT_0:
             # name0000.ext
-            self.job[0].imageFramePadding = 4
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
+            job.imageFramePadding = 4
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_1:
             # name0000
-            self.job[0].imageFramePadding = 4
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
+            job.imageFramePadding = 4
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
-            self.job[0].imageFramePadding = 4
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
+            job.imageFramePadding = 4
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
-            self.job[0].imageFramePadding = 3
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
+            job.imageFramePadding = 3
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_4:
             # name000
-            self.job[0].imageFramePadding = 3
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
+            job.imageFramePadding = 3
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
-            self.job[0].imageFramePadding = 3
-        elif self.job[0]._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
+            job.imageFramePadding = 3
+        elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
-            self.job[0].imageFramePadding = 4
+            job.imageFramePadding = 4
 
-        if self.job[0].renderer == "Arnold":  # this function requires job.imageName
+        if job.renderer == "Arnold":  # this function requires job.imageName
             self.addDriverChannelsArnold()
 
     def saveTiledDocument(self, doc, tiles, filename):
@@ -2211,7 +2281,6 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         print("rrSubmit %rrVersion%")
         del self.job[:]
         self.job.append(rrJob())
-        self.job[0].clear()
 
         # read current render settings
         self.getLanguage()
@@ -2222,18 +2291,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.isRegular = self.renderSettings[c4d.RDATA_SAVEIMAGE] and (len(self.renderSettings[c4d.RDATA_PATH]) > 0)
         self.isMP = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEIMAGE] and self.renderSettings[
             c4d.RDATA_MULTIPASS_ENABLE]  # is Multipass enabled?
-
-        multilayer = (
-            c4d.FILTER_PSD,
-            c4d.FILTER_EXR,
-            c4d.FILTER_TIF,
-            c4d.FILTER_B3D,
-            c4d.FILTER_PSB,
-            1016606,
-            1035823
-        )
         self.isMPSinglefile = self.renderSettings[c4d.RDATA_MULTIPASS_SAVEONEFILE] and self.renderSettings[
-            c4d.RDATA_MULTIPASS_SAVEFORMAT] in multilayer
+            c4d.RDATA_MULTIPASS_SAVEFORMAT] in MULTILAYER_FORMATS
 
         LOGGER.debug("isMPSinglefile: " + str(self.isMPSinglefile))
         self.takeData = doc.GetTakeData()
@@ -2297,7 +2356,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
         self.setFileout()
-        addTakes(doc, self.job, self.takeData)
+
+        take_manager = TakeManager(self, doc)
+        take_manager.add_takes()
 
         if self.multiCameraMode:
             self.addCameras(doc)
@@ -2360,7 +2421,8 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
                                            c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST,
                                            c4d.FORMAT_C4DEXPORT)
 
-        addTakes(doc, self.job, self.takeData)
+        take_manager = TakeManager(self.job, doc, self.renderSettings, is_archive=True)
+        take_manager.add_takes()
         self.submitToRR(self.job, False, PID=None, WID=None)
 
         self.takeData.SetCurrentTake(backupCurrentTake)

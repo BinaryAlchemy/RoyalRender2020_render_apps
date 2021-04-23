@@ -623,8 +623,8 @@ def get_tile_settings(arg):
 
 def make_tile_path(outpath, tile_num):
     out_file, out_ext = os.path.splitext(outpath)
-    trail_hashes = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not "#")
-    trail_dots = next(i for i in range(len(out_file)) if out_file[-(i + 1)] is not ".")
+    trail_hashes = next(i for i in range(len(out_file)) if out_file[-(i + 1)] != "#")
+    trail_dots = next(i for i in range(len(out_file)) if out_file[-(i + 1)] != ".")
     return "{0}_tile{1:02}_{2}{3}".format(out_file.rstrip('#'), tile_num, '.' * trail_dots, '#' * trail_hashes)
 
 
