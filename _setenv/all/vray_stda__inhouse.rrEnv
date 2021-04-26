@@ -1,3 +1,4 @@
-# [exec] "c:\Program Files\Autodesk\Maya2017\vray\bin\setvrlservice.exe"  -server=MyLicenseServer -port=30304
+echo * ------ vray_stda__inhouse.rrEnv ------
 
+# [exec] "c:\Program Files\Autodesk\Maya2017\vray\bin\setvrlservice.exe"  -server=MyLicenseServer -port=30304
 # VRAY_AUTH_CLIENT_FILE_PATH = <rrPrefs>

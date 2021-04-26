@@ -13,9 +13,9 @@ def getRR_Root():
     # If you are using it from an external machine, you have to add the path to the rrPy module yourself
     # sys.path.append(MyModulePath)
     import os
-    if (not os.environ.has_key('RR_ROOT')):
+    if not ('RR_ROOT' in os.environ):
         return ""
-    rrRoot=os.environ['RR_ROOT']
+    rrRoot= os.environ['RR_ROOT'].strip("\r")
     rrRoot= rrRoot.replace("_debug", "_release")
     return  rrRoot
     
@@ -75,8 +75,11 @@ class rrOSConversion(object):
             if (sys.platform.lower() == "win32"):
                 iniLocation= iniLocation.replace("/","\\")
             
-        import ConfigParser
-        config = ConfigParser.ConfigParser()
+        try:
+            import configparser
+        except:
+            import ConfigParser as configparser
+        config = configparser.ConfigParser()
         if (len(config.read(iniLocation))<=0):
             errorString="Error: Unable to read ini file or file does not exist: '"+iniLocation+"'"
             return False

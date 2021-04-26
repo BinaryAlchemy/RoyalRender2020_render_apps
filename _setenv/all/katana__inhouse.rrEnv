@@ -1,3 +1,5 @@
+echo * ------ katana__inhouse.rrEnv ------
+
 # Add plugins directories to use with the farm after the " = " in the next line; comment ("#") to leave system value unchanged
 KATANA_RESOURCES  =
 

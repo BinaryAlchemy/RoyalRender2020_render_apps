@@ -52,7 +52,7 @@ licenseFailLine=  could not connect to license server
 licenseFailLine=  error checking out license for arnold
 licenseFailLine=  License was not obtained
 licenseFailLine=  abort_on_license_fail enabled
-
+licenseFailLine=  aborting render because the abort_on_license_fail option
 
 errorSearchLine=  render terminating early
 

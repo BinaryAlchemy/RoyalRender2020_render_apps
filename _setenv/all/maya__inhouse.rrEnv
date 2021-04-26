@@ -1,3 +1,4 @@
+echo * ------ maya__inhouse.rrEnv ------
 
 # It might be required for your environment to clear everything that is set in the system enviroment:
 # MAYA_SCRIPT_PATH  =  

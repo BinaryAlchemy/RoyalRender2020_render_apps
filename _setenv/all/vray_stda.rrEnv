@@ -1,3 +1,4 @@
+echo * ------ vray_stda.rrEnv  version %rrVersion% ------
 
 PATH  =  <rrBaseAppPath>\lib;<PATH>
 LD_LIBRARY_PATH  =  <rrBaseAppPath>\lib;<LD_LIBRARY_PATH>

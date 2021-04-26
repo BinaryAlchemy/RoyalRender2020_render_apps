@@ -1,3 +1,4 @@
+echo * ------ keyshot__inhouse.rrEnv ------
 
 # Set the value below to add a licensed cores limit
 RR_KeyShot_LicCoreCount=

@@ -1,3 +1,4 @@
+echo * ------ mray_stda__inhouse.rrEnv ------
 
 SPM_HOST = LOCALHOST
 _ADSK_LicServers = LOCALHOST

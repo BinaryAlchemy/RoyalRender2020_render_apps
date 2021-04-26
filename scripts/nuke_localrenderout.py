@@ -95,7 +95,7 @@ def convertPath(writeNode, orgDir, orgDirWinDrive, locDir, createFolder, attrNam
         except IOError as e:
             error_msg = "Error creating directory '{0}'".format(writeDir)
             if e:
-                error_msg += ": " + e.message
+                error_msg += ": " + str(e)
             writeInfo(error_msg)
             return False
 

@@ -49,7 +49,6 @@ permanentErrorSearchLine = rrMaya - ERR
 permanentErrorSearchLine = Invalid flag
 permanentErrorSearchLine = Requested layer does not exist!
 
-RealTimeAbortLine= [rlm] abort_on_license_fail enabled
 RealTimeAbortLine= Stack trace:
 #RealTimeAbortLine= Unknown Maya file version
 RealTimeAbortLine= Fatal Error. Attempting to save in
@@ -79,6 +78,7 @@ RemoveFromLog= Contains ~ pgYetiDLRender.dll: The specified module
 RemoveFromLog= Contains ~ pgYetiPrmanRender.dll: The specified 
 RemoveFromLog= Contains ~ This file contains legacy render layers and Maya is currently in Render Setup mode
 RemoveFromLog= StartsWith ~ Warning: Unknown object type: pgYeti
+RemoveFromLog= Contains ~ ERROR   | there is no camera!
 
 
 

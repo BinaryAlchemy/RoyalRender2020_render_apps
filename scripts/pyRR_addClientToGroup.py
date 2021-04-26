@@ -11,9 +11,9 @@ def findRR_Root():
     import platform
     import sys
     import struct
-    if (not os.environ.has_key('RR_ROOT')):
-        return
-    modPath=os.environ['RR_ROOT']
+    if not ('RR_ROOT' in os.environ):
+        return 
+    modPath= os.environ['RR_ROOT'].strip("\r")    
     is64bit=(struct.calcsize("P") == 8)
     if (sys.platform.lower() == "win32") :
         if (is64bit):

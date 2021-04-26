@@ -1,3 +1,4 @@
+echo * ------ redshift__inhouse.rrEnv ------
 
 # ###################  RedShift environment variables ###################
 # Uncomment the next line to set the license server:
