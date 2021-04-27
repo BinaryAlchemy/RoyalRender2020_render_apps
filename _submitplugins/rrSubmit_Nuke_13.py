@@ -4,7 +4,8 @@
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # rrInstall_Copy: \plugins\
 # rrInstall_Change_File_delete: \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
-# rrInstall_Change_File:        \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+# rrInstall_Change_File_delete: \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+# rrInstall_Change_File:        \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Copycat\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Copycat()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
 
 
 import nuke
@@ -268,6 +269,41 @@ def rrSubmit_fillGlobalSceneInfo(newJob):
     newJob.seqEnd = nuke.root().lastFrame()
     newJob.imageFileName = ""
 
+
+def rrSubmit_addPluginLicenses(jobList):
+    n = nuke.allNodes()
+    plugins=""
+    for i in n:
+        if (i.Class().find(".sapphire.")>=0):
+            plugins=plugins+"Sapphire;"
+            break;
+    for i in n:
+        if (i.Class().find("pgBokeh")>=0):
+            plugins=plugins+"pgBokeh;"
+            break;
+    for i in n:
+        if (i.Class().find(".revisionfx.rsmb")>=0):
+            plugins=plugins+"Reelsmart;"
+            break;
+    for i in n:
+        if (i.Class().find(".myPlugin.")>=0):
+            plugins=plugins+"MyPlugin;"
+            break;
+        
+    if (len(plugins)>0):
+        for job in jobList:
+            job.RequiredLicenses=plugins
+
+def rrSubmit_NukeXRequired():
+    n = nuke.allNodes()
+    for i in n:
+        if (i.Class().find(".furnace.")>=0):
+            return True
+        if (i.Class().find("Copycat")>=0):
+            return True
+    return False
+
+
 def isGizmo(node):
     gizmo = isinstance(node, nuke.Gizmo)
     return gizmo
@@ -279,9 +315,10 @@ def isScriptedOutput(pathScripted, gizmo):
     if (gizmo and (pathScripted.find("[value")>=0)):
         return True
     return False
-    
+       
         
 def getAllWriteNodes():
+    #nuke.allNodes() does not return nodes inside gizmos
     allNo=nuke.allNodes()
     writeNo=[]
     for gz in allNo:
@@ -298,8 +335,6 @@ def getAllWriteNodes():
                     break
     writeNo=writeNo+ nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
     return writeNo
-
-    
     
 
 def rrSubmit_CreateAllJob(jobList,noLocalSceneCopy):
@@ -514,6 +549,72 @@ def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy):
         newJob.isActive = False
         jobList.append(newJob)
 
+def getAllCopycatNodes():
+    #nuke.allNodes() does not return nodes inside gizmos
+    allNo=nuke.allNodes()
+    writeNo=[]
+    for gz in allNo:
+        if isGizmo(gz):
+            with gz:
+                gList = nuke.allNodes('Copycat') 
+                for gnode in gList:
+                    if (gnode['disable'].value()):
+                        continue
+                    writeNo.append(gz)
+                    break
+    writeNo= writeNo + nuke.allNodes('Copycat')
+    return writeNo
+    
+
+def rrSubmit_CreateSingleJobs_Copycat(jobList,noLocalSceneCopy):
+    nList = getAllCopycatNodes()
+    nViews=nuke.views()
+    for node in nList:
+        if (node['disable'].value()):
+            continue
+        writeNode = node
+        writeNodeName = writeNode['name'].value()
+        if isGizmo(node):
+            with node:
+                gList = nuke.allNodes('Copycat')
+                for gnode in gList:
+                    if (gnode['disable'].value()):
+                        continue
+                    writeNode = gnode
+                    if (isScriptedOutput(pathScripted,True)):
+                        noLocalSceneCopy[0]=True
+        newJob= rrJob()
+        rrSubmit_fillGlobalSceneInfo(newJob)
+        useStereoFlag=False
+           
+        newJob.imageFileName= node['dataDirectory'].value()
+        if ((newJob.imageFileName== None) or  (len(newJob.imageFileName)<3)):
+            continue
+        newJob.imageFileName= newJob.imageFileName + "/execOnce.file"
+        newJob.imageSingleOutput = True
+
+        newJob.layer= writeNodeName
+        newJob.isActive = True
+        newJob.renderer= "Copycat"
+        jobList.append(newJob)
+
+
+def rrSubmit_Nuke_Copycat(own_terminal=False):
+    print ("rrSubmit %rrVersion%")
+    nuke.scriptSave()
+    CompName = nuke.root().name()
+    if ((CompName==None) or (len(CompName)==0)):
+        writeError("Nuke comp not saved!")
+        return
+    jobList= []
+    noLocalSceneCopy= [False]
+    rrSubmit_CreateSingleJobs_Copycat(jobList,noLocalSceneCopy)
+    submitOptions=""
+    if (noLocalSceneCopy[0]):
+        submitOptions=submitOptions+"AllowLocalSceneCopy=0~0 "
+    submitOptions=submitOptions+" CONukeX=1~1 "
+    rrSubmit_addPluginLicenses(jobList)
+    submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
 
 
 def rrSubmit_CreateSingleJobs_shotgun(jobList,noLocalSceneCopy):
@@ -562,42 +663,6 @@ def rrSubmit_CreateSingleJobs_shotgun(jobList,noLocalSceneCopy):
 
 
 
-def rrSubmit_addPluginLicenses(jobList):
-    n = nuke.allNodes()
-    plugins=""
-    for i in n:
-        if (i.Class().find(".sapphire.")>=0):
-            plugins=plugins+"Sapphire;"
-            break;
-    for i in n:
-        if (i.Class().find("pgBokeh")>=0):
-            plugins=plugins+"pgBokeh;"
-            break;
-    for i in n:
-        if (i.Class().find(".revisionfx.rsmb")>=0):
-            plugins=plugins+"Reelsmart;"
-            break;
-    for i in n:
-        if (i.Class().find(".myPlugin.")>=0):
-            plugins=plugins+"MyPlugin;"
-            break;
-        
-    if (len(plugins)>0):
-        for job in jobList:
-            job.RequiredLicenses=plugins
-
-def rrSubmit_NukeXRequired():
-    n = nuke.allNodes()
-    for i in n:
-        if (i.Class().find(".furnace.")>=0):
-            return True
-    return False
-
-
-
-
-
-
 def rrSubmit_Nuke_Shotgun(own_terminal=False):
     print ("rrSubmit %rrVersion%")
     nuke.scriptSave()
@@ -616,28 +681,6 @@ def rrSubmit_Nuke_Shotgun(own_terminal=False):
     rrSubmit_addPluginLicenses(jobList)
     submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
 
-
-
-
-def rrSubmit_Nuke(own_terminal=False):
-    print ("rrSubmit %rrVersion%")
-    nuke.scriptSave()
-    CompName = nuke.root().name()
-    if ((CompName==None) or (len(CompName)==0)):
-        writeError("Nuke comp not saved!")
-        return
-    jobList= []
-    noLocalSceneCopy= [False]
-    rrSubmit_CreateAllJob(jobList,noLocalSceneCopy)
-    rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy )
-    submitOptions=""
-    if (noLocalSceneCopy[0]):
-        submitOptions=submitOptions+"AllowLocalSceneCopy=0~0 "
-    if (rrSubmit_NukeXRequired()):
-        submitOptions=submitOptions+" CONukeX=1~1 "
-    rrSubmit_addPluginLicenses(jobList)
-    submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
-      
       
 def start_sg_nuke_engine():
     """
@@ -655,6 +698,7 @@ def start_sg_nuke_engine():
     engine = sgtk.platform.start_engine('tk-nuke', tk, ctx)
     log.info('Shotgun Toolkit Nuke engine was initialized.')
     return engine   
+    
     
 def rrSubmit_Nuke_Shotgun_convert():
     print ("rrSubmit %rrVersion%")
@@ -694,7 +738,27 @@ def rrSubmit_Nuke_Shotgun_convert():
     nuke.root().setModified(False)
     nuke.scriptOpen(compFileNameOrg)
     
-    
+
+
+def rrSubmit_Nuke(own_terminal=False):
+    print ("rrSubmit %rrVersion%")
+    nuke.scriptSave()
+    CompName = nuke.root().name()
+    if ((CompName==None) or (len(CompName)==0)):
+        writeError("Nuke comp not saved!")
+        return
+    jobList= []
+    noLocalSceneCopy= [False]
+    rrSubmit_CreateAllJob(jobList,noLocalSceneCopy)
+    rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy )
+    submitOptions=""
+    if (noLocalSceneCopy[0]):
+        submitOptions=submitOptions+"AllowLocalSceneCopy=0~0 "
+    if (rrSubmit_NukeXRequired()):
+        submitOptions=submitOptions+" CONukeX=1~1 "
+    rrSubmit_addPluginLicenses(jobList)
+    submitJobsToRR(jobList, submitOptions, own_terminal=own_terminal)
+          
 
 def rrSubmit_Nuke_Node(node, startFrame=-1, endFrame=-1, nogui=False, own_terminal=False):
     print ("rrSubmit %rrVersion%")

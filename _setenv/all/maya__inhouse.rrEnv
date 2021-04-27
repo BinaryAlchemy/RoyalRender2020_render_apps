@@ -42,24 +42,16 @@ RR_VRAY_NETWORK  =  0
 
 
 # ###################  Arnold/MtoA environment variables ###################
-[If] <rrJobRenderer>  [contains] arnold
-    # Set the next line to 0 if you do not want to use a shared folder in RR for MtoA. It uses the default local installation instead
-    # Set the next line to 1 if you do not want to use a shared folder
-    RR_MTOA_NETWORK  =  0
-[Else]
-    #Use the local MtoA folder if the renderer is not Arnold. It is recommended to keep it set to 0.
-    RR_MTOA_NETWORK  =  0
-[EndIf]
+# Set the next line to 0 if you do not want to use a shared folder in RR for MtoA. It uses the default local installation instead
+# Set the next line to 1 if you do not want to use a shared folder
+RR_MTOA_NETWORK  =  0
 
-RR_MTOA_LICTEST = 0
-
-# Uncomment the next 5 lines if you want to have a separate folder for each MtoA version. RR_MTOA_NETWORK=1 is required
-
-# [If] <rrJobRenderer>  [contains] arnold
+# Uncomment the next 3 lines if you want to have a separate folder for each MtoA version. RR_MTOA_NETWORK=1 is required
 #   [If] <RR_MTOA_BASE>  [==] 
 #     RR_MTOA_BASE  =  <rrSharedExeDir>mtoadeploy_<rrExeVersionMinReq>__<rrJobRendererVersion>
 #   [EndIf]
-# [EndIf]
+
+RR_MTOA_LICTEST = 0
 
 
 # Arnold v3/v4 RLM license server:
