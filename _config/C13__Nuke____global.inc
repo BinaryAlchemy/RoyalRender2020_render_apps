@@ -12,7 +12,7 @@ UIStyle= 1~dark
 MultiOSScenes=0~0
 RequiredMemory=1~4
 
-
+CONukeX= 1 ~ 0 
 
 ################################## Client Settings ################################## 
 

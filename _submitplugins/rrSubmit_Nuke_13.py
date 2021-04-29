@@ -1,4 +1,4 @@
-# Royal Render Plugin script for Nuke 5+
+# Royal Render Plugin script for Nuke 13
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
 # Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
@@ -226,6 +226,9 @@ def getOSString():
 
     
 def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=False):
+    if (len(jobList))==0:
+        writeError("Error - No Nuke node for submission found")
+        return
     tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
                                           prefix="rrSubmitNuke_",
                                           suffix=".xml",
@@ -297,9 +300,9 @@ def rrSubmit_addPluginLicenses(jobList):
 def rrSubmit_NukeXRequired():
     n = nuke.allNodes()
     for i in n:
-        if (i.Class().find(".furnace.")>=0):
-            return True
-        if (i.Class().find("Copycat")>=0):
+        #if (i.Class().find(".furnace.")>=0):
+         #   return True
+        if (i.Class().find("CopyCat")>=0):
             return True
     return False
 
@@ -398,6 +401,9 @@ def rrSubmit_CreateAllJob(jobList,noLocalSceneCopy):
             else:
                 newJob.channelFileName.append(nuke.filename(writeNode).replace("%v",nViews[0][0]).replace("%V",nViews[0]))
             newJob.channelExtension.append("")
+    
+    if (len(newJob.imageFileName)==0):
+        return
 
     if (not useStereoFlag):
         if ( (newJob.imageFileName.find("%V")>=0) or (newJob.imageFileName.find("%v")>=0)):
@@ -556,13 +562,13 @@ def getAllCopycatNodes():
     for gz in allNo:
         if isGizmo(gz):
             with gz:
-                gList = nuke.allNodes('Copycat') 
+                gList = nuke.allNodes('CopyCat') 
                 for gnode in gList:
                     if (gnode['disable'].value()):
                         continue
                     writeNo.append(gz)
                     break
-    writeNo= writeNo + nuke.allNodes('Copycat')
+    writeNo= writeNo + nuke.allNodes('CopyCat')
     return writeNo
     
 
@@ -576,7 +582,7 @@ def rrSubmit_CreateSingleJobs_Copycat(jobList,noLocalSceneCopy):
         writeNodeName = writeNode['name'].value()
         if isGizmo(node):
             with node:
-                gList = nuke.allNodes('Copycat')
+                gList = nuke.allNodes('CopyCat')
                 for gnode in gList:
                     if (gnode['disable'].value()):
                         continue
