@@ -382,14 +382,28 @@ def GetRedshiftPluginVersion():
 # Octane
 def GetOctaneVersion(doc):
     ID_OCTANE_LIVEPLUGIN = 1029499
-    bc = doc[ID_OCTANE_LIVEPLUGIN]
+    octane_container = doc[ID_OCTANE_LIVEPLUGIN]
 
-    if bc:
-        oc_ver = str(bc[c4d.SET_OCTANE_VERSION])
-        # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
-        return ".".join((oc_ver[0], oc_ver[1:3], oc_ver[3]))
+    if not octane_container:
+        return
 
-    return None
+    oc_ver_num = str(octane_container[c4d.SET_OCTANE_VERSION])
+
+    # format to major.minor.update
+    # 3080400 is 3.08.4
+    # 4000016 is 4.00.0-RC6
+    # 10021301 is 10.02.13
+
+    # strip release candidate
+    oc_ver_num = oc_ver_num[:-2]
+    oc_update = oc_ver_num[-2:]
+
+    oc_ver_num = oc_ver_num[:-2]
+    oc_minor = oc_ver_num[-2:]
+
+    oc_major = oc_ver_num[:-2]
+    # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
+    return ".".join((oc_major, oc_minor, oc_update))
 
 
 # Global
@@ -464,11 +478,8 @@ class MultipassInfo(object):
         self.channel_name = channel_name
         self.channel_description = channel_description
 
-    def __nonzero__(self):
-        if self.channel_name or self.channel_description:
-            return True
-
-        return False
+    def isValid(self):
+        return bool(self.channel_name) or bool(self.channel_description)
 
 
 class JobProps(object):
@@ -1221,7 +1232,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if not oc_vp[c4d.SET_PASSES_ENABLED]:
             return 0
 
-        if not mainMP and c4d.GetC4DVersion() < 20000:
+        if not mainMP.isValid() and c4d.GetC4DVersion() < 20000:
             # octane writes rgb or rgba image when multipass is enabled
             mainMP.channel_name = "rgba" if has_alpha else "rgb"
             mainMP.channel_description = mainMP.channel_name
@@ -1387,7 +1398,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
             if use_c4d_path and nice_name:
                 nice_name = "{0}_{1}".format(nice_name, num_channels_idx)
-                if not mainMP:
+                if not mainMP.isValid():
                     mainMP.channel_name = nice_name
                     mainMP.channel_description = mainMP.channel_name
                     if oc_pass not in diffuse_passes:
@@ -1566,13 +1577,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 continue
             descr_name = elem.replace(" ", "_")
             pass_name = "{0}_{1}".format(descr_name.lower(), i + 1)
-            if "diffuse" in descr_name.lower() and not (mainMP and mainMP.channel_name):
+            if "diffuse" in descr_name.lower() and not (mainMP.isValid() and mainMP.channel_name):
                 mainMP.channel_name = pass_name
                 elems.pop(i)
             else:
                 passes.append((pass_name, descr_name))
 
-        if not (mainMP and mainMP.channel_name):
+        if not (mainMP.isValid() and mainMP.channel_name):
             mainMP.channel_name = passes.pop(0)[0]
 
         for pass_name, descr_name in passes:
@@ -1690,7 +1701,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         aov_name = "{0}_{1}".format(aov_name, rs_name_idx)
                         rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
 
-                if mainMP:
+                if mainMP.isValid():
                     self.addChannel(job, aov_name, "$userpass",
                                     render_data[c4d.RDATA_MULTIPASS_SUFFIX])  # aov don't support $userpass
                     added_to_channels = True
@@ -1726,7 +1737,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
                 aov_file, aov_ext = self.getNameFormat(job, aov_file, aov_formats[aov_format])
 
-                if mainMP:
+                if mainMP.isValid():
                     job.channelExtension.append(aov_ext)
                     job.channelFileName.append(aov_file)
                     job.maxChannels += 1
@@ -1778,7 +1789,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             for i, elem in enumerate(elems):
                 descr_name = elem.replace(" ", "_")
                 pass_name = "{0}_{1}".format(descr_name.lower(), i + 2)
-                if mainMP:
+                if mainMP.isValid():
                     self.addChannel(job, pass_name, descr_name, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
                 else:
                     mainMP.channel_name = pass_name
@@ -1957,7 +1968,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             elif job.renderer == "Arnold":
                 self.addChannelsArnold(job, mainMP, render_data)
 
-        if not mainMP:
+        if not mainMP.isValid():
             is_multipass = False
             if not is_mp_single:
                 job.channel = ""

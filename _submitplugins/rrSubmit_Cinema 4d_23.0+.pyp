@@ -53,7 +53,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-#LOGGER.setLevel(logging.DEBUG)
+# LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -379,14 +379,28 @@ def GetRedshiftPluginVersion():
 # Octane
 def GetOctaneVersion(doc):
     ID_OCTANE_LIVEPLUGIN = 1029499
-    bc = doc[ID_OCTANE_LIVEPLUGIN]
+    octane_container = doc[ID_OCTANE_LIVEPLUGIN]
 
-    if bc:
-        oc_ver = str(bc[c4d.SET_OCTANE_VERSION])
-        # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
-        return ".".join((oc_ver[0], oc_ver[1:3] , oc_ver[3]))
+    if not octane_container:
+        return
 
-    return None
+    oc_ver_num = str(octane_container[c4d.SET_OCTANE_VERSION])
+
+    # format to major.minor.update
+    # 3080400 is 3.08.4
+    # 4000016 is 4.00.0-RC6
+    # 10021301 is 10.02.13
+
+    # strip release candidate
+    oc_ver_num = oc_ver_num[:-2]
+    oc_update = oc_ver_num[-2:]
+
+    oc_ver_num = oc_ver_num[:-2]
+    oc_minor = oc_ver_num[-2:]
+
+    oc_major = oc_ver_num[:-2]
+    # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
+    return ".".join((oc_major, oc_minor, oc_update))
 
 
 # Global
@@ -459,11 +473,8 @@ class MultipassInfo(object):
         self.channel_name = channel_name
         self.channel_description = channel_description
 
-    def __nonzero__(self):
-        if self.channel_name or self.channel_description:
-            return True
-
-        return False
+    def isValid(self):
+        return bool(self.channel_name) or bool(self.channel_description)
 
 
 class JobProps(object):
@@ -1214,7 +1225,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if not oc_vp[c4d.SET_PASSES_ENABLED]:
             return 0
 
-        if not mainMP and c4d.GetC4DVersion() < 20000:
+        if not mainMP.isValid() and c4d.GetC4DVersion() < 20000:
             # octane writes rgb or rgba image when multipass is enabled
             mainMP.channel_name = "rgba" if has_alpha else "rgb"
             mainMP.channel_description = mainMP.channel_name
@@ -1379,7 +1390,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
             if use_c4d_path and nice_name:
                 nice_name = "{0}_{1}".format(nice_name, num_channels_idx)
-                if not mainMP:
+                if not mainMP.isValid():
                     mainMP.channel_name = nice_name
                     mainMP.channel_description = mainMP.channel_name
                     if oc_pass not in diffuse_passes:
@@ -1557,13 +1568,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 continue
             descr_name = elem.replace(" ", "_")
             pass_name = "{0}_{1}".format(descr_name.lower(), i + 1)
-            if "diffuse" in descr_name.lower() and not (mainMP and mainMP.channel_name):
+            if "diffuse" in descr_name.lower() and not (mainMP.isValid() and mainMP.channel_name):
                 mainMP.channel_name = pass_name
                 elems.pop(i)
             else:
                 passes.append((pass_name, descr_name))
 
-        if not (mainMP and mainMP.channel_name):
+        if not (mainMP.isValid() and mainMP.channel_name):
             mainMP.channel_name = passes.pop(0)[0]
 
         for pass_name, descr_name in passes:
@@ -1593,6 +1604,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         # aov_types: {type_id: type_name}
         aov_types = {getattr(c4d, attr): attr for attr in dir(c4d) if attr.startswith("REDSHIFT_AOV_TYPE_")}
+        diffuse_passes = ['REDSHIFT_AOV_TYPE_BEAUTY', 'REDSHIFT_AOV_TYPE_DIFFUSE_FILTER',
+                          'REDSHIFT_AOV_TYPE_DIFFUSE_LIGHTING', 'REDSHIFT_AOV_TYPE_DIFFUSE_LIGHTING_RAW']
 
         aov_formats = {
             c4d.REDSHIFT_AOV_FILE_FORMAT_JPEG: ".jpg",
@@ -1639,6 +1652,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         rs_name_idx = 1  # redshift appends an aov index to the aov multipass name
         aov_channels = 0  # 'enabled' and at least one between 'multipass' and 'direct' must be checked
+
+        nondiffuse_main = False
         for i in range(num_AOV):
             added_to_channels = False
             aov_idx = c4d.REDSHIFT_RENDERER_AOV_LAYER_FIRST + i
@@ -1681,10 +1696,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         aov_name = "{0}_{1}".format(aov_name, rs_name_idx)
                         rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
 
-                if mainMP:
-                    self.addChannel(job, aov_name, "$userpass", render_data[c4d.RDATA_MULTIPASS_SUFFIX])  # aov don't support $userpass
-                    added_to_channels = True
+                aov_name = aov_name.lower()
+
+                if mainMP.isValid():
+                    if nondiffuse_main:
+                        # we have a main pass, but we wish it was a diffuse pass instead
+                        # store current main pass as an additional channel
+                        self.addChannel(job, mainMP.channel_name, mainMP.channel_description,
+                                        render_data[c4d.RDATA_MULTIPASS_SUFFIX])
+                        # store diffuse pass as main pass
+                        LOGGER.info("switched main pass to {0}".format(aov_name))
+                        mainMP.channel_name = aov_name
+                        mainMP.channel_description = "$userpass"
+                        nondiffuse_main = False
+                        added_to_channels = True
+                    else:
+                        self.addChannel(job, aov_name, "$userpass", render_data[c4d.RDATA_MULTIPASS_SUFFIX])  # aov don't support $userpass
+                        added_to_channels = True
                 else:
+                    # store as main pass
                     mainMP.channel_name = aov_name
                     mainMP.channel_description = "$userpass"
 
@@ -1692,6 +1722,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         """Using {0} as first pass, but adding at least
                          a 'rgba' multipass is reccomended""".format(aov_type_nice)
                     )
+                    nondiffuse_main = aov_type_name not in diffuse_passes
 
             aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_ENABLED, c4d.DTYPE_BOOL, 0)
             direct_save = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
@@ -1716,7 +1747,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
                 aov_file, aov_ext = self.getNameFormat(job, aov_file, aov_formats[aov_format])
 
-                if mainMP:
+                if mainMP.isValid():
                     job.channelExtension.append(aov_ext)
                     job.channelFileName.append(aov_file)
                     job.maxChannels += 1
@@ -1768,7 +1799,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             for i, elem in enumerate(elems):
                 descr_name = elem.replace(" ", "_")
                 pass_name = "{0}_{1}".format(descr_name.lower(), i + 2)
-                if mainMP:
+                if mainMP.isValid():
                     self.addChannel(job, pass_name, descr_name, render_data[c4d.RDATA_MULTIPASS_SUFFIX])
                 else:
                     mainMP.channel_name = pass_name
@@ -1943,7 +1974,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             elif job.renderer == "Arnold":
                 self.addChannelsArnold(job, mainMP, render_data)
 
-        if not mainMP:
+        if not mainMP.isValid():
             is_multipass = False
             if not is_mp_single:
                 job.channel = ""
