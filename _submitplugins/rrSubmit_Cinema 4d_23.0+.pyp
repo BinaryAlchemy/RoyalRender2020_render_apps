@@ -1638,7 +1638,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         aov_c4d_names = {
             c4d.REDSHIFT_AOV_TYPE_DEPTH: "depth",
-            c4d.REDSHIFT_AOV_TYPE_MOTION_VECTORS: "motion"
+            c4d.REDSHIFT_AOV_TYPE_MOTION_VECTORS: "motion",
+            c4d.REDSHIFT_AOV_TYPE_OBJECT_ID: "object_0"
         }
 
         ID_CUSTOM_UI_AOV = 1036235  # Redshift AOVs ID
