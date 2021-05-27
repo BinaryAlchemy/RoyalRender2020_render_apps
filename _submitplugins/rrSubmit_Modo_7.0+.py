@@ -20,6 +20,7 @@ import random
 import string
 import time
 import copy
+import tempfile
 
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
@@ -113,12 +114,16 @@ class rrJob(object):
 
     def subE(self, r, e, text):
         sub = SubElement(r, e)
-        sub.text = str(text).decode("utf8")
+        text = str(text)
+        if sys.version_info.major == 2:
+            text = text if type(text) is unicode else text.decode("utf8")
+        sub.text = text
         return sub
+       
 
     def writeToXMLstart(self, submitOptions ):
         rootElement = Element("rrJob_submitFile")
-        rootElement.attrib["syntax_version"] = "7.0"
+        rootElement.attrib["syntax_version"] = "6.0"
         self.subE(rootElement, "DeleteXML", "1")
         self.subE(rootElement, "SubmitterParameter", submitOptions)
         # YOU CAN ADD OTHER NOT SCENE-INFORMATION PARAMETERS USING THIS FORMAT:
@@ -168,21 +173,19 @@ class rrJob(object):
 
 
 
-    def writeToXMLEnd(self, f,rootElement):
+    def writeToXMLEnd(self, f, rootElement):
         xml = ElementTree(rootElement)
         self.indent(xml.getroot())
-        if not f == None:
-            xml.write(f)
-            f.close()
-        else:
-            writeError("No valid file has been passed to the function")
+        if f is None:
+            writeError("No valid file has been passed to the write function")
             try:
                 f.close()
             except:
                 pass
             return False
+        xml.write(f)
+        f.close()
         return True
-
 
 
 ##############################################
@@ -201,27 +204,30 @@ def getRR_Root():
         HCPath="%RRLocationLx%"
     if HCPath[0]!="%":
         return HCPath
-    writeError("This plugin was not installed via rrWorkstationInstaller!")
+    writeError("Env var 'RR_ROOT' missing.\nPlease use the rrWorkstationInstaller to install submission plugins!")
+    return ""
 
 
 def getNewTempFileName():
     random.seed()
     if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
-        if os.environ.has_key('TEMP'):
-            nam=os.environ['TEMP']
+        if ('TEMP' in os.environ):
+            nam= os.environ['TEMP']
         else:
-            nam=os.environ['TMP']
-        nam+="\\"
+            nam= os.environ['TMP']
+        nam += "\\"
     else:
-        nam="/tmp/"
-    nam+="rrSubmitModo_"
-    nam+=str(random.randrange(1000,10000,1))
-    nam+=".xml"
+        nam= "/tmp/"
+    nam+= "rrSubmitModo_"
+    nam+= str(random.randrange(1000,10000,1))
+    nam+= ".xml"
     return nam
 
 def getRRSubmitterPath():
     ''' returns the rrSubmitter filename '''
     rrRoot = getRR_Root()
+    if (len(rrRoot) == 0):
+        return ""
     if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
         rrSubmitter = rrRoot+"\\win__rrSubmitter.bat"
     elif (sys.platform.lower() == "darwin"):
@@ -241,8 +247,10 @@ def getOSString():
 
     
 def submitJobsToRR(jobList,submitOptions):
-    tmpFileName = getNewTempFileName()
-    tmpFile = open(tmpFileName, "w")
+    tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
+                                          prefix="rrSubmitNuke_",
+                                          suffix=".xml",
+                                          delete=False)
     xmlObj= jobList[0].writeToXMLstart(submitOptions)
     for submitjob in jobList:
         submitjob.writeToXMLJob(xmlObj)
@@ -251,7 +259,9 @@ def submitJobsToRR(jobList,submitOptions):
         writeInfo("Job written to " + tmpFile.name)
     else:
         writeError("Error - There was a problem writing the job file to " + tmpFile.name)
-    os.system(getRRSubmitterPath()+"  \""+tmpFileName+"\"")
+    rrSubmitterExe= getRRSubmitterPath()
+    if (len(rrSubmitterExe)!=0):
+        os.system(getRRSubmitterPath()+"  \""+tmpFile.name+"\"")
 
 
 ###########################################
@@ -393,11 +403,14 @@ def rrSubmit_AddPattern(imageFilename,sceneInfo):
     if (outPattern==None or (len(outPattern)==0)):
         outPattern="<FFFF>"
     outPattern= outPattern.replace("[<LR>]","<StereoRL>")
+    outPattern= outPattern.replace("[LR]","<StereoRL>")
     outPattern= outPattern.replace("<LR>","<StereoRL>")
     outPattern= outPattern.replace("[<output>]","<Layer>")
+    outPattern= outPattern.replace("[output]","<Layer>")
     outPattern= outPattern.replace("<output>","<Layer>")
     outPattern= outPattern.replace("[<camera>]","<Camera>")
     outPattern= outPattern.replace("[<pass>]","<Channel>")
+    outPattern= outPattern.replace("[pass]","<Channel>")
     outPattern= outPattern.replace("<pass>","<Channel>")
     outPattern= outPattern.replace("<F>","#")
     outPattern= outPattern.replace("<FF>","##")
@@ -405,6 +418,13 @@ def rrSubmit_AddPattern(imageFilename,sceneInfo):
     outPattern= outPattern.replace("<FFFF>","####")
     outPattern= outPattern.replace("<FFFFF>","#####")
     outPattern= outPattern.replace("<FFFFFF>","######")
+    outPattern= outPattern.replace("F","#")
+    outPattern= outPattern.replace("FF","##")
+    outPattern= outPattern.replace("FFF","###")
+    outPattern= outPattern.replace("FFFF","####")
+    outPattern= outPattern.replace("FFFFF","#####")
+    outPattern= outPattern.replace("FFFFFF","######")
+    
     outPattern= outPattern.replace(".ext","")
     imageFilename = imageFilename + outPattern
     return imageFilename
