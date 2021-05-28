@@ -567,6 +567,7 @@ def applyRendererOptions_alembic(singleFile):
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName=arg.FName
     if singleFile:
+        arg.noFrameLoop= True
         outFileName= outFileName
         logMessageSET("output name to "+outFileName)
         arg.rop.parm('render_full_range').set(1)
