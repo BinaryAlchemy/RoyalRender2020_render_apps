@@ -132,7 +132,7 @@ class argParser:
         self.syncDeepFileName=self.getParam("-syncDeepFileName")
         self.wedge=self.getParam("-wedge")
         self.avFrameTime=self.getParam("-avFrameTime")
-        self.noFrameLoop=self.getParam("-noFrameLoop")
+        self.allFramesAtOnce=self.getParam("-noFrameLoop")
         self.SkipExisting=self.getParam("-SkipExisting")
         self.ignoreLoadIssues=self.getParam("-ignoreLoadIssues")
         self.subFrames=self.getParam("-subFrames")
@@ -224,16 +224,16 @@ def renderFrames(FrStart,FrEnd,FrStep):
     FrEnd=int(FrEnd)
     FrStep=int(FrStep)
 
-    localNoFrameLoop = arg.noFrameLoop
-    if (not localNoFrameLoop):
-        #logMessage("not localNoFrameLoop   TRUE")
+    localAllFramesAtOnce = arg.allFramesAtOnce
+    if (not localAllFramesAtOnce):
+        #logMessage("not localAllFramesAtOnce   TRUE")
         #logMessage("arg.renderer is  "+ str(arg.renderer))
         if (arg.avFrameTime == 0):
-            localNoFrameLoop = arg.renderer in ("redshift", "Octane", "opengl")
+            localAllFramesAtOnce = arg.renderer in ("redshift", "Octane", "opengl")
         elif (arg.avFrameTime < 60):
-            localNoFrameLoop = True
+            localAllFramesAtOnce = True
         elif (arg.avFrameTime < 140):
-            localNoFrameLoop = arg.renderer in ("redshift", "Octane", "opengl")
+            localAllFramesAtOnce = arg.renderer in ("redshift", "Octane", "opengl")
 
     try:
         imgRes = ()
@@ -245,12 +245,13 @@ def renderFrames(FrStart,FrEnd,FrStep):
         mainFileName = mainFileName.replace(".$AOV", "")
         localFrStep= FrStep
         
-        if (arg.subFrames>1):
-            localFrStep= float(localFrStep) /float(arg.subFrames)
-            if (localFrStep != 1):
-                localNoFrameLoop= False
+        if (arg.subFrames > 1 ):
+            localFrStep= 1.0 / float(arg.subFrames)
+            if (FrStep != 1): 
+                #e.g. preview render
+                localAllFramesAtOnce= False
 
-        if localNoFrameLoop:
+        if localAllFramesAtOnce:
             localFrEnd= FrEnd 
             if (localFrStep < 1.0):
                 localFrEnd= float(localFrEnd+1) - localFrStep
@@ -567,7 +568,8 @@ def applyRendererOptions_alembic(singleFile):
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName=arg.FName
     if singleFile:
-        arg.noFrameLoop= True
+        arg.FSingleFile= True
+        arg.allFramesAtOnce= True
         outFileName= outFileName
         logMessageSET("output name to "+outFileName)
         arg.rop.parm('render_full_range').set(1)
@@ -856,8 +858,8 @@ try:
     if (argValid(arg.wedge)):
         switchWedge(arg)
 
-    if (not argValid(arg.noFrameLoop)):
-        arg.noFrameLoop= False
+    if (not argValid(arg.allFramesAtOnce)):
+        arg.allFramesAtOnce= False
     if (not argValid(arg.avFrameTime)):
         arg.avFrameTime= 0
     else:
