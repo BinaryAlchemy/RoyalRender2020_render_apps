@@ -29,6 +29,7 @@ import maya.app.renderSetup.model.renderSetup as renderSetup
 
 if sys.version_info.major == 2:
     range = xrange
+    FileNotFoundError = OSError
 else:
     def unichr(x):
         return str(x)
