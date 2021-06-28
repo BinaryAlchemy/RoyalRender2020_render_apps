@@ -180,41 +180,43 @@ def ksoRenderFrame(FrStart,FrEnd,FrStep ):
 
 
 def rrKSOStartServer(arg):
-    logMessage("rrKSO startup...")
-    if ((arg.KSOPort== None) or (len(str(arg.KSOPort))<=1)):
-        arg.KSOPort=7774
-    HOST, PORT = "localhost", int(arg.KSOPort)
-    server = kso_tcp.rrKSOServer((HOST, PORT), kso_tcp.rrKSOTCPHandler)
-    flushLog()
-    time.sleep(0.3)
-    logMessage("rrKSO server started")
-    server.print_port()
-    flushLog()
-    kso_tcp.rrKSONextCommand=""
-    while server.continueLoop:
-        try:
-            logMessageDebug("rrKSO waiting for new command...")
-            server.handle_request()
-            time.sleep(1) # handle_request() seem to return before handle() completed execution
-        except Exception, e:
-            logMessageError( e)
-            server.continueLoop= False;
-            import traceback
-            logMessageError(traceback.format_exc())
-        logMessage("                                                            ")
-        logMessage("                                                            ")
-        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
-        logMessage("rrKSO NextCommand '"+ kso_tcp.rrKSONextCommand+"'")   
-        logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
+    try:
+        logMessage("rrKSO startup...")
+        if ((arg.KSOPort== None) or (len(str(arg.KSOPort))<=0)):
+            arg.KSOPort=7774
+        HOST, PORT = "localhost", int(arg.KSOPort)
+        server = kso_tcp.rrKSOServer((HOST, PORT), kso_tcp.rrKSOTCPHandler)
         flushLog()
-        if (len(kso_tcp.rrKSONextCommand)>0):
-            if ((kso_tcp.rrKSONextCommand=="ksoQuit()") or (kso_tcp.rrKSONextCommand=="ksoQuit()\n")):
-                server.continueLoop=False
-                kso_tcp.rrKSONextCommand=""
-            else:
-                exec (kso_tcp.rrKSONextCommand)
-                kso_tcp.rrKSONextCommand=""
-    logMessage("rrKSO closed")
+        time.sleep(0.3)
+        logMessage("rrKSO server started")
+        server.print_port()
+        flushLog()
+        kso_tcp.rrKSONextCommand=""
+        while server.continueLoop:
+            try:
+                logMessageDebug("rrKSO waiting for new command...")
+                server.handle_request()
+                time.sleep(1) # handle_request() seem to return before handle() completed execution
+            except Exception as e:
+                logMessageError(e)
+                server.continueLoop= False;
+                import traceback
+                logMessageError(traceback.format_exc())
+            logMessage("rrKSO NextCommand '"+ kso_tcp.rrKSONextCommand+"'")   
+            logMessage("                                                           **   ")
+            logMessage("                                                         *wait* ")
+            logMessage("                                                           **   ")
+            flushLog()
+            if (len(kso_tcp.rrKSONextCommand)>0):
+                if ((kso_tcp.rrKSONextCommand=="ksoQuit()") or (kso_tcp.rrKSONextCommand=="ksoQuit()\n")):
+                    server.continueLoop=False
+                    kso_tcp.rrKSONextCommand=""
+                else:
+                    exec (kso_tcp.rrKSONextCommand)
+                    kso_tcp.rrKSONextCommand=""
+        logMessage("rrKSO closed")
+    except Exception as e:
+        logMessageError(str(e))
 
 
 def render_KSO(arg):
@@ -293,7 +295,9 @@ try:
         logMessage("Added "+arg.PyModPath+"to module search path")
     global kso_tcp
     import kso_tcp            
-
+    kso_tcp.USE_LOGGER= False
+    kso_tcp.USE_DEFAULT_PRINT= True        
+    kso_tcp.rrKSO_logger_init()
 
     sceneIsEmpty= True
 
@@ -388,11 +392,29 @@ try:
 
     if (arg.regX1!= -1):
         logMessage("Set region: " +str(arg.regX1)+" "+str(arg.regX2)+" "+str(arg.regY1)+" "+str(arg.regY2)+" ")
-        lx.eval( "item.channel polyRender$region true" )
-        lx.eval( "item.channel polyRender$regX0 %s" % arg.regX1 )
-        lx.eval( "item.channel polyRender$regX1 %s" % arg.regX2 )
-        lx.eval( "item.channel polyRender$regY0 %s" % arg.regY1 )
-        lx.eval( "item.channel polyRender$regY1 %s" % arg.regY2 )    
+                
+        rend = current_scene.AnyItemOfType(scene_service.ItemTypeLookup(lx.symbol.sITYPE_RENDER))
+        chan = current_scene.Channels(lx.symbol.s_ACTIONLAYER_EDIT, 0.0)
+
+        idx = rend.ChannelLookup(lx.symbol.sICHAN_POLYRENDER_REGION)
+        cout = lx.object.ChannelWrite(chan)
+        cout.Integer(rend, idx, 1)
+
+        idx = rend.ChannelLookup(lx.symbol.sICHAN_POLYRENDER_REGX0)
+        cout = lx.object.ChannelWrite(chan)
+        cout.Double(rend, idx, float(arg.regX1))
+
+        idx = rend.ChannelLookup(lx.symbol.sICHAN_POLYRENDER_REGX1)
+        cout = lx.object.ChannelWrite(chan)
+        cout.Double(rend, idx, float(arg.regX2))
+
+        idx = rend.ChannelLookup(lx.symbol.sICHAN_POLYRENDER_REGY0)
+        cout = lx.object.ChannelWrite(chan)
+        cout.Double(rend, idx, float(arg.regY1))
+
+        idx = rend.ChannelLookup(lx.symbol.sICHAN_POLYRENDER_REGY1)
+        cout = lx.object.ChannelWrite(chan)
+        cout.Double(rend, idx, float(arg.regY2))    
 
 
     #get pass groups and enable/disable for each output layer

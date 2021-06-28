@@ -1483,6 +1483,10 @@ def init_c4d():
         global rrOS
 
         import kso_tcp
+        kso_tcp.USE_LOGGER= False
+        kso_tcp.USE_DEFAULT_PRINT= True 
+        kso_tcp.rrKSO_logger_init()
+		
         import rrScriptHelper
         from rrScriptHelper import rrOS
         doCrossOSPathConversionC4d(arg)

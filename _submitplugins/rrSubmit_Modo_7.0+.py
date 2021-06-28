@@ -286,6 +286,9 @@ def applyStereoSettings(jobList, camNames, camStereo, camEye, camComp):
             if (camNames[c]==jobList[j].camera):
                 if (not camStereo[c]):
                     jobList[j].imageFilename = jobList[j].imageFilename.replace("<StereoRL>", "")
+                    for ic in range(0,self.maxChannels):
+                        jobList[j].channelFileName[ic] = jobList[j].channelFileName[ic].replace("<StereoRL>", "")
+                   
                     
                 
                
@@ -553,6 +556,7 @@ def rrSubmit_CreateAllLayerJob(jobList,sceneInfo,passGroups):
 #Renders one Layer with all pass groups and passes
 def rrSubmit_CreateLayerJobs(jobList,sceneInfo,passGroups):
     nbOutputs=lx.eval( "query sceneservice renderOutput.N ?")
+
     for L in range(0, nbOutputs):
         newJob= rrJob()
         rrSubmit_fillGlobalSceneInfo(newJob,sceneInfo)
@@ -744,7 +748,7 @@ passGroupList=[];
 getPassInfo(passGroupList)
 
 #create jobs for each render layer, it renders all pass groups
-rrSubmit_CreateAllLayerJob(jobList,sceneInfo,passGroupList)
+#rrSubmit_CreateAllLayerJob(jobList,sceneInfo,passGroupList) disabled. If no <Layer> is in the output name, then the render script does not set the output pattern nor filename and it might not match the job
 #print (len(jobList))
 
 #create jobs for each render layer, it renders all pass groups
