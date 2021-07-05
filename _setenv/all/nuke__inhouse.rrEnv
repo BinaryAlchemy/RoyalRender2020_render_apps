@@ -9,3 +9,6 @@ echo * ------ nuke__inhouse.rrEnv ------
  
  # Uncomment this line if you do not want to RR to set the NukeInteractiveLicense flag
  # NoLicenseChange = NO
+ 
+ 
+ # PG_BOKEH_ABORT_ON_LICENSE_FAIL = 1

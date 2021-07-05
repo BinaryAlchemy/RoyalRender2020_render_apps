@@ -198,3 +198,18 @@ def createVRayRemapFile(filename, fromOS):
         return False
     return True    
     
+    
+    
+def replaceXMLEscapedString(strg)
+    strg= strg.replace(";amp;","&")
+    strg= strg.replace(";quot;","\"")
+    strg= strg.replace(";apos;","'")
+    strg= strg.replace(";lt;","<")
+    strg= strg.replace(";gt;",">")
+    return  strg
+    
+
+
+    
+    
+    

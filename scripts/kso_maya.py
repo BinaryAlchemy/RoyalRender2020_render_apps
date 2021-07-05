@@ -148,6 +148,7 @@ def getParam(allArgList, argFindName):
                 argValue=True
             elif (argValue.lower()=="false"):
                 argValue=False
+            argValue= rrScriptHelper.replaceXMLEscapedString(argValue)
             logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'");
             return argValue
     return ""
