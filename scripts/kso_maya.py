@@ -1095,7 +1095,10 @@ def rrStart(argAll):
             logMessage("Append python search path with '" +arg.PyModPath+"'" )
             sys.path.append(arg.PyModPath)
         global kso_tcp
-        import kso_tcp            
+        import kso_tcp   
+        kso_tcp.USE_LOGGER= False
+        kso_tcp.USE_DEFAULT_PRINT= True 
+        kso_tcp.rrKSO_logger_init()
 
         try:
             logMessage("Set Workspace to '" +arg.Database+"'" )

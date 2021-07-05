@@ -1024,7 +1024,7 @@ def setRenderParams(doc, arg):
                 logMessage("Couldn't set output image format to {0}".format(arg.FExt))
                 return False
 
-        elif (arg.Channel=="Reg_Multi"):
+        elif arg.Channel == "Reg_Multi":
             #main and multipass output
             #submitter plugin has read the multipass output as filename, not the main output
             logMessage("INFO: setRenderParams: main and multipass output")
@@ -1071,14 +1071,7 @@ def setRenderParams(doc, arg):
                 rd[c4d.RDATA_PATH] = make_tile_path(rd[c4d.RDATA_PATH], tile_num)
 
             rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
-
-            try:
-                if argValid(arg.FExt):
-                    rd[c4d.RDATA_FORMAT] = c4d_ext_id(arg.FExt)
-            except AttributeError:
-                logMessageWarning("Couldn't set output image format to {0}".format(arg.FExt))
-                return False
-        elif (arg.Channel=="MultiPass"):
+        elif arg.Channel == "MultiPass":
             logMessage("INFO: setRenderParams: all multipass output")
 
             orig_multipass_out = rd[c4d.RDATA_MULTIPASS_FILENAME]
@@ -1483,6 +1476,10 @@ def init_c4d():
         global rrOS
 
         import kso_tcp
+        kso_tcp.USE_LOGGER= False
+        kso_tcp.USE_DEFAULT_PRINT= True 
+        kso_tcp.rrKSO_logger_init()
+		
         import rrScriptHelper
         from rrScriptHelper import rrOS
         doCrossOSPathConversionC4d(arg)

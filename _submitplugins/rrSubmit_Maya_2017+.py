@@ -29,6 +29,7 @@ import maya.app.renderSetup.model.renderSetup as renderSetup
 
 if sys.version_info.major == 2:
     range = xrange
+    FileNotFoundError = OSError
 else:
     def unichr(x):
         return str(x)
@@ -52,22 +53,23 @@ def printDebug(msg):
         print(msg)
 
 # option menus
-frSet_option = None
+FR_SET_OPTION = None
+
+
+def is_ui_mode():
+    gMainWindow = maya.mel.eval('$tmpVar=$gMainWindow')
+    try:
+        cmds.setParent(gMainWindow)
+    except:
+        return False
+    return True
+
 
 def rrWriteLog(msg):
-        UIMode=True
-        try:
-            maya.mel.eval('global string $gMainWindow;')
-            maya.mel.eval('setParent $gMainWindow;')
-        except:
-            UIMode=False
-        if (UIMode):
-            cmds.confirmDialog(message=msg, button=['Abort'])
-        else:
-            print (msg)
-            
-            
-            
+    if is_ui_mode():
+        cmds.confirmDialog(message=msg, button=['Abort'])
+    else:
+        print(msg)
 
 
 def getSceneFps():
@@ -1933,10 +1935,13 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
     #write all information (layer/passes) into RR job file
     def writeAllLayers(self, UIMode):
         submitOptions = ""
+        tmp_prefix = "rrSubmitMaya_"
+        tmp_suffix = ".xml"
         tmpFile = tempfile.NamedTemporaryFile(mode='w+b',
-                                              prefix="rrSubmitMaya_",
-                                              suffix=".xml",
+                                              prefix=tmp_prefix,
+                                              suffix=tmp_suffix,
                                               delete=False)
+
         self.TempFileName = tmpFile.name
         xmlObj= self.writeToXMLstart(submitOptions)
 
@@ -1964,6 +1969,20 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         ret = self.writeToXMLEnd(tmpFile, xmlObj)
         if not ret:
             rrWriteLog("Error - There was a problem writing the job file to " + tmpFile.name)
+            return
+        if not UIMode:
+            # we strip the random name from the file when the plugin is invoked from the command line:
+            # the scene parser plugin expects the file to be named just
+            # "rrSubmitMaya_.xml"
+            # FIXME: we should be able to return the filename to the scene parser plugin
+            original_path = self.TempFileName
+            tmp_dir, tmp_name = os.path.split(original_path)
+            self.TempFileName = os.path.join(tmp_dir, tmp_prefix + tmp_suffix)
+            try:
+                os.unlink(self.TempFileName)
+            except FileNotFoundError:
+                pass
+            os.rename(original_path, self.TempFileName)
 
 
     #call the submitter
@@ -2009,13 +2028,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         initGlobalVars()
 
         #check if we are in console batch mode
-        UIMode=True
-        try:
-            maya.mel.eval('global string $gMainWindow;')
-            maya.mel.eval('setParent $gMainWindow;')
-        except:
-            UIMode=False
-            print ("We are running in batch mode")
+        UIMode = is_ui_mode()
         
         # Ask for scene save:
         if (UIMode and (cmds.file(q=True, mf=True))):  # //Ignore ifcheck
@@ -2071,7 +2084,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 return False
 
         # frameset
-        use_frameset = cmds.menuItem(frSet_option, query=True, checkBox=True)
+        use_frameset = cmds.menuItem(FR_SET_OPTION, query=True, checkBox=True)
         if use_frameset:
             self.askFrameset()
 
@@ -2104,12 +2117,9 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 # Initialize the script plug-in
 def initializePlugin(mobject):
-    global frSet_option
-    try:
+    if is_ui_mode():
         maya.mel.eval('global string $RRMenuCtrl;')
         maya.mel.eval('if (`menu -exists $RRMenuCtrl `) deleteUI $RRMenuCtrl;')
-        maya.mel.eval('global string $gMainWindow;')
-        maya.mel.eval('setParent $gMainWindow;')
         maya.mel.eval('$RRMenuCtrl = `menu -p $gMainWindow -to true -l "RRender"`;')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene..." -c "rrSubmit";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Select camera..." -c "rrSubmit true";')
@@ -2118,10 +2128,11 @@ def initializePlugin(mobject):
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export selected object as alembic cache" -c "rrSubmit false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - VRay Bake Textures" -c "rrSubmit false false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Pick python script to execute on scene file" -c "rrSubmit false false false false false true";')
-        frSet_option = maya.mel.eval('menuItem -p $RRMenuCtrl -l "Ask for Frameset" -checkBox off;')
-    except:
+
+        global FR_SET_OPTION
+        FR_SET_OPTION = maya.mel.eval('menuItem -p $RRMenuCtrl -l "Ask for Frameset" -checkBox off;')
+    else:
         print("We are running in batch mode")
-        
     
     mplugin = OpenMayaMPx.MFnPlugin(mobject)
     try:
