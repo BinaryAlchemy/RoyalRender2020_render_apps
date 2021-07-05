@@ -24,7 +24,7 @@ SceneFileExtension= *.blend
 AllowImageNameChange= 1
 AllowImageDirChange= 1
 SequenceDivide= 0~1
-
+AllowLocalSceneCopy= 1~0
 
 
 ImageSize= PAL  ~720~576
