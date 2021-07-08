@@ -200,7 +200,7 @@ def createVRayRemapFile(filename, fromOS):
     
     
     
-def replaceXMLEscapedString(strg)
+def replaceXMLEscapedString(strg):
     strg= strg.replace(";amp;","&")
     strg= strg.replace(";quot;","\"")
     strg= strg.replace(";apos;","'")
