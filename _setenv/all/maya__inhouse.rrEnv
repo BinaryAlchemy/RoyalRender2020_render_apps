@@ -37,7 +37,7 @@ RR_VRAY_NETWORK  =  0
 
 # Uncomment the next 3 lines if you want to have a separate folder for each VRay version
 # [If] <RR_VRAY_BASE>  [==] 
-#     RR_VRAY_BASE  =  <rrSharedExeDir>vray<rrExeVersionMinReq>__<rrJobRendererVersion>
+#     RR_VRAY_BASE  =  <rrSharedExeDir>vray<ExeVersionMajor>__<rrJobRendererVersion>
 # [EndIf]
 
 
@@ -48,7 +48,7 @@ RR_MTOA_NETWORK  =  0
 
 # Uncomment the next 3 lines if you want to have a separate folder for each MtoA version. RR_MTOA_NETWORK=1 is required
 #   [If] <RR_MTOA_BASE>  [==] 
-#     RR_MTOA_BASE  =  <rrSharedExeDir>mtoadeploy_<rrExeVersionMinReq>__<rrJobRendererVersion>
+#     RR_MTOA_BASE  =  <rrSharedExeDir>mtoadeploy_<ExeVersionMajor>__<rrJobRendererVersion>
 #   [EndIf]
 
 RR_MTOA_LICTEST = 0
@@ -70,6 +70,9 @@ RR_MTOA_LICTEST = 0
 # [If] <RR_REDSHIFT_BASE>  [==] 
 #     RR_REDSHIFT_BASE  =   <rrSharedExeDir>Redshift_<rrJobRendererVersion>
 # [EndIf]
+
+RR_REDSHIFT_NETWORK = 1
+
 
 # ###################  Yeti environment variables ###################
 # Uncomment the next line to set the license server:

@@ -141,6 +141,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
 VRAY_VFB_GUI  =  0
 
 
+
 # ###################  Arnold/MtoA environment variables ###################
 #enable RR_MTOA_NETWORK by default if not set in __inhouse file
 [If] <RR_MTOA_NETWORK>  [==] 
@@ -164,7 +165,6 @@ RR_USE_ARNOLD_RENDERER = 0
 #If MtoA network shared folder is not used, then use local MtoA folder on machines drive (installed with Maya)
 [If] <RR_MTOA_NETWORK>  [==] 0
     [If] <RR_MTOA_BASE>  [==] 
-        RR_MTOA_NETWORK  =  0
         [If] <rrExeVersionMajor>  [<] 2020
             [If] <rrExeOS>  [==] win
                 RR_MTOA_BASE  =  C:\SolidAngle\mtoadeploy\<rrExeVersionMinReq>
@@ -247,18 +247,51 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
 # ###################  RedShift environment variables ###################
 
 #small bug in RR, this is required because of the YETI section. RR thinks the var was already used, but it is not if redshift is not used
-REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
 
 [If] <rrJobRenderer>  [contains] redshift
+    REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
+
+    #enable RR_REDSHIFT_NETWORK by default if not set in __inhouse file
+    [If] <RR_REDSHIFT_NETWORK>  [==] 
+        RR_REDSHIFT_NETWORK  =  1
+    [EndIf]
+[EndIf]
+
+[If] <rrJobRenderer>  [contains] redshift
+    [If] <RR_REDSHIFT_NETWORK>  [==] 0
+        [If] <RR_REDSHIFT_BASE>  [==] 
+            [If] <rrExeVersionMajor>  [<] 2020
+                [If] <rrExeOS>  [==] win
+                    RR_REDSHIFT_BASE  =  c:\ProgramData\Redshift
+                [Else]
+                    RR_REDSHIFT_NETWORK  =  1
+                [EndIf]
+            [EndIf]
+        [EndIf]
+    [EndIf]
+[EndIf]
+
+[If] <rrJobRenderer>  [contains] redshift
+    #if no Redshift folder was defined in __inhouse file and we do not use local folder, define Redshift network shared folder
     [If] <RR_REDSHIFT_BASE>  [==] 
         RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<rrJobRendererVersion>
     [EndIf]
+    #define local cache folder IF we use MtoA network shared folder
+    [If] <RR_REDSHIFT_NETWORK>  [==] 1
+        RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
+    [Else]
+        RR_REDSHIFT_BASE_LOCAL  = <RR_REDSHIFT_BASE>
+    [EndIf]
+
     RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
 [EndIf]
+
 [If] <rrJobRenderer>  [contains] redshift
     echo * RedShift source path is set to <RR_REDSHIFT_BASE>
     echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
-    [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
+    [If] <RR_REDSHIFT_NETWORK>  [==] 1
+        [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
+    [EndIf]
     REDSHIFT_COREDATAPATH  =  <RR_REDSHIFT_BASE_LOCAL>
     [If] <rrExeOS>  [==] win
         REDSHIFT_COMMON_ROOT  =  <RR_REDSHIFT_BASE_LOCAL>\Plugins\Maya\Common

@@ -11,6 +11,8 @@ RenderPreviewFirst= 0~0
 UIStyle= 1~dark
 MultiOSScenes=0~0
 RequiredMemory=1~4
+CropEXR=0~0
+
 
 CONukeX= 1 ~ 0 
 
