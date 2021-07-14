@@ -15,6 +15,8 @@ import sys
 import os
 
 
+if sys.version_info.major == 2:
+    range = xrange
    
 def logMessageGen(lvl, msg):
     if (len(lvl)==0):
@@ -260,7 +262,7 @@ def renderFrames(FrStart,FrEnd,FrStep):
             renderFrames_sub(FrStart,localFrEnd,localFrStep,imgRes)
 
         else:
-            for fr in xrange(FrStart,FrEnd+1,FrStep):
+            for fr in range(FrStart,FrEnd+1,FrStep):
                 if (not argValid(arg.SkipExisting) or not (arg.SkipExisting)):
                     kso_tcp.writeRenderPlaceholder_nr(mainFileName, fr, arg.FPadding, arg.FExt)
                 localFrEnd= fr
