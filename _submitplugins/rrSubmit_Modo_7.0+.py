@@ -286,7 +286,7 @@ def applyStereoSettings(jobList, camNames, camStereo, camEye, camComp):
             if (camNames[c]==jobList[j].camera):
                 if (not camStereo[c]):
                     jobList[j].imageFilename = jobList[j].imageFilename.replace("<StereoRL>", "")
-                    for ic in range(0,self.maxChannels):
+                    for ic in range(0, jobList[j].maxChannels ):
                         jobList[j].channelFileName[ic] = jobList[j].channelFileName[ic].replace("<StereoRL>", "")
                    
                     
