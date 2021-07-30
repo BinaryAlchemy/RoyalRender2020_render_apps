@@ -81,7 +81,16 @@ function RRgetPassesInfo(sceneInfo)
             if (app.project.renderQueue.item( p).comp.name==passes.p[i].name )    foundComp=true;
             }
         if (foundComp) continue;
-            
+
+        if (app.project.renderQueue.item( p).comp.name.indexOf("  ")>=0) {
+			alert( "Comp name contains two spaces in a row!\n"+ app.project.renderQueue.item( p).comp.name +"\nThis comp cannot render on the farm because of an Afx bug." );
+			continue;
+        }
+        if (app.project.renderQueue.item( p ).outputModule( 1 ).file.fsName.indexOf("  ")>=0) {
+			alert( "Image output contains two spaces in a row!\n"+ app.project.renderQueue.item( p).comp.name +"\nThis comp cannot render on the farm because of an Afx bug." );
+			continue;
+        }
+
         passes.max++;
         passes.p[passes.max-1]= new Object();
         passes.p[passes.max-1].name=app.project.renderQueue.item( p).comp.name;
@@ -92,6 +101,7 @@ function RRgetPassesInfo(sceneInfo)
         passes.p[passes.max-1].seqStep=1;
         passes.p[passes.max-1].seqFileOffset=0;
         passes.p[passes.max-1].imageFilename=app.project.renderQueue.item( p ).outputModule( 1 ).file.fsName;
+		
     }
 
     if  (passes.max==1)  {
