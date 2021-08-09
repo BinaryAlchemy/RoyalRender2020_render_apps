@@ -2,13 +2,6 @@
 IconApp=3D03__3dsMAX_s.png
 ImageSizeCommandline= 	"*ResX*;;<Width>"  "*ResY*;;<Height>"
 
-ImageSize= PAL  ~720~576
-ImageSize= NTSC  ~720~486
-ImageSize= HD 1080p ~ 1920~1080
-ImageSize= HD 720p  ~ 1280~720
-ImageSize= 4:3 Small ~ 400~300
-ImageSize= 4:3 Big   ~ 1000~750
-ImageSize= 16:9     ~ 1024~576
 
 
 ################################## Submitter Settings ################################## 

@@ -19,13 +19,6 @@ AllowImageDirChange= 1
 AllowLocalSceneCopy= 1~0
 UIStyle= 1~dark
 
-ImageSize= PAL  ~720~576
-ImageSize= NTSC  ~720~486
-ImageSize= HD  ~ 1920~1080
-ImageSize= HD small  ~ 1280~720
-ImageSize= 4:3 Small ~ 400~300
-ImageSize= 4:3 Big   ~ 1000~750
-ImageSize= 16:9     ~ 1024~576
 
 ################################## Client Settings ################################## 
 
