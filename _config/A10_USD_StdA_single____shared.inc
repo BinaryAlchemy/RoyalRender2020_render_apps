@@ -4,57 +4,13 @@
 #
 #
 ################################## Identify Render Application ################################## 
-Name= USD_StdA
+Name= USD_StdA_single
 OverrideClientInstallName= Houdini
 Version=18
 Type=Archive
 
 
 
-##################################   [Windows] [Linux] [Osx] ##################################
-
-CommandLine=<envFileExecute <rrEnvFile>> 
-
-CommandLine=<rrEnvLine> 
-
-
-CommandLine=
-	<SetEnvGlobal>
-
-
-CommandLine=
-	<SetEnvSoft>
-
-
-CommandLine=
-	<ResetExitCode> 
-
-
-CommandLine=  
-	::win  @echo 
-	::lx   /bin/echo
-	::osx  /bin/echo
-	"*************** Rendering frame <FN> ***************"
-
-
-
-CommandLine=  "<Exe><ED>husk"
-	<AdditionalCommandlineParam>
-	<ClientConfigParam>
-    <verboseLevel>
-    --usd-input <PD/<Scene>>
-    <Cores --threads <Cores>>
-	-o <ImageSingleOutputFile	"<PD/<ImageDir><ImageFilename>>"	? "<PD/<ImageDir><ImageFilename>$F<ImageFramePadding><ImageExtension>>" >
-    -f <SeqStart> -n <TotalFrames> -i <SeqStep>
-
-CommandLine=
-	<CheckExitCode> <FN>
-
-CommandLine=  
-	::win  @echo 
-	::lx   /bin/echo
-	::osx  /bin/echo
-	"*************** Frame <FN> done ***************"
 
 ################################## Render Settings ################################## 
 FlagsVerbose0= <AvFrameTimeMin10 -V2a ? -V2>
