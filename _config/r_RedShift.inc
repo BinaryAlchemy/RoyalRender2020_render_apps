@@ -15,5 +15,6 @@ RealTimeAbortLine= Writing Redshift crash dump
 RealTimeAbortLine= CL_OUT_OF_RESOURCES 
 RealTimeAbortLine= CL_MEM_OBJECT_ALLOCATION_FAILURE 
 RealTimeAbortLine= Output file locked or path not available for writing. Skipping frame
+RealTimeAbortLine= Rendering aborted due to license failure
 
 ::include(<ConfigFileName>__inhouse.inc)
