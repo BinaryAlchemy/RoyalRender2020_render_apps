@@ -12,11 +12,13 @@ import sys
 import time
 import logging
 
+StructureID_RRN_TCP_HeaderData_v6 = 0x0D06
+Size_RRN_TCP_HeaderData_v6 = 214
 StructureID_rrCommands  =0x0B04
-StructureID_RRN_TCP_HeaderData_v5 = 0x0D05
 Size_RRCommands = 2032
-Size_RRN_TCP_HeaderData_v5 = 206
 rrnData_commands = 7
+
+
 log_command="print(' \\\'"
 log_command_end="')"
 commandTimeout=180
@@ -290,8 +292,8 @@ class _RRCommands():
 
 
     
-class _RRN_TCP_HeaderData_v5():
-    StructureID= StructureID_RRN_TCP_HeaderData_v5
+class _RRN_TCP_HeaderData_v6():
+    StructureID= StructureID_RRN_TCP_HeaderData_v6
     dataLen=0   
     dataType=0  
     dataNrElements=0
@@ -303,15 +305,15 @@ class _RRN_TCP_HeaderData_v5():
         #return struct.pack("=HIIHbhB190s",self.StructureID,keptfree,self.dataLen,keptfree,self.dataType,self.dataNrElements,self.appType,keptfreeS)
 
     def fromBinary(self, buf):
-        tmp= struct.unpack("=H??IIHbB190s",buf)
+        tmp= struct.unpack("=HII??IIHbB190s",buf)
         self.StructureID= tmp[0] 
-        self.dataLen= tmp[4] 
-        self.dataNrElements= tmp[5] 
-        self.dataType= tmp[6] 
-        self.appType= tmp[7] 
+        self.dataLen= tmp[6] 
+        self.dataNrElements= tmp[7] 
+        self.dataType= tmp[8] 
+        self.appType= tmp[9] 
 
     def rightStructure(self):
-        return (self.StructureID== StructureID_RRN_TCP_HeaderData_v5)
+        return (self.StructureID== StructureID_RRN_TCP_HeaderData_v6)
 
 rrKSONextCommand=""
 
@@ -320,12 +322,12 @@ rrKSONextCommand=""
 class rrKSOTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         logMessageDebug("rrKSOTCPHandler")
-        headerData=_RRN_TCP_HeaderData_v5()
-        headerData.fromBinary(self.request.recv(Size_RRN_TCP_HeaderData_v5))
+        headerData=_RRN_TCP_HeaderData_v6()
+        headerData.fromBinary(self.request.recv(Size_RRN_TCP_HeaderData_v6))
         if ((not headerData.rightStructure()) or (headerData.dataType!=rrnData_commands) or (headerData.dataLen!=Size_RRCommands) ):
             self.server.continueLoop=False
             logMessageError("TCP header wrong! "
-                   + " ID:"+ str(headerData.StructureID)+"!=" +str(StructureID_RRN_TCP_HeaderData_v5)
+                   + " ID:"+ str(headerData.StructureID)+"!=" +str(StructureID_RRN_TCP_HeaderData_v6)
                    + " type:"+ str(headerData.dataType)+"!=" +str(rrnData_commands)
                    + " len:"+ str(headerData.dataLen)+"!=" +str(Size_RRCommands)
                    )
