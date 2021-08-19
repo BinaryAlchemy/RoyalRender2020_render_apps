@@ -443,6 +443,7 @@ def applyOutput_default(arg, frameNr, verbose):
                 logMessageDebug("scene element filename: " + str(fileout))
 
             fileout = fileout.replace("<Channel>", elemName)
+            fileout = fileout.replace("<AOV>", elemName)
             fileout = fileout.replace("<Layer>", arg.StateSetFilename)
             fileout = fileout.replace("<layer>", arg.StateSetFilename)
             fileout = fileout.replace("[Layer]", arg.StateSetFilename)
@@ -485,7 +486,9 @@ def moveOutput_VRay_sub(arg, frameNr, verbose, fNameVar_Rendered, elemName, vray
     fileout_Rendered = fNameVar_Rendered + str(frameNr).zfill(arg.FPadding) + vray_ext
     fileout_Should = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
     fileout_Rendered = fileout_Rendered.replace("<Channel>", elemName)
+    fileout_Rendered = fileout_Rendered.replace("<AOV>", elemName)
     fileout_Should = fileout_Should.replace("<Channel>", elemName)
+    fileout_Should = fileout_Should.replace("<AOV>", elemName)
 
     if not os.path.isfile(fileout_Rendered):
         logMessageWarn("Element file to be moved to subfolder not found: " + fileout_Rendered)
@@ -540,7 +543,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
 
         fileout = arg.FName + vray_ext
         if verbose:
-            logMessageSET("VRay render channel output to " + fileout)
+            logMessageSET("VRay render AOV output to " + fileout)
 
         filedir = os.path.dirname(fileout)
         fileout = os.path.normpath(fileout)
@@ -550,6 +553,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
             and (vray_settings.output_splitRGB)):
             mainFileName = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + arg.FExt
             mainFileName = mainFileName.replace("<Channel>", "RGB_color")
+            mainFileName = mainFileName.replace("<AOV>", "RGB_color")
 
     if arg.vrayRawFile:
         logMessageDebug("applyOutput_VRay - output_saveRawFile")
@@ -578,6 +582,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
             fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
 
             fileout = fileout.replace("<Channel>", "RGB_color")
+            fileout = fileout.replace("<AOV>", "RGB_color")
             filedir = os.path.dirname(fileout)
 
             if verbose:
@@ -587,6 +592,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
 
             fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + vray_ext
             fileout = fileout.replace("<Channel>", "Alpha")
+            fileout = fileout.replace("<AOV>", "Alpha")
             filedir = os.path.dirname(fileout)
 
             if verbose:
@@ -614,6 +620,7 @@ def applyOutput_VRay(arg, frameNr, verbose):
                 fileout = arg.FNameVar + str(frameNr).zfill(arg.FPadding) + temp_ext
 
             fileout = fileout.replace("<Channel>", elemName)
+            fileout = fileout.replace("<AOV>", elemName)
             if verbose:
                 logMessageSET("element %20s output to '%s'" % (elemName, fileout))
             filedir = os.path.dirname(fileout)
@@ -634,6 +641,7 @@ def moveOutput_VRay(arg, frameNr, verbose):
             vray_ext = arg.FExt
     FNameVar_Rendered = arg.FNameVar
     FNameVar_Rendered = FNameVar_Rendered.replace("<Channel>\\", "")
+    FNameVar_Rendered = FNameVar_Rendered.replace("<AOV>\\", "")
     if (arg.vraySeperateRenderChannels and vray_settings.output_splitRGB):
         moveOutput_VRay_sub(arg, frameNr, verbose, FNameVar_Rendered, "RGB_color", vray_ext)
     if (arg.vraySeperateRenderChannels and vray_settings.output_splitAlpha):
@@ -1160,13 +1168,30 @@ def render_main():
             arg.FName = arg.FName.replace("<Channel <Channel>.>", "")
             arg.FName = arg.FName.replace(".<Channel>.", "")
             arg.FName = arg.FName.replace("<Channel>", "")
+    elif arg.FName.find("<AOV>") > 0:
+        if any( ch_token in arg.FName for ch_token in ("\\<AOV>\\", "\\<AOV <AOV>>\\") ):
+            arg.ElementsFolder = True
+            arg.FName = arg.FName.replace("<AOV <AOV>>\\", "")
+            arg.FName = arg.FName.replace("<AOV .<AOV>. >", "")
+            arg.FName = arg.FName.replace("<AOV .<AOV>.>", "")
+            arg.FName = arg.FName.replace("<AOV <AOV>.>", "")
+            arg.FName = arg.FName.replace("<AOV>\\", "")
+            arg.FName = arg.FName.replace(".<AOV>.", "")
+            arg.FName = arg.FName.replace("<AOV>", "")
+        else:
+            arg.ElementsFolder = False
+            arg.FName = arg.FName.replace("<AOV <AOV>>", "")
+            arg.FName = arg.FName.replace("<AOV .<AOV>. >", "")
+            arg.FName = arg.FName.replace("<AOV .<AOV>.>", "")
+            arg.FName = arg.FName.replace("<AOV <AOV>.>", "")
+            arg.FName = arg.FName.replace(".<AOV>.", "")
+            arg.FName = arg.FName.replace("<AOV>", "")
     else:
         arg.FNameVar = arg.FName
         if arg.ElementsFolder:
-            arg.FNameVar = os.path.dirname(arg.FNameVar) + "\\<Channel>\\" + os.path.basename(
-                arg.FNameVar) + "<Channel>"
+            arg.FNameVar = os.path.dirname(arg.FNameVar) + "\\<AOV>\\" + os.path.basename(arg.FNameVar) + "<AOV>"
         else:
-            arg.FNameVar += "<Channel>"
+            arg.FNameVar += "<AOV>"
 
     arg.FNameVar = arg.FNameVar.replace("<Channel <Channel>>", "<Channel>")
     arg.FNameVar = arg.FNameVar.replace("<Channel .<Channel>. >", ".<Channel>.")
@@ -1174,6 +1199,12 @@ def render_main():
     arg.FNameVar = arg.FNameVar.replace("<Channel <Channel>.>", "<Channel>.")
     arg.FNameVar = arg.FNameVar.replace("..<Channel>.", ".<Channel>.")
 
+    arg.FNameVar = arg.FNameVar.replace("<AOV <AOV>>", "<AOV>")
+    arg.FNameVar = arg.FNameVar.replace("<AOV .<AOV>. >", ".<AOV>.")
+    arg.FNameVar = arg.FNameVar.replace("<AOV .<AOV>.>", ".<AOV>.")
+    arg.FNameVar = arg.FNameVar.replace("<AOV <AOV>.>", "<AOV>.")
+    arg.FNameVar = arg.FNameVar.replace("..<AOV>.", ".<AOV>.")
+    
     #if (argValid(arg.FNameChannelAdd)):
     #    arg.FName   =arg.FName   +arg.FNameChannelAdd
     #    arg.FNameVar=arg.FNameVar+arg.FNameChannelAdd

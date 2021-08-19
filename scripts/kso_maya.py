@@ -145,6 +145,8 @@ def getParam(allArgList, argFindName):
         argValue=argValue.strip()
         if (argName==argFindName):
             argValue= rrScriptHelper.replaceXMLEscapedString(argValue)
+            argValue= argValue.replace("<Channel>", "<RenderPass>")
+            argValue= argValue.replace("<AOV>", "<RenderPass>")
             if (argValue.lower()=="true"):
                 argValue=True
             elif (argValue.lower()=="false"):

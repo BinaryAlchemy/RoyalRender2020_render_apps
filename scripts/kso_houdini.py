@@ -809,10 +809,14 @@ try:
     if (argValid(arg.take)):
         switchTake("Main") #we have to switch to the main take to be able to change render settings
         arg.FName= arg.FName.replace("<Channel>",arg.take)
+        arg.FName= arg.FName.replace("<AOV>",arg.take)
         arg.FRefName= arg.FRefName.replace("<Channel>",arg.take)
+        arg.FRefName= arg.FRefName.replace("<AOV>",arg.take)
     else:
         arg.FName= arg.FName.replace("<Channel>","")
+        arg.FName= arg.FName.replace("<AOV>","")
         arg.FRefName= arg.FRefName.replace("<Channel>","")
+        arg.FRefName= arg.FRefName.replace("<AOV>","")
         
     arg.FName= arg.FName.replace("<Stereo>","")
     arg.FRefName= arg.FRefName.replace("<Stereo>","")
