@@ -37,5 +37,5 @@ CommandLine=
 	<CheckExitCode> <FN> 
 
 CommandLine=
-	<rrBin64>rrKillWait 1 QTGUIAGENT true
+	"<rrBin64>rrKillWait" 1 QTGUIAGENT true
 
