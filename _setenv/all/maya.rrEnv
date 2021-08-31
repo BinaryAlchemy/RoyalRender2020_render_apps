@@ -103,6 +103,7 @@ PYTHONPATH  = <PYTHONPATH>
 
 #small bug in RR, this line is required because of the YETI section. RR thinks the var was already used, but it is not if there is no RR_VRAY_NETWORK
 VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
+VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
 
 [If] <RR_VRAY_NETWORK>  [==] 1
     [If] <RR_VRAY_BASE>  [==] 
@@ -247,10 +248,9 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
 # ###################  RedShift environment variables ###################
 
 #small bug in RR, this is required because of the YETI section. RR thinks the var was already used, but it is not if redshift is not used
+REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
 
 [If] <rrJobRenderer>  [contains] redshift
-    REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
-
     #enable RR_REDSHIFT_NETWORK by default if not set in __inhouse file
     [If] <RR_REDSHIFT_NETWORK>  [==] 
         RR_REDSHIFT_NETWORK  =  1
