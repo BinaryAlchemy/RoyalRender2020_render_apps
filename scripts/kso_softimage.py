@@ -369,6 +369,7 @@ def rrStart(argAll):
         xsi.SetValue(str(arg.Pass)+".Main.Enabled", True)
         arg.FName=arg.FName.replace("<Layer>", "[Pass]")
         arg.FName=arg.FName.replace("<Channel>", "[Framebuffer]")
+        arg.FName=arg.FName.replace("<AOV>", "[Framebuffer]")
         arg.FName=arg.FName.replace("<Camera>", "[Camera]")
         arg.FName=arg.FName.replace("<Camera_no.>", "[Camera]")
         orgFileName=xsi.GetValue(str(arg.Pass)+".Main.Filename")      

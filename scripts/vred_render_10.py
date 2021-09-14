@@ -128,6 +128,7 @@ def renderFrames(FrStart, FrEnd, FrStep,
 
         filename, fileext = os.path.splitext(img_fname)
         filename = filename.replace("-<Channel>", "")
+        filename = filename.replace("-<AOV>", "")
         if layer:
             filename = filename.replace("<Layer>", layer)
 

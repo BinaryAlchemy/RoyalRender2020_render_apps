@@ -93,6 +93,7 @@ SetValue pass & ".Main.Enabled", true
 
 fname= Replace(fname, "<Layer>", "[Pass]")
 fname= Replace(fname, "<Channel>", "[Framebuffer]")
+fname= Replace(fname, "<AOV>", "[Framebuffer]")
 fname= Replace(fname, "<Camera>", "[Camera]")
 fname= Replace(fname, "<Camera_no.>", "[Camera]")
 

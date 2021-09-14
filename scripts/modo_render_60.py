@@ -376,6 +376,7 @@ try:
         outPattern= outPattern.replace("<StereoLR>","[<LR>]")
         outPattern= outPattern.replace("<StereoRL>","[<LR>]")
         outPattern= outPattern.replace("<Channel>","<pass>")
+        outPattern= outPattern.replace("<AOV>","<pass>")
         outPattern= outPattern.replace("<Camera>",arg.cameraname)
     outPattern= outPattern+ "<" + arg.padding + ">"
 
