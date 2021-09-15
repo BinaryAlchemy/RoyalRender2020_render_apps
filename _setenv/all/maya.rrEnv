@@ -230,6 +230,8 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
     [DelFile] <RR_MTOA_BASE_LOCAL>/Uninstall.exe
 [EndIf]
 
+ARNOLD_ADP_OPTIN = 0
+
 #enables a license test if RR_MTOA_LICTEST is set in __inhouse file
 [If] <RR_USE_ARNOLD_RENDERER>  [==] 1
     [If] <RR_MTOA_LICTEST>  [==] 1
@@ -243,6 +245,7 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
         [EndIf]
     [EndIf]
 [EndIf]
+
 
 
 # ###################  RedShift environment variables ###################

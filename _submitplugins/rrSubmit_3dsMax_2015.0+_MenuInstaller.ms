@@ -135,6 +135,7 @@ rollout deleteInstallScript ""
 		deletefile (scriptspath + "startup\\rrSubmit_3dsMax_2015.0+_MenuInstaller.ms")
 		if (getfiles (scriptspath + "startup\\rrSubmit_3dsMax_2015.0+_MenuInstaller.ms")).count == 0 do
 			destroydialog deleteInstallScript
+        timr.active=false
 	)
 )
 
