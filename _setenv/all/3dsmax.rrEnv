@@ -18,11 +18,11 @@ USERPROFILE = <rrLocalRoot>SysUserPrefs\All
 LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\All\AppData\Local
 [dir] <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\
 [dir] <USERPROFILE>\AppData\Roaming\Autodesk
-[Exists] <rrPrefs>Workspace1.se.ini
-	[copy] SyncCreate <rrPrefs>Workspace1.se.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\en-US\UI\Workspaces\Workspace1.se.ini
+[Exists] <rrPrefs><rrExeVersionMajor>\Workspace1.se.ini
+	[copy] SyncCreate <rrPrefs><rrExeVersionMajor>\Workspace1.se.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\en-US\UI\Workspaces\Workspace1.se.ini
 [EndIf] 
-[Exists] <rrPrefs>3dsMax.ini
-	[copy] SyncCreate <rrPrefs>3dsMax.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\3dsMax.ini
+[Exists] <rrPrefs><rrExeVersionMajor>\3dsMax.ini
+	[copy] SyncCreate <rrPrefs><rrExeVersionMajor>\3dsMax.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\3dsMax.ini
 [EndIf] 
 [copy] SyncCreate <rrPrefs><rrExeVersionMajor>\Plugin.UserSettings.ini  =>  <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\Plugin.UserSettings.ini
 
@@ -36,7 +36,7 @@ LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\All\AppData\Local
 
 
 #Disable data collection:
-[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADAOptIn /d 1 /t REG_DWORD /f
+[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADAOptIn /d 0 /t REG_DWORD /f
 [exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADARePrompted /d 1 /t REG_DWORD /f
 
 #[Exists]
