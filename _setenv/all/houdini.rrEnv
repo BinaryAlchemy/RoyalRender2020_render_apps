@@ -33,7 +33,7 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 [If] <JOB>  [==]
     [If] <CustomHoudiniJob>  [!=]  
         [BSlashConvert] JOB  =  <CustomHoudiniJob>
-        echo * JOB Env variable is set to  <CustomHoudiniJob>
+        echo * JOB Env variable is set to  "<CustomHoudiniJob>"
     [EndIf]
 [EndIf]
 
@@ -81,7 +81,6 @@ REDSHIFT_USED = 0
 [If] <rrJobRenderer>  [contains] redshift
     echo * Rendering with Redshift
     REDSHIFT_USED = 1
-    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
@@ -89,7 +88,6 @@ REDSHIFT_USED = 0
 [If] <rrJobRenderer>  [contains] createRS
     echo * Creating with Redshift
     REDSHIFT_USED = 1
-    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
