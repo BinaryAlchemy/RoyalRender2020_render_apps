@@ -59,7 +59,7 @@ echo * ------ katana.rrEnv version %rrVersion% ------
 [EndIf]
 
 # ###################  Redshift environment variables ###################
-[If] <rrJobRenderer>  [==] Redshift
+[If] <rrJobRenderer>  [==] redshift
     [If] <RR_REDSHIFT_NETWORK>  [==] 1
         [If] <RR_REDSHIFT4K_BASE>  [==] 
             RR_REDSHIFT4K_BASE = <rrSharedExeDir>redshift-<rrJobRendererVersion>__katana<rrExeVersionMajor>

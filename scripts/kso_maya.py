@@ -722,7 +722,10 @@ def loadPlugins(arg):
         maya.mel.eval('loadPlugin vrayformaya;;')   
         maya.mel.eval('vrayRegisterRenderer();;')  
         version=cmds.pluginInfo( 'vrayformaya', query=True, version=True )
-        logMessage("VRay version: "+version)        
+        logMessage("VRay version: "+version)   
+        if (version=="Next"):
+            version= "Next:  "+cmds.vray('version')
+        logMessage("VRay version: "+version)   
         pluginPath=cmds.pluginInfo( 'vrayformaya', query=True, path=True )
         logMessage("VRay path: "+pluginPath)        
         if (_rrGL_mayaVersion>=2014):
