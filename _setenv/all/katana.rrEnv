@@ -81,7 +81,16 @@ echo * ------ katana.rrEnv version %rrVersion% ------
     echo * RenderManProServer source path is set to <RR_RenderManProServer_BASE>
     echo * RenderManProServer cache path is set to <RR_RenderManProServer_BASE_LOCAL>
     [copy] ZD <RR_RenderManForKatana_BASE>   =>   <RR_RenderManForKatana_BASE_LOCAL>
-    KATANA_RESOURCES = <RR_RenderManForKatana_BASE_LOCAL>/plugins/Resources/PRMan<rrJobRendererVersionMajor>
+
+	[If] <rrJobRendererVersionMajor> [>=] 24
+	  [Exists] <RR_RenderManForKatana_BASE_LOCAL>/plugins/katana<rrExeVersion>
+		  KATANA_RESOURCES = <RR_RenderManForKatana_BASE_LOCAL>/plugins/katana<rrExeVersion>
+	  [Else]
+		  KATANA_RESOURCES = <RR_RenderManForKatana_BASE_LOCAL>/plugins/katana<rrExeVersionMajor>.0
+	  [Endif]      
+	[Else]
+		KATANA_RESOURCES = <RR_RenderManForKatana_BASE_LOCAL>/plugins/Resources/PRMan<rrJobRendererVersionMajor>
+	[EndIf]
 
     [copy] ZD <RR_RenderManProServer_BASE>   =>   <RR_RenderManProServer_BASE_LOCAL>
     [copy] SF <rrSharedExeDir>pixar.license   =>   <rrLocalExeDir>pixar.license
