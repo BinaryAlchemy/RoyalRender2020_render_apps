@@ -16,19 +16,23 @@ echo * ------ 3dsmax.rrEnv version %rrVersion% ------
 
 USERPROFILE = <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
 LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>\AppData\Local
-[dir] <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\
+[dir] <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\
 [dir] <USERPROFILE>\AppData\Roaming\Autodesk
 [Exists] <rrPrefs><rrExeVersionMajor>\Workspace1.se.ini
 	[copy] SyncCreate <rrPrefs><rrExeVersionMajor>\Workspace1.se.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\en-US\UI\Workspaces\Workspace1.se.ini
-[EndIf] 
-[Exists] <rrPrefs><rrExeVersionMajor>\3dsMax.ini
-	[copy] SyncCreate <rrPrefs><rrExeVersionMajor>\3dsMax.ini   =>   <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\3dsMax.ini
 [EndIf] 
 [copy] SyncCreate <rrPrefs><rrExeVersionMajor>\Plugin.UserSettings.ini  =>  <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\Plugin.UserSettings.ini
 
 [If] <MaxPlugins_NetworkPath>  [==] 
 	MaxPlugins_NetworkPath=<rrPluginsNoOS>MaxPlugins_<rrExeVersionMajor>
 [EndIf] 
+
+
+[Exec] <rrLocalBin>rrFilereplace "<LOCALAPPDATA>\Autodesk\3dsMax\%rrExeVersionMajor% - 64bit\ENU\Plugin.UserSettings.ini" "**MaxAppFolder**;;<rrBaseAppPath>" "**rrNetworkPlugins**;;<MaxPlugins_NetworkPath>"
+[Exec] <rrLocalBin>rrFilereplace "<LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\3dsMax.ini" "LoadSecurityTools=1;;LoadSecurityTools=0"  "DisplayUpdateNotification=1;;DisplayUpdateNotification=0"  "LaunchCount=0;;LaunchCount=2"  "LaunchCount=1;;LaunchCount=2"  "ShowAtStartupExt=1;;ShowAtStartupExt=0" 
+
+
+
 
 [Exists] <LOCALAPPDATA>\Autodesk\3dsMax\%rrExeVersionMajor% - 64bit\ENU\Network\Max.log
     [DelFile] <LOCALAPPDATA>\Autodesk\3dsMax\%rrExeVersionMajor% - 64bit\ENU\Network\Max.log

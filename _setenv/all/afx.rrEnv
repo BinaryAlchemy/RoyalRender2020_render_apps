@@ -21,7 +21,9 @@ echo * ------ afx.rrEnv version %rrVersion% ------
         LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\All\AppData\Local
         [dir] <rrLocalRoot>SysUserPrefs\All\Documents
         echo "Creating render license file." 2 > <rrLocalRoot>SysUserPrefs\All\Documents\ae_render_only_node.txt
-
+        [Exists] <rrLocalRoot>SysUserPrefs\All\AppData\Roaming\Adobe\Common
+            [DelFolder] <rrLocalRoot>SysUserPrefs\All\AppData\Roaming\Adobe\Common
+        [EndIf]        
     #[Else]
        #echo "Creating render license file." 2><HOME>\Documents\ae_render_only_node.txt
     
