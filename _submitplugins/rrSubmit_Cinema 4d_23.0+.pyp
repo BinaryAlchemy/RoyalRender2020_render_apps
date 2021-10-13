@@ -421,11 +421,15 @@ def allForwardSlashes(filepath):
     return os.path.normpath(filepath).replace('\\', '/')
 
 
-def applyPathCorrections(filepath):
+def applyPathCorrections(filepath, truncate_dot=True):
     """c4d truncates the output to the last dot. Also, adds a _ if the path ends with a number"""
-    filepath = truncateToLastDot(filepath)
+    if truncate_dot:
+        filepath = truncateToLastDot(filepath)
 
-    if filepath[-1].isdigit:
+    if filepath.endswith("<IMS>"):
+        if filepath[-6].isdigit():
+            filepath = filepath[:-5] + "_" + "<IMS>"
+    elif filepath[-1].isdigit():
         filepath += '_'
 
     return filepath
@@ -833,7 +837,7 @@ def convert_filename_tokens(doc, take, filename, exclude=[]):
         # FilenameConvertTokensFilter has duplicated relative path
         resolved = resolved[2:]
 
-    return resolved
+    return applyPathCorrections(resolved, truncate_dot=False)
 
 
 class TakeManager(object):
@@ -1860,7 +1864,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         image_name = image_name.replace("$range", "{0}_{1}".format(job.seqStart, job.seqEnd))
         image_name = image_name.replace("$fps", str(job.frameRateRender))
 
-        return image_name
+        return applyPathCorrections(image_name, truncate_dot=False)
 
     @staticmethod
     def handleRelativeFileOut(file_path):
