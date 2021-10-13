@@ -421,6 +421,25 @@ def allForwardSlashes(filepath):
     return os.path.normpath(filepath).replace('\\', '/')
 
 
+def applyPathCorrections(filepath):
+    """c4d truncates the output to the last dot. Also, adds a _ if the path ends with a number"""
+    filepath = truncateToLastDot(filepath)
+
+    if filepath[-1].isdigit:
+        filepath += '_'
+
+    return filepath
+
+
+def truncateToLastDot(filepath):
+    dirname, filename = os.path.split(filepath)
+
+    if "." in filename:
+        LOGGER.warning('filepaths with dots "{0}" are truncated by c4d'.format(filename))
+
+    return os.path.join(dirname, filename.rsplit('.', 1)[0])
+
+
 def rrGetRR_Root():
     """Return Royal Render directory. Relies on RR_ROOT environment variable,
      or on paths hard coded by rrWorkstationInstaller"""
@@ -1817,7 +1836,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
     def replacePathTokens(self, job, image_name, render_data):
         # replace c4d tokens with RR tokens
         image_name = image_name.replace("$camera", "<Camera>")
-        image_name = image_name.replace("$prj", "<Scene>")
+        # image_name = image_name.replace("$prj", "<Scene>")  # do not need tokens that cannot be changed in rrSubmitter
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
         image_name = image_name.replace("$frame", '#' * job.imageFramePadding)
@@ -1882,7 +1901,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 LOGGER.debug("Channel: Reg_Multi")
                 job.channel = "Reg_Multi"
 
-                reg_out = render_data[c4d.RDATA_PATH]
+                reg_out = applyPathCorrections(render_data[c4d.RDATA_PATH])
                 reg_out = self.handleRelativeFileOut(reg_out)
                 reg_out = self.replacePathTokens(job, reg_out, render_data)
                 reg_out += "<IMS>"
@@ -1893,13 +1912,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 LOGGER.debug("Channel: MultiPass")
                 job.channel = "MultiPass"
-            job.imageName = render_data[c4d.RDATA_MULTIPASS_FILENAME]
+            job.imageName = applyPathCorrections(render_data[c4d.RDATA_MULTIPASS_FILENAME])
             if job.renderer == "Arnold" and render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
         else:
             LOGGER.debug("MultiPass: no")
             job.channel = ""
-            job.imageName = render_data[c4d.RDATA_PATH]
+            job.imageName = applyPathCorrections(render_data[c4d.RDATA_PATH])
 
             if job.renderer == "Arnold" and render_data[c4d.RDATA_FORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
