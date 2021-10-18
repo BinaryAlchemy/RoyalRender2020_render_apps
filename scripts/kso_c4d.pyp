@@ -1266,7 +1266,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
             else:
                 logMessage( "Rendering Frames : " + str(FrStart) + "-" + str(FrEnd))
                 for fr in range(FrStart, FrEnd + 1, FrStep):
-                    kso_tcp.writeRenderPlaceholder_nr(arg.FName, fr, arg.FPadding, arg.FExt)
+                    kso_tcp.writeRenderPlaceholder_nr(allForwardSlashes(arg.FName), fr, arg.FPadding, arg.FExt)
                     logMessage( "Rendering Frame #" + str(fr) +" ...")
                     doc.SetTime(c4d.BaseTime(fr, fps))
                     rd[c4d.RDATA_FRAMEFROM] = c4d.BaseTime(fr, fps)
