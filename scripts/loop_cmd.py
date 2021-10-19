@@ -53,8 +53,7 @@ if __name__ == '__main__':
             args.command[i] = '"{0}"'.format(arg)
 
     full_command = ' '.join(args.command)
-    full_command = full_command.replace("\\n", '&')
-    full_command = full_command.replace("\\r", '&')
+    full_command = full_command.replace(" \\n ", '&')
 
     use_shell = True if any(['&' in args.command, 'echo' in full_command]) else args.use_shell
 
