@@ -16,7 +16,7 @@ echo * ------ houdini.rrEnv version %rrVersion% ------
 #Disable UI messages
 HOUDINI_INTERACTIVE_ASSERTS = 0
 
-HOUDINI_TEMP_DIR  =  <TMP>
+HOUDINI_TEMP_DIR  =  <TEMP>
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
