@@ -401,6 +401,12 @@ def applyRendererOptions_default():
         except (hou.LoadWarning, AttributeError) as e:
             logMessage("Error: Unable to set thread count")
             logMessage(e)
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -494,6 +500,12 @@ def applyRendererOptions_default():
 def applyRendererOptions_createUSD():
     global arg
     logMessage("Exporting USD files")
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -513,6 +525,12 @@ def applyRendererOptions_createUSD():
 def applyRendererOptions_USD():
     global arg
     logMessage("Rendering USD/LOP")
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -537,6 +555,12 @@ def applyRendererOptions_USD():
 def applyRendererOptions_openGl():
     global arg
     logMessage("Rendering with openGL renderer")
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -584,6 +608,12 @@ def applyRendererOptions_alembic(singleFile):
 def applyRendererOptions_Arnold():
     global arg
     logMessage("Rendering with Arnold")
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -620,6 +650,12 @@ def applyRendererOptions_PRman():
         logMessage("Rendering with PRman (unidentified version)")
 
     global arg
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -662,6 +698,12 @@ def applyRendererOptions_PRman():
 def applyRendererOptions_VRay():
     global arg
     logMessage("Rendering with VRay")
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -690,6 +732,12 @@ def applyRendererOptions_Redshift():
     hou.hscript("Redshift_disableRaiseExceptionOnRenderError")
     arg.rop.parm('RS_outputEnable').set(1)
     arg.rop.parm('RS_renderToMPlay').set(0)
+    if (argValid(arg.camera)):
+        logMessageSET("ROP camera to "+arg.camera)
+        try:
+            arg.rop.parm('camera').set(arg.camera)
+        except:
+            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
