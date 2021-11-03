@@ -1843,7 +1843,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 pass
             return False
 
-        xml.write(f)
+        xml.write(f, encoding="utf-8", xml_declaration=True)
         f.close()
 
         return True
