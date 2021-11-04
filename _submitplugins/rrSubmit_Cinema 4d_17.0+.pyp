@@ -2117,7 +2117,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             job.imageFramePadding = 4
 
         if job.renderer == "Arnold":  # this function requires job.imageName
-            self.addDriverChannelsArnold()
+            self.addDriverChannelsArnold(job)
 
     def saveTiledDocument(self, doc, tiles, filename):
         """experimental function to store tiled versions of a single document. Now Unused"""
