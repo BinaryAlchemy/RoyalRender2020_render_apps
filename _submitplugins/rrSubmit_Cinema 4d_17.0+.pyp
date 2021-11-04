@@ -429,11 +429,13 @@ def applyPathCorrections(filepath, truncate_dot=True):
     if truncate_dot:
         filepath = truncateToLastDot(filepath)
 
-    if filepath.endswith("<IMS>"):
-        if filepath[-6].isdigit():
-            filepath = filepath[:-5] + "_" + "<IMS>"
-    elif filepath[-1].isdigit():
-        filepath += '_'
+    doc = c4d.documents.GetActiveDocument()
+    if filepath and check_trailing_digit(doc.GetActiveRenderData()[c4d.RDATA_NAMEFORMAT]):
+        if filepath.endswith("<IMS>"):
+            if filepath[-6].isdigit():
+                filepath = filepath[:-5] + "_" + "<IMS>"
+        elif filepath[-1].isdigit():
+            filepath += '_'
 
     return filepath
 
@@ -1034,6 +1036,10 @@ class RRSubmitBase(object):
         return rrSubmitterConsole
 
 
+def check_trailing_digit(name_format):
+    return name_format not in (c4d.RDATA_NAMEFORMAT_2, c4d.RDATA_NAMEFORMAT_5, c4d.RDATA_NAMEFORMAT_6)
+
+
 class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
     """Launch rrSubmitter for rrJob of current scene. The same class is used for multicamera mode"""
     hasAlpha = False
@@ -1092,7 +1098,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_2:
             # name.0000
             job.imageFormat = ""
-            imageformat += "."
+            imageformat = ""
+            imagefilename += "."
         elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_3:
             # name000.ext
             imageformat = imageformat
@@ -1101,16 +1108,18 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             imageformat = ""
         elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_5:
             # name.0000
+            job.imageformat = ""
             imageformat = ""
             imagefilename += "."
         elif job._imageNamingID == c4d.RDATA_NAMEFORMAT_6:
             # name.0000.ext
             imagefilename += "."
-        if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
-            imagefilename += "_"
-        elif ((len(imagefilename) > 3) and imagefilename[-1] == ">" and imagefilename[-2] == "@" and imagefilename[
-            -3].isdigit()):
-            imagefilename = imagefilename[:-2] + "_" + imagefilename[-2:]
+
+        if check_trailing_digit(job._imageNamingID):
+            if ((len(imagefilename) > 0) and imagefilename[-1].isdigit()):
+                imagefilename += "_"
+            elif ((len(imagefilename) > 3) and imagefilename[-1]==">" and imagefilename[-2]=="@" and imagefilename[-3].isdigit()):
+                imagefilename = imagefilename[ :-2] + "_" + imagefilename[-2:]
 
         return imagefilename, imageformat
 
