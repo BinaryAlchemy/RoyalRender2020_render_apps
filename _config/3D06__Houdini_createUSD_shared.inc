@@ -92,7 +92,7 @@ KSOlog_Quit=rrKSO closed
 
 
 ImageSizeCommandline= -width <Width> -height <Height>
-
+AllowLocalRenderOut= 0~0
 
 
 ################################## Submitter + Client Settings ################################## 
