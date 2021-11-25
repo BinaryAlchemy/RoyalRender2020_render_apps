@@ -1249,6 +1249,9 @@ class rrMayaLayer:
                         for attr in attribs:
                             if (attr.find("_name_")>0):
                                 overridename=cmds.getAttr(elem+"." + attr)
+                                printDebug(str(suffix)+"  "+str(overridename)+"  "+str(type(overridename)))
+                                if (isinstance(overridename,int)):
+                                    continue
                                 if (len(overridename) > 0):
                                     suffix= overridename
                         if (vrayElemSeperateFolders):
