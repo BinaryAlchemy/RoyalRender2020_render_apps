@@ -161,10 +161,25 @@ def setParmException(node, parmName, value):
     except:
         logMessage("Error: Unable to delete keyframes of "+ node.name() + "." + parmName + " !")
     try:
-        arg.rop.parm('sopoutput').set(value )
-    except:
-        logMessage("Error: Unable to change '"+ node.name() +"."+ parmName + "' to " + str(value) + " !")    
+        arg.rop.parm(parmName).set(value )
+    except Exception as e:
+        logMessage("Error: Unable to change '"+ node.name() +"."+ parmName + "' to " + str(value) + " ! "+str(e))    
 
+
+    
+def setROPValue(paramdesc, parmName, value, logError=True):
+    global arg
+    logMessageSET("ROP " + paramdesc + " to " + str(value))
+    try:
+        arg.rop.parm(parmName).deleteAllKeyframes()
+    except Exception as e:
+        if (logError):
+            logMessage("Error: Unable to delete keyframes of  "+ paramdesc +" in "+ arg.rop.name() + " ! "+str(e))
+    try:
+        arg.rop.parm(parmName).set(value)
+    except Exception as e:
+        if (logError):
+            logMessage("Error: Unable to change "+ paramdesc +" in "+ arg.ropName +" ! "+str(e))    
 
 
 def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
@@ -389,7 +404,6 @@ def addFrameNumber_and_Log(outFileName):
     logMessageSET("output name to "+outFileName)
     return outFileName
     
-    
 
 def applyRendererOptions_default():
     global arg
@@ -402,17 +416,9 @@ def applyRendererOptions_default():
             logMessage("Error: Unable to set thread count")
             logMessage(e)
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     outFileName=arg.FName
     if (argValid(arg.totalTiles) and (int(arg.totalTiles)>1)):
         arg.rop.parm('vm_tile_render').set(1)
@@ -501,17 +507,9 @@ def applyRendererOptions_createUSD():
     global arg
     logMessage("Exporting USD files")
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('lopoutput').set(outFileName)
     try:
@@ -526,17 +524,9 @@ def applyRendererOptions_USD():
     global arg
     logMessage("Rendering USD/LOP")
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     outFileName= addFrameNumber_and_Log(arg.FName)
     setFirst=True
     setSecond=True
@@ -556,17 +546,9 @@ def applyRendererOptions_openGl():
     global arg
     logMessage("Rendering with openGL renderer")
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     outFileName= addFrameNumber_and_Log(arg.FName)
     arg.rop.parm('picture').set(outFileName)
 
@@ -581,7 +563,7 @@ def applyRendererOptions_geometry():
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
-    setParmException(arg.rop, 'sopoutput' , outFileName)
+    setROPValue("Output", 'sopoutput' , outFileName, True)
 
 def applyRendererOptions_alembic(singleFile):
     global arg
@@ -609,17 +591,9 @@ def applyRendererOptions_Arnold():
     global arg
     logMessage("Rendering with Arnold")
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     if (arg.renderDemo):
         arg.rop.parm('ar_abort_on_license_fail').set(0)
         arg.rop.parm('ar_skip_license_check').set(1)
@@ -630,12 +604,12 @@ def applyRendererOptions_Arnold():
     outFileName= addFrameNumber_and_Log(arg.FName)
         
     if (arg.rendererExportMode):
-        arg.rop.parm('ar_ass_export_enable').set(1)
-        arg.rop.parm('ar_ass_file').set(outFileName)
+        setROPValue("Archive Export", "ar_ass_export_enable", 1)
+        setROPValue("Archive Filename", "ar_ass_file", outFileName)
         logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('ar_picture').eval()))
     else:
-        arg.rop.parm('ar_ass_export_enable').set(0)
-        arg.rop.parm('ar_picture').set( outFileName)
+        setROPValue("Archive Export", "ar_ass_export_enable", 0)
+        setROPValue("Output Filename", 'ar_picture', outFileName)
     
     
     
@@ -651,17 +625,9 @@ def applyRendererOptions_PRman():
 
     global arg
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     try:
         device=arg.rop.parm('ri_device_0').eval()
         if (device=="it"):
@@ -672,44 +638,24 @@ def applyRendererOptions_PRman():
             
     outFileName= addFrameNumber_and_Log(arg.FName)
     if (arg.rendererExportMode):
-        try:
-            arg.rop.parm('rib_outputmode').set(1) #Houdini ROP
-        except:
-            pass
-        try:
-            arg.rop.parm('diskfile').set(1)   #prman v23
-        except:
-            pass
-        arg.rop.parm('soho_diskfile').set(outFileName)
+        setROPValue("Archive Export", "rib_outputmode", 1, False)
+        setROPValue("Archive Export", "diskfile", 1, False)
+        setROPValue("Archive Filename", "soho_diskfile", outFileName)
         logMessage("Info: Not touching image output")
     else:
-        try:
-            arg.rop.parm('rib_outputmode').set(0) #Houdini ROP
-        except:
-            pass
-        try:
-            arg.rop.parm('diskfile').set(0)   #prman v23
-        except:
-            pass       
-        setParmException(arg.rop, 'ri_display' , outFileName) #Houdini ROP
-        setParmException(arg.rop, 'ri_display_0' , outFileName) #prman v23 ROP
+        setROPValue("Archive Export", "rib_outputmode", 0, False) #Houdini ROP
+        setROPValue("Archive Export", "diskfile", 0, False) #prman v23 ROP
+        setROPValue("Archive Filename", "ri_display", outFileName, False) #Houdini ROP
+        setROPValue("Archive Filename", "ri_display_0", outFileName, False) #prman v23 ROP
 
 
 def applyRendererOptions_VRay():
     global arg
     logMessage("Rendering with VRay")
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, True)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take, True)
     if (arg.rendererExportMode):
         arg.rop.parm('render_export_mode').set("2")
         archiveName=""
@@ -733,53 +679,42 @@ def applyRendererOptions_Redshift():
     arg.rop.parm('RS_outputEnable').set(1)
     arg.rop.parm('RS_renderToMPlay').set(0)
     if (argValid(arg.camera)):
-        logMessageSET("ROP camera to "+arg.camera)
-        try:
-            arg.rop.parm('camera').set(arg.camera)
-        except:
-            logMessage("Error: Unable to change camera in "+ arg.ropName +" !")
+        setROPValue("camera", "camera", arg.camera, False) #deprecated
+    if (argValid(arg.camera)):
+        setROPValue("camera", "RS_renderCamera", arg.camera)
     if (argValid(arg.take)):
-        logMessageSET("ROP take to "+arg.take)
-        try:
-            arg.rop.parm('take').set(arg.take)
-        except:
-            logMessage("Error: Unable to change take in "+ arg.ropName +" !")
+        setROPValue("take", "take", arg.take)
     if (argValid(arg.gpuBits)):
         logMessageSET("GPUs to be used: "+arg.gpuBits)
         hou.hscript("Redshift_setGPU -s "+arg.gpuBits) 
     if (arg.renderDemo):
-        arg.rop.parm('AbortOnLicenseFail').set(0)
+        setROPValue('AbortOnLicenseFail', 'AbortOnLicenseFail', 0)
     else:
-        arg.rop.parm('AbortOnLicenseFail').set(1)
+        setROPValue('AbortOnLicenseFail', 'AbortOnLicenseFail', 1)
         
     outFileName= addFrameNumber_and_Log(arg.FName)
     if (arg.rendererExportMode):
         if (argValid(arg.SkipExisting)):
             if (arg.SkipExisting):
-                logMessageSET("Skip existing frames to True")
-                arg.rop.parm('RS_archive_skipFiles').set(1)
+                setROPValue('Skip Existing Frames', 'RS_archive_skipFiles', 1)
             else:
-                arg.rop.parm('RS_archive_skipFiles').set(0)
+                setROPValue('Skip Existing Frames', 'RS_archive_skipFiles', 0)
         else:
-            arg.rop.parm('RS_archive_skipFiles').set(0)
-   
-        arg.rop.parm('RS_archive_enable').set(1)
+            setROPValue('Skip Existing Frames', 'RS_archive_skipFiles', 0)
+        setROPValue('Enable Archive', 'RS_archive_enable', 1)
         arg.rop.parm('RS_archive_file').set(outFileName)
         logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('RS_outputFileNamePrefix').eval()))
     else:
         if (argValid(arg.SkipExisting)):
             if (arg.SkipExisting):
-                logMessageSET("Skip existing frames to True")
-                arg.rop.parm('RS_outputSkipRendered').set(1)
+                setROPValue('Skip Existing Frames', 'RS_outputSkipRendered', 1)
             else:
-                logMessageSET("Skip existing frames to False")
-                arg.rop.parm('RS_outputSkipRendered').set(0)
+                setROPValue('Skip Existing Frames', 'RS_outputSkipRendered', 0)
         else:
-            arg.rop.parm('RS_outputSkipRendered').set(0)
-        setParmException(arg.rop,'RS_archive_enable',0)
-        setParmException(arg.rop,'RS_outputFileNamePrefix',outFileName)
-        setParmException(arg.rop,'RS_outputFileFormat',arg.FExt)
-
+            setROPValue('Skip Existing Frames', 'RS_outputSkipRendered', 0)
+        setROPValue('Enable Archive', 'RS_archive_enable', 0)
+        setROPValue("Output Filename", 'RS_outputFileNamePrefix',outFileName)
+        setROPValue("Output File Format", 'RS_outputFileFormat',arg.FExt)
 
 def list_parents(targetnode):
     nparents = len(targetnode.path().split("/"))-2

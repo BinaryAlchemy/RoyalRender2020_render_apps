@@ -23,6 +23,13 @@ MAYA_DISABLE_CIP  =  1
 MAYA_DISABLE_CER  =  1
 MAYA_DISABLE_CLIC_IPM  =  1
 
+#Disable Autodesk Analytics data collection:
+[If] <rrExeOS>  [==] win
+    [exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADAOptIn /d 0 /t REG_DWORD /f
+    [exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADARePrompted /d 1 /t REG_DWORD /f
+[EndIf]
+
+
 #set Maya user preference folder
 MAYA_APP_DIR  =  <rrLocalPrefs>
 [If] <RR_MAYA_PREFS>  [==] 
