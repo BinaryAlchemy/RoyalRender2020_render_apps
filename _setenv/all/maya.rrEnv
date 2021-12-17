@@ -117,6 +117,8 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <VRAY_FOR_MAYA<ExeVersionMinRe
         RR_VRAY_BASE  =  <rrSharedExeDir>vray<rrExeVersionMinReq>
     [EndIf]
     RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray<rrExeVersionMinReq>__<rrJobRendererVersion>
+[Else]
+    echo * VRay is setup to use local installation in RR. In difference to an RR shared network setup.
 [EndIf]
 # On Windows, the whole commandline is loaded and variables are replaced before execution. An If/endif is one commandline. Therefore "set RR_VRAY_BASE_LOCAL  =  " and using it inside the same If/EndIf does not work.
 [If] <RR_VRAY_NETWORK>  [==] 1
@@ -172,6 +174,7 @@ RR_USE_ARNOLD_RENDERER = 0
 
 #If MtoA network shared folder is not used, then use local MtoA folder on machines drive (installed with Maya)
 [If] <RR_MTOA_NETWORK>  [==] 0
+    echo * MtoA/Arnold is setup to use local installation in RR. In difference to an RR shared network setup.
     [If] <RR_MTOA_BASE>  [==] 
         [If] <rrExeVersionMajor>  [<] 2020
             [If] <rrExeOS>  [==] win
