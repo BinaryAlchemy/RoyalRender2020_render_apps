@@ -134,8 +134,8 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <VRAY_FOR_MAYA<ExeVersionMinRe
     VRAY_PLUGINS_x64  =  <RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
     VRAY_OSL_PATH_MAYA<ExeVersionMinReqUS>_x64  =  <RR_VRAY_BASE_LOCAL>\vray\opensl
     VRAY_TOOLS_MAYA<ExeVersionMinReqUS>_x64  =  <RR_VRAY_BASE_LOCAL>\vray\bin
-    PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\vray\bin;<PATH>
-    LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\vray\bin;<RR_VRAY_BASE_LOCAL>\maya_root\lib;<MAYA_APP_DIR>\lib;<LD_LIBRARY_PATH>
+    PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin\hostbin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<PATH>
+    LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<RR_VRAY_BASE_LOCAL>\vray\bin;<RR_VRAY_BASE_LOCAL>\maya_root\lib;<RR_VRAY_BASE_LOCAL>\maya_vray\lib;<MAYA_APP_DIR>\lib;<LD_LIBRARY_PATH>
     echo + VRayForMaya any <RR_VRAY_BASE_LOCAL>/maya_vray > <RR_VRAY_BASE_LOCAL>/maya_root/modules/VRayForMaya.module
 [EndIf]
 

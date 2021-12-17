@@ -739,6 +739,7 @@ def unlock_assets(ropNode):
 #main function:
 try:
     logMessage("Script %rrVersion%" )
+    logMessage("Python version: "+str(sys.version))
     flushLog()
     timeStart=datetime.datetime.now()
     global arg
