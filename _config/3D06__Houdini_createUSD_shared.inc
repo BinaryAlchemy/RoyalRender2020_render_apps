@@ -58,6 +58,7 @@ CommandLine=
 	-PyModPath <rrLocalRenderScripts><EL<PD>>
     <channel -take <channel>>
     <SceneState -wedge <SceneState>>
+    <COIgnoreROPDependencies -ignoreROPDependencies>
 	<isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>

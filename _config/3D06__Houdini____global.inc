@@ -8,7 +8,7 @@ CONoPerFrameLoop= 1 ~ 0
 COIgnoreLoadWarnings= 1 ~ 0
 COSubFrames = 1 ~ 0 ~ 4
 COUnlockAssets = 1 ~ 1
-
+COIgnoreROPDependencies = 1 ~ 0
 
 SequenceDivide= 0~1
 AllowImageNameChange= 1

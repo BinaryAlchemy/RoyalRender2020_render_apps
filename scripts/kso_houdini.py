@@ -139,6 +139,8 @@ class argParser:
         self.ignoreLoadIssues=self.getParam("-ignoreLoadIssues")
         self.subFrames=self.getParam("-subFrames")
         self.unlockAssets=self.getParam("-unlockAssets")
+        self.ignoreROPDependencies=self.getParam("-ignoreROPDependencies")
+        
 
 
 
@@ -187,6 +189,10 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     flushLog()
     global arg
     frameRange = (localFrStart,localFrEnd,localFrStep)
+    rrIgnoreInputs=False
+    if (argValid(arg.ignoreROPDependencies)):
+        rrIgnoreInputs=True
+    
     if (argValid(arg.wedge)):
         arg.rop.parm('trange').set("normal")
         arg.rop.parm('f1').deleteAllKeyframes()
@@ -202,9 +208,9 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     elif (type(arg.rop)==hou.RopNode):
         #logMessage("Output node is a ROP node")
         if (argValid(arg.verbose) and arg.verbose):
-            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
+            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs )
         else:
-            arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame)
+            arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
         
     elif (arg.rop.isNetwork()):
         logMessage("Output node is a network node of type '"+str(arg.rop.type()) + "', searching for children ROP nodes to render...")
@@ -213,15 +219,15 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
             if (type(child)==hou.RopNode):
                 logMessage("Rendering ROP node '"+str(child.name()) + "' of type '"+str(child.type().name())+"'")
                 if (argValid(arg.verbose) and arg.verbose):
-                    child.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
+                    child.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
                 else:
-                    child.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame)
+                    child.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
     else:
         logMessage("Warning: Unknown node type '"+str(type(arg.rop))+"', trying to render anyway")
         if (argValid(arg.verbose) and arg.verbose):
-            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
+            arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
         else:
-            arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame)
+            arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
     nrofFrames = ((localFrEnd - localFrStart) / localFrStep) + 1
     nrofFrames = int (nrofFrames)
     afterFrame = datetime.datetime.now()
