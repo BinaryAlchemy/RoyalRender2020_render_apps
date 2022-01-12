@@ -42,6 +42,7 @@ CommandLine=   "<Exe>"
 	-j <SeqStep>
     <Cores -t <Cores> ? -t 0>
     <COCyclesEnableGPU -P <rrLocalRenderScripts>blender_cycles_enable_gpu.py>
+    <COLoadRedshift -P <rrLocalRenderScripts>blender_load_redshift.py>
 	<AdditionalCommandlineParam>
 	-a
     -y
@@ -49,4 +50,9 @@ CommandLine=   "<Exe>"
 
 CommandLine=
 	<CheckExitCode> <FN>
+    
+    
+################################## Submitter Settings ##################################    
+COCyclesEnableGPU= 0~0
+COLoadRedshift= 0~0
 

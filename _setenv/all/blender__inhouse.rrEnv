@@ -1,0 +1,11 @@
+echo * ------ blender__inhouse.rrEnv version %rrVersion% ------
+
+
+# ###################  RedShift environment variables ###################
+
+# Uncomment the next 3 lines if you want to change the location of your Redshift plugin
+# [If] <RR_REDSHIFT_BASE>  [==] 
+#     RR_REDSHIFT_BASE  =   <rrSharedExeDir>Redshift_<rrJobRendererVersion>
+# [EndIf]
+
+RR_REDSHIFT_NETWORK = 0
