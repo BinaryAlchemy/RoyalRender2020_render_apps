@@ -73,6 +73,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
     bl_label = "Submit Scene"
 
     _renderer_name = ""
+    _renderer_version = ""
 
     @classmethod
     def poll(cls, context):
@@ -197,6 +198,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
         writeNodeStr(fileID, "Software", "Blender")
         writeNodeStr(fileID, "Renderer", self._renderer_name)
+        writeNodeStr(fileID, "rendererVersion", self._renderer_version)
         writeNodeStr(fileID, "Version",  "{0}.{1}".format(v_major, v_minor))
         writeNodeStr(fileID, "SceneState", scene_state)
         writeNodeBool(fileID, "IsActive", is_active)
@@ -288,6 +290,18 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             pretty_name = pretty_name[len(prefix):]
 
         self._renderer_name = pretty_name
+        self.report({'INFO'}, "Renderer Info:")
+        self.report({'INFO'}, self._renderer_name)
+        if (self._renderer_name=="Redshift"):
+            import addon_utils
+            mod = sys.modules.get("redshift")
+            modInfo= addon_utils.module_bl_info(mod)
+            versionStr=""
+            for v in modInfo["version"]:
+                if (len(versionStr)!=0):
+                    versionStr= versionStr + "."
+                versionStr= versionStr + str(v)        
+            self._renderer_version= versionStr
 
     def execute(self, context):
         if bpy.data.is_dirty:
