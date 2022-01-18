@@ -1538,7 +1538,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 
     def getPhoenixSim(self):
-        try
+        try:
             import pymel.core as pm
         except:
             print("pymel module not found! It was not enabled during Maya installation")
@@ -1569,7 +1569,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
             
     def getAlembicObj(self):
-        try
+        try:
             import pymel.core as pm
         except:
             print("pymel module not found! It was not enabled during Maya installation")
@@ -1604,7 +1604,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 
     def getBakeObj(self):
-        try
+        try:
             import pymel.core as pm
         except:
             print("pymel module not found! It was not enabled during Maya installation")
