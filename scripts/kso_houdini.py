@@ -773,6 +773,10 @@ try:
         arg.subFrames= 1
     if (arg.subFrames < 1):
         arg.subFrames= 1
+    if (not argValid(arg.FSingleFile)):
+        arg.FSingleFile= False
+    if arg.FSingleFile:
+        arg.allFramesAtOnce= True       
         
     logMessage("Allowing to overwrite $JOB by the rrJobs rrEnv." )   
     hou.allowEnvironmentToOverwriteVariable("JOB",True)
@@ -840,9 +844,9 @@ try:
     elif (arg.renderer=="geometry"):
         applyRendererOptions_geometry()
     elif (arg.renderer=="alembic"):
-        applyRendererOptions_alembic(False)
+        applyRendererOptions_alembic(arg.FSingleFile)
     elif (arg.renderer=="alembic-singlefile"):
-        applyRendererOptions_alembic(True)
+        applyRendererOptions_alembic(arg.FSingleFile)
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()

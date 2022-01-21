@@ -543,25 +543,31 @@ def setRenderSettings_Arnold(arg):
         if (argValid(arg.RenderMotionBlur)):
             logSetAttr('defaultArnoldRenderOptions.ignoreMotionBlur',(not arg.RenderMotionBlur))
         if (argValid(arg.FOverrideFormat)):
-            import pymel.core as pm
-            dAD = pm.PyNode('defaultArnoldDriver')
-            dAD.ai_translator.set(arg.FOverrideFormat)
+            try:
+                import pymel.core as pm
+                dAD = pm.PyNode('defaultArnoldDriver')
+                dAD.ai_translator.set(arg.FOverrideFormat)
+            except:
+                logMessage("Warning: Unable to change output format. ")
         if (argValid(arg.FExtOverride)):
-            import pymel.core as pm
-            dAD = pm.PyNode('defaultArnoldDriver')
-            arg.FExtOverride=arg.FExtOverride.lower()
-            if (arg.FExtOverride==".exr"):
-                dAD.ai_translator.set("exr")
-            elif (arg.FExtOverride==".jpeg"):
-                dAD.ai_translator.set("jpeg")
-            elif (arg.FExtOverride==".jpg"):
-                dAD.ai_translator.set("jpeg")
-            elif (arg.FExtOverride==".maya"):
-                dAD.ai_translator.set("maya")
-            elif (arg.FExtOverride==".png"):
-                dAD.ai_translator.set("png")
-            elif (arg.FExtOverride==".tif"):
-                dAD.ai_translator.set("tif")
+            try:
+                import pymel.core as pm
+                dAD = pm.PyNode('defaultArnoldDriver')
+                arg.FExtOverride=arg.FExtOverride.lower()
+                if (arg.FExtOverride==".exr"):
+                    dAD.ai_translator.set("exr")
+                elif (arg.FExtOverride==".jpeg"):
+                    dAD.ai_translator.set("jpeg")
+                elif (arg.FExtOverride==".jpg"):
+                    dAD.ai_translator.set("jpeg")
+                elif (arg.FExtOverride==".maya"):
+                    dAD.ai_translator.set("maya")
+                elif (arg.FExtOverride==".png"):
+                    dAD.ai_translator.set("png")
+                elif (arg.FExtOverride==".tif"):
+                    dAD.ai_translator.set("tif")
+            except:
+                logMessage("Warning: Unable to change output format. ")                
         if (argValid(arg.AA1)): 
             logSetAttr('defaultArnoldRenderOptions.AASamples',int(arg.AA1))
         if (argValid(arg.AA2)): 

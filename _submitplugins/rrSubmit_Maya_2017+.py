@@ -23,9 +23,7 @@ import maya.OpenMayaMPx as OpenMayaMPx
 import maya.cmds as cmds
 import maya.mel
 import maya.utils as mu
-import pymel.core as pm
 import maya.app.renderSetup.model.renderSetup as renderSetup
-
 
 if sys.version_info.major == 2:
     range = xrange
@@ -1540,6 +1538,12 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 
     def getPhoenixSim(self):
+        try:
+            import pymel.core as pm
+        except:
+            print("pymel module not found! It was not enabled during Maya installation")
+            return False   
+
         sel = pm.ls(sl = True)
         if ((len(sel)==0) or (cmds.objectType( cmds.listRelatives(sel[0].name()), isType='PhoenixFDSimulator' ) == False)):
             print("Please select the PhoenixFDSimulator object(s)")
@@ -1565,6 +1569,11 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
             
     def getAlembicObj(self):
+        try:
+            import pymel.core as pm
+        except:
+            print("pymel module not found! It was not enabled during Maya installation")
+            return False   
         sel = pm.ls(sl = True)
         if (len(sel)==0):
             print("No object(s) selectetd")
@@ -1595,7 +1604,11 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
 
     def getBakeObj(self):
-
+        try:
+            import pymel.core as pm
+        except:
+            print("pymel module not found! It was not enabled during Maya installation")
+            return False   
         selection = pm.ls(selection=True)
 
         # Check if user have something selected
@@ -2028,6 +2041,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
     ########################################
     def doIt(self, arglist):
         print ("rrSubmit %rrVersion%-2017+")
+        
         initGlobalVars()
 
         #check if we are in console batch mode

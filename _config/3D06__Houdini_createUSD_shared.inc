@@ -51,6 +51,7 @@ CommandLine=
     -avFrameTime <AvFrameTimeSec>
     <AvFrameTimeMin10 -verbose True>
 	<CONoPerFrameLoop -noFrameLoop True>
+    <ImageSingleOutputFile -noFrameLoop True>
     <COIgnoreLoadWarnings -ignoreLoadIssues True>
     <COUnlockAssets -unlockAssets True>
 	<COSubFrames -subFrames <COSubFrames>>
