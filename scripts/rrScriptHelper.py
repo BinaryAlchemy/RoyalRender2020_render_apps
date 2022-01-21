@@ -109,10 +109,10 @@ class rrOSConversion(object):
             
     def getTableOS(self, fromOS, toOS, onlySlashes):
         if len(self.tableWin)==0:
-            print("Error: No OS path conversions set in rrConfig\n\n")
+            print("Warning: No OS path conversions set in rrConfig\n\n")
             return [], []
         if (fromOS==toOS):
-            print("Error: fromOS and toOS are the same OS!\n")
+            print("Info: fromOS and toOS are the same OS!\n")
             return [], []
         if (fromOS==rrOS.Any or toOS==rrOS.Any):
             print("Error: fromOS or toOS was not specified!\n")

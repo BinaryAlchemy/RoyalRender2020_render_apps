@@ -181,7 +181,7 @@ def setROPValue(paramdesc, parmName, value, logError=True):
         arg.rop.parm(parmName).set(value)
     except Exception as e:
         if (logError):
-            logMessage("Error: Unable to change "+ paramdesc +" in "+ arg.ropName +" ! "+str(e))    
+            logMessage("Error: Unable to change "+ paramdesc +" (."+parmName+") in "+ arg.ropName +" ! "+str(e))    
 
 
 def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
