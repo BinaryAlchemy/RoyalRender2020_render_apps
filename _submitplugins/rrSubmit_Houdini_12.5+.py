@@ -74,11 +74,12 @@ def append_redshift_params(submit_args):
 
 def append_vray_params(submit_args):
     try:
-        import vfh
+        import vray 
     except ImportError:
         return False
 
-    vray_ver = vfh.getVRayVersionString()
+    versionTuple = vray.getVRayVersion()
+    vray_ver = str(versionTuple[0]) + '.' + str(versionTuple[1]) + '.' + str(versionTuple[2]) 
 
     submit_args.append("-customRenVer_vray")
     submit_args.append(vray_ver)
