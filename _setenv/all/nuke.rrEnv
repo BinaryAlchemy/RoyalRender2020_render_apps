@@ -27,3 +27,11 @@ NukeInteractiveLicense  =  <NukeInteractiveLicense>
         [EndIf]
     [EndIf]
 [EndIf]
+
+#Disable the Nuke crash dialog which is waiting for you to enter some crash details.
+#This still means that the crash will generate a report, but send it only if you have internet
+NUKE_NO_CRASH_PROMPT=1
+
+#In case you want to have a crash dump file to send to Nuke support, you need to enable these variables
+#NUKE_CRASH_HANDLING=1
+#FN_CRASH_DUMP_PATH=/some/path/
