@@ -3,7 +3,8 @@
 # Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # rrInstall_Copy: ../houdini/scripts/
-# rrInstall_Change_File: ../houdini/MainMenuCommon.xml, before "</mainMenu>", "<addScriptItem id=\"h.royalrender\">\n	<parent>render_menu</parent>\n	<label>Submit RRender</label>\n	<scriptPath>$HFS/houdini/scripts/rrSubmit_Houdini_12.5+.py</scriptPath>\n	<scriptArgs></scriptArgs>\n	<insertAfter/>\n  </addScriptItem>\n\n"
+# rrInstall_Change_File_delete: ../houdini/MainMenuCommon.xml, before "</mainMenu>", "<addScriptItem id=\"h.royalrender\">\n	<parent>render_menu</parent>\n	<label>Submit RRender</label>\n	<scriptPath>$HFS/houdini/scripts/rrSubmit_Houdini_12.5+.py</scriptPath>\n	<scriptArgs></scriptArgs>\n	<insertAfter/>\n  </addScriptItem>\n\n"
+# rrInstall_Change_File: ../houdini/MainMenuCommon.xml, before "</mainMenu>", "<addScriptItem id=\"h.royalrender\">\n	<parent>render_menu</parent>\n	<label>Submit RRender (external scene reader)</label>\n	<scriptPath>$HFS/houdini/scripts/rrSubmit_Houdini_12.5+.py</scriptPath>\n	<scriptArgs></scriptArgs>\n	<insertAfter/>\n  </addScriptItem>\n\n"
 
 
 import hou
