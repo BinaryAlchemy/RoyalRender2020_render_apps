@@ -27,6 +27,9 @@ HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;&
 HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;&  
 PXR_PLUGINPATH_NAME = <PXR_PLUGINPATH_NAME>;&
 
+[Exists] <RR_ROOT>\render_apps\_submitplugins\Houdini
+    HOUDINI_PATH  =  <RR_ROOT>\render_apps\_submitplugins\Houdini;<HOUDINI_PATH>
+[EndIf]
 
 
 PATH= <rrBaseAppPath>\bin;<PATH>
