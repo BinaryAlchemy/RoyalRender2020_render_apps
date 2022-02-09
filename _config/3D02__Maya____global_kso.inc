@@ -38,16 +38,16 @@ errorSearchLine=  V-Ray: Render interrupted
 permanentErrorSearchLine = Cannot open renderer description file
 permanentErrorSearchLine = Cannot render
 permanentErrorSearchLine = rrMaya - ERR
-#permanentErrorSearchLine = Unexpected Internal Failure  //removes as a plugin could fail which is not used at all
+#permanentErrorSearchLine = Unexpected Internal Failure  //a plugin may fail if it is not used at all
 permanentErrorSearchLine = Invalid flag
 permanentErrorSearchLine = Requested layer does not exist!
 
 RealTimeAbortLine= Stack trace:
-#RealTimeAbortLine= Unknown Maya file version
+#RealTimeAbortLine= Unknown Maya file version  //the scene might still render
 RealTimeAbortLine= Fatal Error. Attempting to save in
 RealTimeAbortLine= Failed batch render
 #RealTimeAbortLine= All licenses in use   //not reliable as Arnold RLM sometimes checks 10 times to get a license. Or RLM lic server is used in combination with CLM
-
+RealTimeAbortLine= signal caught: SIGILL
 
 findFrameNoPre= Frame #
 findFrameNoPost=  done
