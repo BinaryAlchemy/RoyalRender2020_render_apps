@@ -78,9 +78,8 @@ def append_vray_params(submit_args):
         import vray 
     except ImportError:
         return False
-
-    versionTuple = vray.getVRayVersion()
-    vray_ver = str(versionTuple[0]) + '.' + str(versionTuple[1]) + '.' + str(versionTuple[2]) 
+    versionStr = vray.getVRayVersionDetails()
+    vray_ver = versionStr.split()[0]  
 
     submit_args.append("-customRenVer_vray")
     submit_args.append(vray_ver)

@@ -815,6 +815,7 @@ class rrMayaLayer:
         self.imageFileName=self.imageFileName.replace("%l","<Layer>")
         self.imageFileName=self.imageFileName.replace("<layer>","<Layer>")
         self.imageFileName=self.imageFileName.replace("<RenderLayer>","<Layer>")
+        self.imageFileName=self.imageFileName.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but sometimes an artist has used it. So we fix that.
         self.imageFileName=self.imageFileName.replace("<RenderPass>","<Channel>")
         self.imageFileName=self.imageFileName.replace("%/c","<Camera>/")
         self.imageFileName=self.imageFileName.replace("%c","<Camera>")
