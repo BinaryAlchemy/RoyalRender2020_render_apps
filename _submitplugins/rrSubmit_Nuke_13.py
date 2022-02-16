@@ -488,14 +488,24 @@ def rrSubmit_CreateSingleJobs_Node(jobList,noLocalSceneCopy, node):
         jobList.append(newJob)
 
 
+def rrSubmit_AreWriteNodesSelected():
+    nList = getAllWriteNodes()
+    nViews=nuke.views()
+    for node in nList:
+        if (node['selected'].value()==True):
+            return True
+    return False
 
 
-def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy):
+
+def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy, submitSelectedOnly):
     nList = getAllWriteNodes()
     nViews=nuke.views()
     for node in nList:
         if (node['disable'].value()):
             continue
+        if (submitSelectedOnly and (node['selected'].value()==False)):
+            continue        
         pathScripted=""
         writeNode = node
         writeNodeName = writeNode['name'].value()
@@ -702,7 +712,7 @@ def start_sg_nuke_engine():
     ctx = tk.context_from_path(work_area_path)
     # Attempt to start the engine for this context
     engine = sgtk.platform.start_engine('tk-nuke', tk, ctx)
-    log.info('Shotgun Toolkit Nuke engine was initialized.')
+    writeInfo('Shotgun Toolkit Nuke engine was initialized.')
     return engine   
     
     
@@ -714,7 +724,7 @@ def rrSubmit_Nuke_Shotgun_convert():
     try:
         import sgtk
     except ImportError:
-        log.info('Fail to import Shotgun Toolkit!') 
+        writeInfo('Fail to import Shotgun Toolkit!') 
         
     nuke.scriptSave()
     
@@ -725,7 +735,7 @@ def rrSubmit_Nuke_Shotgun_convert():
         return
     compFileNameOrg= nuke.root().name()     
     newPath= os.path.dirname(compFileNameOrg)
-    newPath= newPath + "rr/"
+    newPath= newPath + "/rr/"
     if not os.path.exists(newPath):
         os.makedirs(newPath)    
     newFileName= newPath + os.path.basename(compFileNameOrg)
@@ -742,6 +752,9 @@ def rrSubmit_Nuke_Shotgun_convert():
     #default submit
     rrSubmit_Nuke()
     nuke.root().setModified(False)
+    #Nuke does not open scripts in the same window any more. NO matter if changed or not, so close it
+    nuke.scriptClose()
+
     nuke.scriptOpen(compFileNameOrg)
     
 
@@ -755,8 +768,10 @@ def rrSubmit_Nuke(own_terminal=False):
         return
     jobList= []
     noLocalSceneCopy= [False]
-    rrSubmit_CreateAllJob(jobList,noLocalSceneCopy)
-    rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy )
+    submitSelectedOnly= rrSubmit_AreWriteNodesSelected()
+    if (not submitSelectedOnly):
+        rrSubmit_CreateAllJob(jobList,noLocalSceneCopy, submitSelectedOnly)
+    rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy, submitSelectedOnly)
     submitOptions=""
     if (noLocalSceneCopy[0]):
         submitOptions=submitOptions+"AllowLocalSceneCopy=0~0 "

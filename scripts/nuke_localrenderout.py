@@ -108,7 +108,7 @@ def isGizmo(node):
 
 
 
-def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, write_node_output=None):
+def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, write_node_output=None, use_shotgun=False):
     """Set output paths to the RR local directory. If specified, only the Write Node
     named 'write_node_name' is  processed
     """
@@ -125,6 +125,16 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, wri
         writeInfo("Replacing: "+orgDir+" => "+locDir)
         writeInfo("Replacing: "+orgDirWinDrive+" => "+locDir)
         writeInfo("")
+
+    if (use_shotgun):
+        writeInfo("Converting Shotgun nodes")
+        #convert shotgun nodes
+        eng = start_sg_nuke_engine()
+        app = eng.apps["tk-nuke-writenode"]
+        app.convert_to_write_nodes()
+        # For function implementation check:
+        # https://github.com/shotgunsoftware/tk-nuke-writenode/blob/master/python/tk_nuke_writenode/handler.py 	
+
 
     #replace all scripted paths in all read nodes
     #change render path to local render out
@@ -271,8 +281,23 @@ if __name__ == "__main__":
     else:
         image_name = sys.argv[image_name_parm + 1]
 
+    try:
+        shotgun_parm = sys.argv.index("-Shotgun")
+    except ValueError:
+        shotgun_path = None
+    else:
+        shotgun_path = sys.argv[shotgun_parm + 1]
+
+
+    if (shotgun_path != None):
+        sys.path.append(shotgun_path)
+        try:
+            import sgtk
+        except ImportError:
+            print('Error: Failed to import Shotgun Toolkit!') 
+            shotgun_path = None
 
     nuke.scriptOpen(srcFilename)
     crossOSConvert(locRenderScripts, sceneOSstr, write_node_name=layer)
-    makeLocalRenderOut(srcBasePath, srcBasePath_DriveLetter, locOutputPath, write_node_name=layer, write_node_output=image_name)
+    makeLocalRenderOut(srcBasePath, srcBasePath_DriveLetter, locOutputPath, write_node_name=layer, write_node_output=image_name, use_shotgun= (shotgun_path!=None))
     nuke.scriptSaveAs(locFileName, 1)
