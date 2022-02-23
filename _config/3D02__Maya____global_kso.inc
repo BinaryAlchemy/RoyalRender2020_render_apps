@@ -48,6 +48,8 @@ RealTimeAbortLine= Fatal Error. Attempting to save in
 RealTimeAbortLine= Failed batch render
 #RealTimeAbortLine= All licenses in use   //not reliable as Arnold RLM sometimes checks 10 times to get a license. Or RLM lic server is used in combination with CLM
 RealTimeAbortLine= signal caught: SIGILL
+RealTimeAbortLine= Failed batch render
+
 
 findFrameNoPre= Frame #
 findFrameNoPost=  done

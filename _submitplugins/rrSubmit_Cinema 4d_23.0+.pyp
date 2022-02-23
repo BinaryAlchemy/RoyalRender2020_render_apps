@@ -928,7 +928,7 @@ class TakeManager(object):
         :return: None
         """
         child_take = parent_take.GetDown()
-        while child_take is not None:
+        while child_take != None:
             self._duplicate_with_new_take(child_take, current_take_name, fullPath)
             current_path = '*'.join([name for name in (fullPath, child_take.GetName()) if name])
             self._add_takes_recursive(child_take, current_take_name, current_path)
@@ -1003,10 +1003,10 @@ class RRSubmitBase(object):
 
     def submitRRConsole(self, filename, PID=None, WID=None):
         """Call rrSubmitterconsole and pass the XML job file as a parameter"""
-        if WID is not None:
+        if WID != None:
             #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID + " -WaitForID " + WID)
             call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
-        elif PID is not None:
+        elif PID != None:
             #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID)
             call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID])
         else:

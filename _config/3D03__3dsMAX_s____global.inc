@@ -84,6 +84,13 @@ RenderAppWindow_WIN= 3dsmax ~ AnimatePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimeSlider ~
 RenderAppWindow_WIN= 3dsmax ~ Cancel Expert Mode ~
+RenderAppWindow_WIN= PhoenixFD Toolbar ~
+RenderAppWindow_WIN= StatusPanel ~
+RenderAppWindow_WIN= ViewControlPanel ~
+RenderAppWindow_WIN= AnimatePanel ~
+RenderAppWindow_WIN= TimePanel ~
+RenderAppWindow_WIN= TimeSlider ~
+RenderAppWindow_WIN= Brush Presets ~
 
 
 
