@@ -884,8 +884,7 @@ class TakeManager(object):
             new_job.isActive = True
 
         self._takedata.SetCurrentTake(take)
-
-        render_data = take[c4d.TAKEBASE_RDATA]
+        render_data, _ = take.GetEffectiveRenderData(self._takedata)
 
         if render_data and not self._is_archive:
             new_job.channelFileName = []
@@ -954,7 +953,9 @@ class TakeManager(object):
             main_job.channelFileName[ch] = convert_filename_tokens(self._doc, main_take, main_job.channelFileName[ch])
             main_job.channelFileName[ch] = main_job.channelFileName[ch].replace("$take", main_take.GetName())
 
-        self._takedata.SetCurrentTake(main_take)
+        if self._takedata.GetCurrentTake() != main_take:
+            self._takedata.SetCurrentTake(main_take)
+
         rd = self._doc.GetActiveRenderData()
         setSeq(main_job, rd)
 
@@ -2388,11 +2389,6 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         elif self.job[0].renderer == "Octane":
             self.job[0].rendererVersion = GetOctaneVersion(doc)
 
-        if doc.GetChanged():
-            rvalue = gui.QuestionDialog("Save Scene?")
-            if rvalue:
-                c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
-
         setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
         self.setFileout()
@@ -2403,8 +2399,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if self.multiCameraMode:
             self.addCameras(doc)
 
+        if self.takeData.GetCurrentTake() != backupCurrentTake:
+            self.takeData.SetCurrentTake(backupCurrentTake)
+
+        if doc.GetChanged():
+            rvalue = gui.QuestionDialog("Save Scene?")
+            if rvalue:
+                c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
+
         self.submitToRR(self.job, False, PID=None, WID=None)
-        self.takeData.SetCurrentTake(backupCurrentTake)
+
         return True
 
 
