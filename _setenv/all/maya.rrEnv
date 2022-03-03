@@ -274,30 +274,27 @@ REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
 [If] <rrJobRenderer>  [contains] redshift
     [If] <RR_REDSHIFT_NETWORK>  [==] 0
         [If] <RR_REDSHIFT_BASE>  [==] 
-            [If] <rrExeVersionMajor>  [<] 2020
                 [If] <rrExeOS>  [==] win
                     RR_REDSHIFT_BASE  =  c:\ProgramData\Redshift
                 [Else]
                     RR_REDSHIFT_NETWORK  =  1
                 [EndIf]
-            [EndIf]
         [EndIf]
     [EndIf]
 [EndIf]
 
+#if no Redshift folder was defined in __inhouse file and we do not use local folder, define Redshift network shared folder
+[If] <RR_REDSHIFT_BASE>  [==] 
+    RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<rrJobRendererVersion>
+[EndIf]
+	
 [If] <rrJobRenderer>  [contains] redshift
-    #if no Redshift folder was defined in __inhouse file and we do not use local folder, define Redshift network shared folder
-    [If] <RR_REDSHIFT_BASE>  [==] 
-        RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<rrJobRendererVersion>
-    [EndIf]
     #define local cache folder IF we use MtoA network shared folder
     [If] <RR_REDSHIFT_NETWORK>  [==] 1
         RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
     [Else]
         RR_REDSHIFT_BASE_LOCAL  = <RR_REDSHIFT_BASE>
     [EndIf]
-
-    RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
 [EndIf]
 
 [If] <rrJobRenderer>  [contains] redshift

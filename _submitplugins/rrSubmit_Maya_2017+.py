@@ -633,7 +633,7 @@ class rrMayaLayer:
         if (orgFileSplitName.endswith('.')):
             orgFileSplitName = orgFileSplitName[:-1]
         
-        printDebug("AOV orgFileSplit   "+orgFileSplitDir+"   "+orgFileSplitName)                
+        printDebug("AOV1 orgFileSplit   "+orgFileSplitDir+"   "+orgFileSplitName)                
 
         #Find Redshift beauty AOV as this disables the main output.
         #And set it as RR job main output
@@ -644,7 +644,6 @@ class rrMayaLayer:
             if (self.get_attr(p+'.enabled') == 1 and aovType=="Beauty"):
                 beautyAovIdx=p
                 aovName= self.get_attr(p+'.name')
-                self.channelName= aovName
                 filePrefix = self.get_attr(p+'.filePrefix')
                 filePrefix = filePrefix.strip()
                 if (len(filePrefix)==0):
@@ -652,14 +651,14 @@ class rrMayaLayer:
                 filePrefix= filePrefix.replace('\\','/')
                 filePrefix= filePrefix.replace("<RenderPass>","<Channel>")
                 newFileName=""
-                #printDebug("AOV   "+filePrefix+"   "+newFileName)                
+                printDebug("AOV2   "+filePrefix+"   "+newFileName)                
                 if (filePrefix.startswith("<BeautyPath>/")):
                     newFileName +=  orgFileSplitDir + "/"
                     filePrefix = filePrefix[len("<BeautyPath>/"):]
                 if (filePrefix.startswith("<BeautyPath>")):
                     newFileName +=  orgFileSplitDir
                     filePrefix = filePrefix[len("<BeautyPath>"):]
-                #printDebug("AOV   "+filePrefix+"   "+newFileName)
+                printDebug("AOV3   "+filePrefix+"   "+newFileName)
                 filePos= filePrefix.find("<BeautyFile>")
                 if (filePos >= 0):
                     if (filePos>0):
@@ -667,12 +666,15 @@ class rrMayaLayer:
                         filePrefix = filePrefix[filePos:]
                     newFileName += orgFileSplitName
                     filePrefix = filePrefix[len("<BeautyFile>"):]
-                #printDebug("AOV   "+filePrefix+"   "+newFileName)
+                printDebug("AOV4   "+filePrefix+"   "+newFileName)
                 filePrefix= filePrefix.replace("<BeautyFile>",orgFileSplitName)
-                newFileName += "<RemoveVar " + filePrefix + ">"
+                redVersion = self.rendererVersion
+                if (redVersion<"3.0.65"):
+                    self.channelName= aovName
+                    newFileName += "<RemoveVar " + filePrefix + ">"
                 filePrefix=""
-                #printDebug("AOV   "+filePrefix+"   "+newFileName)
-                #printDebug("AOV beauty found  "+newFileName)
+                printDebug("AOV5   "+filePrefix+"   "+newFileName)
+                printDebug("AOV6 beauty found  "+newFileName)
                 self.imageFileName= newFileName + "."
                 self.imageDir=""
                 break
@@ -687,19 +689,19 @@ class rrMayaLayer:
                 aovName= self.get_attr( p+'.name')
                 filePrefix = self.get_attr( p+'.filePrefix')
                 filePrefix = filePrefix.strip()
-                printDebug("AOV   "+aovType+"   "+aovName+"   filePrefix:"+str(filePrefix))
+                printDebug("AOV7   "+aovType+"   "+aovName+"   filePrefix:"+str(filePrefix))
                 if (len(filePrefix)==0):
                     filePrefix= orgFileSplitDir+'/'+orgFileSplitName
                     if (filePrefix[len(filePrefix)-1]!="."):
                         filePrefix += "."
                 else:
                     filePrefix += "."
-                    #printDebug("AOV add   "+aovName+": "+filePrefix)                
+                    printDebug("AOV8 add   "+aovName+": "+filePrefix)                
                     filePrefix= filePrefix.replace('\\','/')
                     filePrefix= filePrefix.replace("<BeautyPath>",orgFileSplitDir)
                     filePrefix= filePrefix.replace("<BeautyFile>",orgFileSplitName)
                     filePrefix= filePrefix.replace("<RenderPass>", "<IMS>"+aovName)   
-                printDebug("AOV add   "+aovName+": "+filePrefix)                
+                printDebug("AOV9 add   "+aovName+": "+filePrefix)                
                 self.channelFileName.append(filePrefix)
                 self.channelExtension.append(self.imageExtension)
                 self.maxChannels +=1
@@ -727,7 +729,7 @@ class rrMayaLayer:
         RenderOut= RenderOut[0]
         #printDebug("     getImageOut_imageFilePrefix   RenderOut "+RenderOut)
         if (self.renderer=="redshift"):
-            redVersion = self.rendererVersion[:5]
+            redVersion = self.rendererVersion
             redVersion = redVersion[:5]
             if (redVersion<"1.2.9"):
                 RenderOut = self.get_attr('redshiftOptions.imageFilePrefix') 
@@ -867,15 +869,15 @@ class rrMayaLayer:
                 isRelative=False
                 self.imageDir=""
         if (isRelative):
-            print ("getImageOut - imageFileName isRelative(1), add "+self.imageDir)
+            printDebug("getImageOut - imageFileName isRelative(1), add "+self.imageDir)
             if (len(self.imageDir)>1):
                 self.imageDir= self.imageDir.replace("\\","/")
                 if ((self.imageDir[0]=="/") or (self.imageDir[1]==":")):
                     isRelative=False
         else:
-            print ("getImageOut - imageFileName isAbsolute")
+            printDebug ("getImageOut - imageFileName isAbsolute")
         if (isRelative):
-            print ("getImageOut - imageFileName isRelative(2), add "+sceneInfo.DatabaseDir)
+            printDebug ("getImageOut - imageFileName isRelative(2), add "+sceneInfo.DatabaseDir)
             self.imageDir= sceneInfo.DatabaseDir + self.imageDir
             self.imageDir+= "/"
 
