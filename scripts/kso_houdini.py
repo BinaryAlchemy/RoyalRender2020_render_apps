@@ -561,7 +561,12 @@ def applyRendererOptions_openGl():
   
 def applyRendererOptions_geometry():
     global arg
-    logMessage("Rendering with geometry exporter")
+    isFileCache= False
+    if ("filecache" in arg.rop.type().name()):
+        isFileCache= True
+        logMessage("Rendering with geometry exporter (filecache)")
+    else:
+        logMessage("Rendering with geometry exporter")
     if (argValid(arg.take)):
         logMessageSET("ROP take to "+arg.take)
         try:
@@ -569,9 +574,17 @@ def applyRendererOptions_geometry():
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName= addFrameNumber_and_Log(arg.FName)
-    setROPValue("Output", 'sopoutput' , outFileName, True)
+    if isFileCache:
+        if arg.FSingleFile:
+            setROPValue("timedependent", 'timedependent' , 0)
+        else:
+            setROPValue("timedependent", 'timedependent' , 1)
+        setROPValue("Filemethod", 'filemethod' , "explicit")
+        setROPValue("Output", 'file' , outFileName)
+    setROPValue("Output", 'sopoutput' , outFileName)
 
-def applyRendererOptions_alembic(singleFile):
+
+def applyRendererOptions_alembic():
     global arg
     logMessage("Rendering with alembic exporter")
     if (argValid(arg.take)):
@@ -581,8 +594,7 @@ def applyRendererOptions_alembic(singleFile):
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
     outFileName=arg.FName
-    if singleFile:
-        arg.FSingleFile= True
+    if arg.FSingleFile:
         arg.allFramesAtOnce= True
         outFileName= outFileName
         logMessageSET("output name to "+outFileName)
@@ -844,9 +856,9 @@ try:
     elif (arg.renderer=="geometry"):
         applyRendererOptions_geometry()
     elif (arg.renderer=="alembic"):
-        applyRendererOptions_alembic(arg.FSingleFile)
+        applyRendererOptions_alembic()
     elif (arg.renderer=="alembic-singlefile"):
-        applyRendererOptions_alembic(arg.FSingleFile)
+        applyRendererOptions_alembic()
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()
