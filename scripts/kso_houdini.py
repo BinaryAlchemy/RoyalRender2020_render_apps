@@ -65,7 +65,6 @@ def switchTake(takeName):
        logMessageSET("scene take to " + takeName)
        hou.hscript("takeset "+takeName) #replaced by hou.takes.setCurrentTake() since version ??
     #hou.hscript("set -g WEDGE ="+takeName)
-   
 
 def switchWedge(arg):
     wedgeSplit= arg.wedge.split('*')
@@ -140,6 +139,11 @@ class argParser:
         self.subFrames=self.getParam("-subFrames")
         self.unlockAssets=self.getParam("-unlockAssets")
         self.ignoreROPDependencies=self.getParam("-ignoreROPDependencies")
+        self.rrParentJob=self.getParam("-parentRRJob")
+        self.slicerClient=self.getParam("-slicerClient")
+        self.slicerPort=self.getParam("-slicerPort")
+        self.slicerNode=self.getParam("-slicerNode")
+        
         
 
 
@@ -192,7 +196,10 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     rrIgnoreInputs=False
     if (argValid(arg.ignoreROPDependencies)):
         rrIgnoreInputs=True
-    
+    alf_prog_parm = arg.rop.parm("alfprogress")
+    if alf_prog_parm is not None:
+        alf_prog_parm.set(1)
+        
     if (argValid(arg.wedge)):
         arg.rop.parm('trange').set("normal")
         arg.rop.parm('f1').deleteAllKeyframes()
@@ -409,7 +416,7 @@ def addFrameNumber_and_Log(outFileName):
         outFileName= outFileName +"$F"+str(arg.FPadding) + arg.FExt
     logMessageSET("output name to "+outFileName)
     return outFileName
-    
+
 
 def applyRendererOptions_default():
     global arg
@@ -753,6 +760,148 @@ def unlock_assets(ropNode):
     except: 
         logMessage("Error: Unable unlock parent assets of ROP node!")
 
+def setParmValueInRopNodeAndInputs(rop, parm_name, val):
+    """Set the value for the given parameter in the specified ROP node
+       and recursively in each of its ROP input nodes."""
+    rop_stack = [rop, ]
+    visited_rops = []
+
+    while len(rop_stack) > 0:
+        cur_rop = rop_stack.pop()
+        parm= None
+        if type(val) == type([]) or type(val) == type(()):
+            #TODO: handle touples in set part
+            #parm = cur_rop.parmTuple(parm_name)
+            pass
+        else:
+            parm = cur_rop.parm(parm_name)
+
+        if parm is not None:
+            parm.deleteAllKeyframes()
+            parm.set(val)
+
+        visited_rops.append(cur_rop)
+
+        for input_node in cur_rop.inputs():
+            if input_node is None:
+                continue
+
+            if input_node.type().category() == hou.ropNodeTypeCategory() and (input_node not in visited_rops):
+                rop_stack.append(input_node) 
+
+    
+def getFrameRange(rop):
+    if (rop.parm('trange') is not None) and (rop.evalParm("trange") == 0):
+        start_frame = int(hou.frame())
+        end_frame = int(hou.frame())
+        frame_incr = 1
+    elif rop.parmTuple("f") is not None:
+        start_frame = int(rop.evalParm("f1"))
+        end_frame = int(rop.evalParm("f2"))
+        frame_incr = int(rop.evalParm("f3"))
+    else:
+        for input_node in rop.inputs():
+            start_frame, end_frame, frame_incr = \
+                getFrameRange(input_node)
+            if start_frame is not None:
+                break
+
+    if frame_incr is not None and frame_incr <= 0:
+        frame_incr = 1
+
+    return start_frame, end_frame, frame_incr 
+ 
+    
+def render(node, *args, **kwargs):
+    """Render the specified node.
+
+    Raise an exception if the node could not be rendered.
+    """
+    import hou
+    try:
+        if hasattr(node, 'render'):
+            node.render(*args, **kwargs)
+        elif node.parm("execute"):
+            node.parm("execute").pressButton()
+        else:
+            raise TypeError(
+                "ERROR: Unable to render node '%s'."
+                "  No execute or render method available." % node.name())
+    except hou.OperationFailed as e:
+        # Log error with the render tracker.
+        hq.rendertrackerrpc.setCurrentFrameError(str(e))
+
+        # Output ROP errors and fail.
+        hq.utils.failWithError(str(e))
+ 
+ 
+def simulationSlicer():
+    global arg
+    if (not argValid(arg.slicerNode)):
+        logMessageError("No slicer control node set!", True)
+    if (not argValid(arg.slicerClient)):
+        if (not argValid(arg.rrParentJob)):
+            logMessageError("No slicerClient and no RR parent job set!", True)
+        #TODO: get client name from rrServer by jobID
+        logMessageError("This script version does not yet support to get tracker client automatically!", True)
+        
+    if (not argValid(arg.slicerPort)):
+        arg.slicerPort= 8000
+    logMessageSET("Sim Tracker to {}:{}".format(arg.slicerClient,arg.slicerPort))
+
+
+    # Get the DOP controls node.
+    logMessage("Slicer control node is {}".format(arg.slicerNode))
+    controls_dop = arg.rop.node(arg.slicerNode)
+    
+    #_createDirectories(dirs_to_create) 
+
+    # Set the tracker address.
+    controls_dop.parm("address").deleteAllKeyframes()
+    controls_dop.parm("address").set(arg.slicerClient)
+    controls_dop.parm("port").set(arg.slicerPort) 
+    
+    # Set the slice number.
+    logMessageSET("Slice to {}".format(arg.FrStart))
+    hou.hscript("setenv SLICE=" + str(arg.FrStart))
+    hou.hscript("varchange")
+
+    # Turn on Alfred-style progress reporting on Geo ROP.
+    alf_prog_parm = arg.rop.parm("alfprogress")
+    if alf_prog_parm is not None:
+        alf_prog_parm.set(1)
+
+    # Set the frame range.
+    frame_range = getFrameRange(arg.rop)
+    setParmValueInRopNodeAndInputs(arg.rop, "trange", 1)
+    setParmValueInRopNodeAndInputs(arg.rop, "f", frame_range)
+
+    # Turn on performance monitoring.
+    #if enable_perf_mon:
+     #   hou.hscript("perfmon -o stdout -t ms")
+
+    beforeFrame = datetime.datetime.now()
+    logMessage("Starting simulation...")
+    flushLog()
+    if hasattr(arg.rop, 'render'):
+        if (argValid(arg.verbose) and arg.verbose):
+             arg.rop.render( verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
+        else:
+             arg.rop.render(output_progress=True,  method=hou.renderMethod.FrameByFrame)
+    elif arg.rop.parm("execute"):
+        arg.rop.parm("execute").pressButton()
+    else:
+        logMessageError("ERROR: Unable to render node '%s'."
+            "  No execute or render method available." % arg.rop.name(), True)
+
+    nrofFrames = ((frame_range[1] - frame_range[0]) / frame_range[2]) + 1
+    nrofFrames = int (nrofFrames)
+    afterFrame = datetime.datetime.now()
+    afterFrame -= beforeFrame
+    afterFrame /= nrofFrames
+    logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(frame_range[0], frame_range[1], frame_range[2], nrofFrames, afterFrame))
+    
+
 
 #main function:
 try:
@@ -828,7 +977,6 @@ try:
     arg.FRefName= arg.FRefName.replace("<Stereo>","")
 
         
-    
     arg.rop = hou.node( arg.ropName )
     if (argValid(arg.unlockAssets) and arg.unlockAssets):
         unlock_assets(arg.rop)
@@ -859,13 +1007,14 @@ try:
         applyRendererOptions_alembic()
     elif (arg.renderer=="alembic-singlefile"):
         applyRendererOptions_alembic()
+    elif (arg.renderer=="simSlicer"):
+        pass
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()
         
     if (argValid(arg.take)):
         switchTake(arg.take)
-        
         
     if (argValid(arg.wedge)):
         switchWedge(arg)
@@ -880,15 +1029,22 @@ try:
     timeEnd=datetime.datetime.now()
     timeEnd=timeEnd - timeStart;
     logMessage("Scene load time: "+str(timeEnd)+"  h:m:s.ms")
-    logMessage("Scene init done, starting to render... ")
-    flushLog()
-
-    if (argValid(arg.KSOMode) and arg.KSOMode):
-        render_KSO()
+    
+    
+    if (arg.renderer=="simSlicer"):
+        logMessage("Starting simulation slicer... ")
+        flushLog()
+        simulationSlicer()
     else:
-        render_default()
+        logMessage("Scene init done, starting to render... ")
+        flushLog()
+
+        if (argValid(arg.KSOMode) and arg.KSOMode):
+            render_KSO()
+        else:
+            render_default()
 
 except NameError as e:
-    logMessage(str(e)+"\n")      
+    logMessage("Warning: "+str(e)+"\n")      
 except Exception as e:
     logMessageError( str(e)+"\n", True)
