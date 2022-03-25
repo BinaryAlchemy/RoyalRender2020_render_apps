@@ -31,7 +31,7 @@ if (args.HoudiniModPath!= None):
     sys.path.append(args.HoudiniModPath)
 
 
-print("RR: Updating child job ({}) with my IP and tell it to ignore wait state\n".format(args.childRRJob))
+print("\nRR: Updating child job ({}) with my IP and tell it to ignore wait state\n".format(args.childRRJob))
 from rr_python_utils.load_rrlib import rrLib  
 import rr_python_utils.connection as rr_connect
 import rrJob
@@ -45,7 +45,7 @@ if (args.JobCommandPWHash != None):
 jobsApply=[]
 jobsApply.append(int(args.childRRJob))
 
-if not tcp.jobSetCustomVariables(jobsApply, " CustomSlicerClient=" + trackerIP):
+if not tcp.jobSetCustomVariables(jobsApply, " SlicerClient=" + trackerIP + "; SlicerPort=" + str(trackerPort) ):
     print("Error jobSetCustomVariables: " + tcp.errorMessage())
     exit(1)
 
@@ -54,18 +54,28 @@ if not tcp.jobSendCommand(jobsApply, rrJob._LogMessage.lIgnoreWaitFor, 0):
     print("Error jobSendCommand: " + tcp.errorMessage())
     exit(1)
 
-
 import simtracker
 
-print("RR: Starting Simulation Tracker on port {}\n\n".format(trackerPort))
+print("\nRR: Starting Simulation Tracker on port {}\n\n".format(trackerPort))
 print("Connect your browser to http://{}:{}/ to get information about the tracker state.\n".format(trackerIP, webPort))
 print("This is useful to debug and see if machines are checking in and are synchronized.\n\n")
 
 simtracker.setVerbosity(True)
 
 sys.stdout.flush()
-simtracker.serve(int(trackerPort), int(webPort))
+try:
+    simtracker.serve(int(trackerPort), int(webPort))
+except:
+    import traceback
+    print("\n   simtracker.serve Exception.\n")
+    print(str(traceback.format_exc()))
+    
 
-print("RR: Done\n")
+try:
+    #simtracker.serve closes stdout and stderr, therefore print fails...    
+    print("RR: Done\n")
+except:
+    pass
+
 
 

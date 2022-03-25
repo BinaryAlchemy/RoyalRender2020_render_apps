@@ -1,6 +1,7 @@
 
 import socket
 import argparse
+import struct
 parser = argparse.ArgumentParser()
 parser.add_argument("-slicerClient")
 parser.add_argument("-slicerPort", type=int)
@@ -20,6 +21,11 @@ if tracker_host is None:
     print("simTracker_stop: Error: getting slicerClient via parent rrJob is not implemented yet")
     exit(2)
     
+#create  message
+msg = "quit"
+msg= msg.encode()
+msg_len = struct.pack("!L", len(msg))
+msg = msg_len + msg
 
 
 print("Connecting to {}:{}".format(tracker_host, tracker_port))
@@ -28,15 +34,15 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((tracker_host, tracker_port))
 
 # Send the quit message.
-msg = "quit"
-msg_len = struct.pack("!L", len(msg))
-msg = msg_len + msg
+
 print("simTracker_stop: Sending quit...")
 s.send(msg)
 
 # Read the ack from tracker and send back an empty message to indicate success.
 s.recv(1)
-s.send('')
+msg = ""
+msg= msg.encode()
+s.send(msg)
 
 s.close()
 print("simTracker_stop: Done")
