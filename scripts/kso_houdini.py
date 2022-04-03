@@ -835,6 +835,42 @@ def render(node, *args, **kwargs):
         hq.utils.failWithError(str(e))
  
  
+def executeAnyNode():
+    global arg
+
+    # Turn on Alfred-style progress reporting on Geo ROP.
+    alf_prog_parm = arg.rop.parm("alfprogress")
+    if alf_prog_parm is not None:
+        alf_prog_parm.set(1)
+
+    # Set the frame range.
+    frame_range = getFrameRange(arg.rop)
+    setParmValueInRopNodeAndInputs(arg.rop, "trange", 1)
+    setParmValueInRopNodeAndInputs(arg.rop, "f", frame_range)
+
+    beforeFrame = datetime.datetime.now()
+    logMessage("Executing node "+ arg.rop.name() +"...")
+    flushLog()
+    if hasattr(arg.rop, 'render'):
+        if (argValid(arg.verbose) and arg.verbose):
+             arg.rop.render( verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
+        else:
+             arg.rop.render(output_progress=True,  method=hou.renderMethod.FrameByFrame)
+    elif arg.rop.parm("execute"):
+        arg.rop.parm("execute").pressButton()
+    else:
+        logMessageError("ERROR: Unable to render node '%s'."
+            "  No execute or render method available." % arg.rop.name(), True)
+
+    nrofFrames = ((frame_range[1] - frame_range[0]) / frame_range[2]) + 1
+    nrofFrames = int (nrofFrames)
+    afterFrame = datetime.datetime.now()
+    afterFrame -= beforeFrame
+    afterFrame /= nrofFrames
+    logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(frame_range[0], frame_range[1], frame_range[2], nrofFrames, afterFrame))
+    
+
+ 
 def simulationSlicer():
     global arg
     if (not argValid(arg.slicerNode)):
@@ -866,42 +902,13 @@ def simulationSlicer():
     hou.hscript("setenv SLICE=" + str(arg.FrStart))
     hou.hscript("varchange")
 
-    # Turn on Alfred-style progress reporting on Geo ROP.
-    alf_prog_parm = arg.rop.parm("alfprogress")
-    if alf_prog_parm is not None:
-        alf_prog_parm.set(1)
-
-    # Set the frame range.
-    frame_range = getFrameRange(arg.rop)
-    setParmValueInRopNodeAndInputs(arg.rop, "trange", 1)
-    setParmValueInRopNodeAndInputs(arg.rop, "f", frame_range)
 
     # Turn on performance monitoring.
     #if enable_perf_mon:
      #   hou.hscript("perfmon -o stdout -t ms")
-
-    beforeFrame = datetime.datetime.now()
-    logMessage("Starting simulation...")
-    flushLog()
-    if hasattr(arg.rop, 'render'):
-        if (argValid(arg.verbose) and arg.verbose):
-             arg.rop.render( verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
-        else:
-             arg.rop.render(output_progress=True,  method=hou.renderMethod.FrameByFrame)
-    elif arg.rop.parm("execute"):
-        arg.rop.parm("execute").pressButton()
-    else:
-        logMessageError("ERROR: Unable to render node '%s'."
-            "  No execute or render method available." % arg.rop.name(), True)
-
-    nrofFrames = ((frame_range[1] - frame_range[0]) / frame_range[2]) + 1
-    nrofFrames = int (nrofFrames)
-    afterFrame = datetime.datetime.now()
-    afterFrame -= beforeFrame
-    afterFrame /= nrofFrames
-    logMessage("Frame {0} - {1}, {2} ({3} frames) done. Average frame time: {4}  h:m:s.ms".format(frame_range[0], frame_range[1], frame_range[2], nrofFrames, afterFrame))
-    
-
+     
+    executeAnyNode()
+ 
 
 #main function:
 try:
@@ -1009,6 +1016,8 @@ try:
         applyRendererOptions_alembic()
     elif (arg.renderer=="simSlicer"):
         pass
+    elif (arg.renderer=="anyNode"):
+        pass
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()
@@ -1035,6 +1044,8 @@ try:
         logMessage("Starting simulation slicer... ")
         flushLog()
         simulationSlicer()
+    elif (arg.renderer=="anyNode"):
+        executeAnyNode()
     else:
         logMessage("Scene init done, starting to render... ")
         flushLog()
