@@ -328,13 +328,15 @@ REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
     MAYA_PLUG_IN_PATH  =  <REDSHIFT_PLUG_IN_PATH>;<MAYA_PLUG_IN_PATH>
     PATH  =  <REDSHIFT_PLUG_IN_PATH>;<REDSHIFT_PLUG_IN_PATH>\extensions;<RR_REDSHIFT_BASE_LOCAL>\bin;<PATH>
     LD_LIBRARY_PATH  =  <REDSHIFT_PLUG_IN_PATH>;<REDSHIFT_PLUG_IN_PATH>\extensions;<RR_REDSHIFT_BASE_LOCAL>\bin;<LD_LIBRARY_PATH>
-    [If] <rrExeOS>  [==] win
-        [copy] SyncCreate C:\ProgramData\Redshift\redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core.lic
-        [copy] SyncCreate C:\ProgramData\Redshift\redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core2.lic
-    [Else]
-        [If] <rrExeOS>  [==] lx
-            [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core.lic
-            [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
+    [If] <RR_REDSHIFT_NETWORK>  [==] 1
+        [If] <rrExeOS>  [==] win
+            [copy] SyncCreate C:\ProgramData\Redshift\redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core.lic
+            [copy] SyncCreate C:\ProgramData\Redshift\redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core2.lic
+        [Else]
+            [If] <rrExeOS>  [==] lx
+                [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core.lic
+                [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
+            [EndIf]
         [EndIf]
     [EndIf]
     REDSHIFT_LICENSEPATH=<RR_REDSHIFT_BASE_LOCAL>
