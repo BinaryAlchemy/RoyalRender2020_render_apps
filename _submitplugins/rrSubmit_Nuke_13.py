@@ -340,7 +340,7 @@ def getAllWriteNodes():
     return writeNo
     
 
-def rrSubmit_CreateAllJob(jobList,noLocalSceneCopy):
+def rrSubmit_CreateAllJob(jobList, noLocalSceneCopy):
     newJob= rrJob()
     rrSubmit_fillGlobalSceneInfo(newJob)
     nList = getAllWriteNodes()
@@ -767,11 +767,11 @@ def rrSubmit_Nuke(own_terminal=False):
         writeError("Nuke comp not saved!")
         return
     jobList= []
-    noLocalSceneCopy= [False]
-    submitSelectedOnly= rrSubmit_AreWriteNodesSelected()
-    if (not submitSelectedOnly):
-        rrSubmit_CreateAllJob(jobList,noLocalSceneCopy, submitSelectedOnly)
-    rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy, submitSelectedOnly)
+    noLocalSceneCopy = [False]
+    submitSelectedOnly = rrSubmit_AreWriteNodesSelected()
+    if not submitSelectedOnly:
+        rrSubmit_CreateAllJob(jobList, noLocalSceneCopy)
+    rrSubmit_CreateSingleJobs(jobList, noLocalSceneCopy, submitSelectedOnly)
     submitOptions=""
     if (noLocalSceneCopy[0]):
         submitOptions=submitOptions+"AllowLocalSceneCopy=0~0 "
