@@ -1018,8 +1018,9 @@ def checkColorPrefsFile():
         for o in fileNodeList:
             fileName = cmds.getAttr(o + '.configFilePath')
             if (fileName!=None and (len(fileName)>0)):
-                if not os.path.isfile(fileName):
-                    logMessage('Warning: ColorManagement file not found!. It is set to \''+fileName+'\'')   
+                if (not "<MAYA_RESOURCES>" in fileName):
+                    if not os.path.isfile(fileName):
+                        logMessage('Warning: ColorManagement file not found!. It is set to \''+fileName+'\'')   
             logMessage('ColorManagement settings: ')
             logMessage('   cmEnabled:           ' + str(cmds.getAttr(o + '.cmEnabled')) )
             logMessage('   configFileEnabled:   ' + str(cmds.getAttr(o + '.configFileEnabled')) )

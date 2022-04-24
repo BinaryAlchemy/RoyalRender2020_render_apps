@@ -58,6 +58,7 @@ findFrameNoPost=  done
 RenderAppWindow_WIN= Error ~ Unable to locate valid MAYA_APP_DIR ~ 1 ~ Button ~ OK 
 RenderAppWindow_WIN= Browse for Folder ~ Select a directory where Maya will store user data ~ 1 ~ Button ~ Cancel 
 RenderAppWindow_WIN= Warning ~ Cannot run Maya without a valid setting for MAYA_APP_DIR ~ 1 ~ Button ~ &No 
+RenderAppWindow_WIN= AdskLicensingAgent ~ This application failed to start ~ 1 ~ Button ~ Ok 
 
 
 
