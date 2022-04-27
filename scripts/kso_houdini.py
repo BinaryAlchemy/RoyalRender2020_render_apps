@@ -161,32 +161,29 @@ def formatExceptionInfo(maxTBlevel=5):
          return (excName, excArgs, excTb)
 
 
-def setParmException(node, parmName, value):
+def setParmValue(parm, value):
     try:
-        node.parm(parmName).deleteAllKeyframes()
+       parm.deleteAllKeyframes()
     except:
-        logMessage("Error: Unable to delete keyframes of "+ node.name() + "." + parmName + " !")
+        logMessage("Error: Unable to delete keyframes of "+ parm.path() + " !")
+    parmValue= parm.unexpandedString()    
+    if "chs" in parmValue:
+        try:
+            parm.setExpression('garbage') 
+            parm.deleteAllKeyframes()
+        except:
+            logMessage("Error: Unable to delete chs of "+ parm.path() + " !")
     try:
-        arg.rop.parm(parmName).set(value )
+        parm.set(value )
     except Exception as e:
-        logMessage("Error: Unable to change '"+ node.name() +"."+ parmName + "' to " + str(value) + " ! "+str(e))    
+        logMessage("Error: Unable to change '"+ parm.path() + "' to " + str(value) + " ! "+str(e))    
 
 
     
 def setROPValue(paramdesc, parmName, value, logError=True):
     global arg
-    logMessageSET("ROP " + paramdesc + " to " + str(value))
-    try:
-        arg.rop.parm(parmName).deleteAllKeyframes()
-    except Exception as e:
-        if (logError):
-            logMessage("Error: Unable to delete keyframes of  "+ paramdesc +" in "+ arg.rop.name() + " ! "+str(e))
-    try:
-        arg.rop.parm(parmName).set(value)
-    except Exception as e:
-        if (logError):
-            logMessage("Error: Unable to change "+ paramdesc +" (."+parmName+") in "+ arg.ropName +" ! "+str(e))    
-
+    logMessageSET("ROP " + paramdesc + " (."+str(parmName)+") to " + str(value))
+    setParmValue(arg.rop.parm(parmName), value)
 
 def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     beforeFrame = datetime.datetime.now()
@@ -202,12 +199,9 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
         
     if (argValid(arg.wedge)):
         arg.rop.parm('trange').set("normal")
-        arg.rop.parm('f1').deleteAllKeyframes()
-        arg.rop.parm('f2').deleteAllKeyframes()
-        arg.rop.parm('f3').deleteAllKeyframes()        
-        arg.rop.parm('f1').set(frameRange[0])
-        arg.rop.parm('f2').set(frameRange[1])
-        arg.rop.parm('f3').set(frameRange[2])
+        setParmValue(arg.rop.parm('f1'), frameRange[0])
+        setParmValue(arg.rop.parm('f2'), frameRange[1])
+        setParmValue(arg.rop.parm('f3'), frameRange[2])
         if (argValid(arg.verbose) and arg.verbose):
             arg.wedgeRop.render( res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame)
         else:
@@ -414,7 +408,7 @@ def addFrameNumber_and_Log(outFileName):
         outFileName= outFileName +"$FF" + arg.FExt
     else: 
         outFileName= outFileName +"$F"+str(arg.FPadding) + arg.FExt
-    logMessageSET("output name to "+outFileName)
+    logMessage("Output name will be "+outFileName)
     return outFileName
 
 
@@ -588,6 +582,7 @@ def applyRendererOptions_geometry():
             setROPValue("timedependent", 'timedependent' , 1)
         setROPValue("Filemethod", 'filemethod' , "explicit")
         setROPValue("Output", 'file' , outFileName)
+        
     setROPValue("Output", 'sopoutput' , outFileName)
 
 
@@ -777,8 +772,7 @@ def setParmValueInRopNodeAndInputs(rop, parm_name, val):
             parm = cur_rop.parm(parm_name)
 
         if parm is not None:
-            parm.deleteAllKeyframes()
-            parm.set(val)
+            setParmValue(parm, val)
 
         visited_rops.append(cur_rop)
 
@@ -893,9 +887,9 @@ def simulationSlicer():
     #_createDirectories(dirs_to_create) 
 
     # Set the tracker address.
-    controls_dop.parm("address").deleteAllKeyframes()
-    controls_dop.parm("address").set(arg.slicerClient)
-    controls_dop.parm("port").set(arg.slicerPort) 
+    setParmValue(controls_dop.parm("address"), arg.slicerClient)
+    setParmValue(controls_dop.parm("port"), arg.slicerPort)
+
     
     # Set the slice number.
     logMessageSET("Slice to {}".format(arg.FrStart))
