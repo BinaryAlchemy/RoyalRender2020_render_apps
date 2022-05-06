@@ -166,13 +166,16 @@ def setParmValue(parm, value):
        parm.deleteAllKeyframes()
     except:
         logMessage("Error: Unable to delete keyframes of "+ parm.path() + " !")
-    parmValue= parm.unexpandedString()    
-    if "chs" in parmValue:
-        try:
-            parm.setExpression('garbage') 
-            parm.deleteAllKeyframes()
-        except:
-            logMessage("Error: Unable to delete chs of "+ parm.path() + " !")
+    try:
+        parmValue= parm.unexpandedString()    
+        if "chs" in parmValue:
+            try:
+                parm.setExpression('') 
+                parm.deleteAllKeyframes()
+            except:
+                logMessage("Error: Unable to delete chs of "+ parm.path() + " !")
+    except:
+        pass    
     try:
         parm.set(value )
     except Exception as e:
