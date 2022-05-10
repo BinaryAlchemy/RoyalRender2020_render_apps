@@ -198,6 +198,13 @@ RR_VRAY_IS_USED  =
     [EndIf]
     RR_VRAY_IS_USED  =  TRUE
 [EndIf]
+[If] <rrJobRenderer>  [contains] VRay
+    [If] <RR_VRAY_VERSION>  [==] 
+        echo * Rendering with VRay
+        RR_VRAY_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+    RR_VRAY_IS_USED  =  TRUE
+[EndIf]
 [If] <rrJobRenderer>  [contains] createVr
     [If] <RR_VRAY_VERSION>  [==] 
         echo * Creating with VRay
