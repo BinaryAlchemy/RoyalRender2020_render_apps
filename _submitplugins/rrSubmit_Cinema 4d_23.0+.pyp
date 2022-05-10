@@ -2393,6 +2393,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.setImageFormat()
         self.setFileout()
 
+        if len(self.job[0].imageName) == 0 or self.job[0].imageName == "<IMS>" :
+            # output not set
+            gui.MessageDialog('Output Path not set, please check Render Setting')
+            return False
+
         take_manager = TakeManager(self, doc)
         take_manager.add_takes()
 
