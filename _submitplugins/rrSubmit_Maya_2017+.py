@@ -817,7 +817,6 @@ class rrMayaLayer:
         self.imageFileName=self.imageFileName.replace("%l","<Layer>")
         self.imageFileName=self.imageFileName.replace("<layer>","<Layer>")
         self.imageFileName=self.imageFileName.replace("<RenderLayer>","<Layer>")
-        self.imageFileName=self.imageFileName.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but sometimes an artist has used it. So we fix that.
         self.imageFileName=self.imageFileName.replace("<RenderPass>","<Channel>")
         self.imageFileName=self.imageFileName.replace("%/c","<Camera>/")
         self.imageFileName=self.imageFileName.replace("%c","<Camera>")
@@ -1356,7 +1355,9 @@ class rrMayaLayer:
 
         #print (self.name+ "    "+self.camera+ " is renderable" )
         #If there are more than one rederable cam, then RR should not set the -cam flag at render time
-        
+        if ("<renderLayer>" in self.imageFileName):
+            rrWriteLog("You are using <renderLayer> in your filename.\nMaya support uppercase <RenderLayer> only.\nMaya might add an unwanted subfolder <RenderLayer>.\n\n(Please review the resolved filename in the render dialog)")
+            return False
         
         
         if (self.nbRenderableCams>1):
@@ -2043,6 +2044,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
     #      Main function 
     ########################################
     def doIt(self, arglist):
+        printDebug('---------------------------------------------------------------------------')
+        printDebug('###########################################################################')
         print ("rrSubmit %rrVersion%-2017+")
         
         initGlobalVars()
