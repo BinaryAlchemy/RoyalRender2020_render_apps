@@ -273,6 +273,17 @@ def rrSubmit_fillGlobalSceneInfo(newJob):
     newJob.imageFileName = ""
 
 
+def rrSubmit_NukeXRequired():
+    n = nuke.allNodes()
+    for i in n:
+        if (i.Class().find(".furnace.")>=0):
+            return True
+        if (i.Class().find("CameraTracker")>=0):
+            return True
+        if (i.Class().find("CopyCat")>=0):
+            return True
+    return False
+
 def rrSubmit_addPluginLicenses(jobList):
     n = nuke.allNodes()
     plugins=""
@@ -292,19 +303,13 @@ def rrSubmit_addPluginLicenses(jobList):
         if (i.Class().find(".myPlugin.")>=0):
             plugins=plugins+"MyPlugin;"
             break;
+            
+    if (rrSubmit_NukeXRequired()):
+        plugins=plugins+"nukeX;"
         
     if (len(plugins)>0):
         for job in jobList:
             job.RequiredLicenses=plugins
-
-def rrSubmit_NukeXRequired():
-    n = nuke.allNodes()
-    for i in n:
-        #if (i.Class().find(".furnace.")>=0):
-         #   return True
-        if (i.Class().find("CopyCat")>=0):
-            return True
-    return False
 
 
 def isGizmo(node):

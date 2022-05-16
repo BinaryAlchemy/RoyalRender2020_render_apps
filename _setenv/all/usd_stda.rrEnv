@@ -20,15 +20,22 @@ DollarSign = $
 #Disable UI messages
 HOUDINI_INTERACTIVE_ASSERTS = 0
 
-HOUDINI_TEMP_DIR  =  <TMP>
+HOUDINI_TEMP_DIR  =  <TEMP>
+
+HFS = <rrBaseAppPath>
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
 HOUDINI_SCRIPT_PATH  =  <HOUDINI_SCRIPT_PATH>;&
 HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;&
 # HOUDINI_VEX_PATH  =  <HOUDINI_VEX_PATH>;&
-# HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;&
+HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;&  
 PXR_PLUGINPATH_NAME = <PXR_PLUGINPATH_NAME>;&
+
+[Exists] <RR_ROOT>\render_apps\_submitplugins\Houdini
+    HOUDINI_PATH  =  <RR_ROOT>\render_apps\_submitplugins\Houdini;<HOUDINI_PATH>
+[EndIf]
+
 
 PATH= <rrBaseAppPath>\bin;<PATH>
 
@@ -37,7 +44,7 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 [If] <JOB>  [==]
     [If] <CustomHoudiniJob>  [!=]  
         [BSlashConvert] JOB  =  <CustomHoudiniJob>
-        echo * JOB Env variable is set to  <CustomHoudiniJob>
+        echo * JOB Env variable is set to  "<CustomHoudiniJob>"
     [EndIf]
 [EndIf]
 
@@ -196,6 +203,13 @@ RR_VRAY_IS_USED  =
     [EndIf]
     RR_VRAY_IS_USED  =  TRUE
 [EndIf]
+[If] <rrJobRenderer>  [contains] VRay
+    [If] <RR_VRAY_VERSION>  [==] 
+        echo * Rendering with VRay
+        RR_VRAY_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+    RR_VRAY_IS_USED  =  TRUE
+[EndIf]
 [If] <rrJobRenderer>  [contains] createVr
     [If] <RR_VRAY_VERSION>  [==] 
         echo * Creating with VRay
@@ -224,21 +238,30 @@ VRAY_UI_DS_PATH  =  <RR_VRAY_BASE_LOCAL>\ui
 VRAY_FOR_HOUDINI_AURA_LOADERS  =  <VFH_HOME>\libs
 VFH_PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_FOR_HOUDINI_AURA_LOADERS>
 
-HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
-LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
-PATH  =  <VFH_PATH>;<PATH>
-PATH  =  <VRAY_APPSDK>\bin\compat;<PATH>
-PYTHONPATH = <VRAY_APPSDK>\python27;<PYTHONPATH>
-
-QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
-
-    
+[If] <RR_VRAY_IS_USED>  [==] TRUE 
+    HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
+    LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
+    PATH  =  <VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
+    [If] <rrExeVersionMajor>  [<] 19
+        echo using VRay with python 2.7
+        PYTHONPATH = <VRAY_APPSDK>\python27;<PYTHONPATH>
+        VFH_DSO_PATH = <VFH_HOME>\dso_py2
+    [Else]
+        echo using VRay with python 3.7
+        PYTHONPATH = <VRAY_APPSDK>\python37;<PYTHONPATH>
+        VFH_DSO_PATH = <VFH_HOME>\dso_py3
+    [EndIf]
+    VFU_PLUGINS=<VFH_DSO_PATH>/usd_plugins/hdVRay/plugins
+[EndIf]
+#Has to be seperated as it uses <VFH_DSO_PATH>
 [If] <RR_VRAY_IS_USED>  [==] TRUE        
+    HOUDINI_DSO_PATH=<VFH_DSO_PATH>;<HOUDINI_DSO_PATH>
     HOUDINI13_VOLUME_COMPATIBILITY  =  1
     HDF5_DISABLE_VERSION_CHECK  =  1
 [EndIf]
 
 
+QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 
 
 # ###################  Renderman environment variables ###################
@@ -293,7 +316,7 @@ PATH=<RMANTREE>\bin;<PATH>
 [BSlashConvert] HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>
 [BSlashConvert] HOUDINI_SCRIPT_PATH  =  <HOUDINI_SCRIPT_PATH>
 # [BSlashConvert] HOUDINI_VEX_PATH  =  <HOUDINI_VEX_PATH>
-# [BSlashConvert] HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>
+[BSlashConvert] HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>
 [BSlashConvert] PXR_PLUGINPATH_NAME  =  <PXR_PLUGINPATH_NAME>
 
 
@@ -302,7 +325,7 @@ echo * HOUDINI_OTLSCAN_PATH is set to "<HOUDINI_OTLSCAN_PATH>"
 echo * HOUDINI_SOHO_PATH is set to "<HOUDINI_SOHO_PATH>"
 echo * HOUDINI_SCRIPT_PATH is set to "<HOUDINI_SCRIPT_PATH>"
 # echo * HOUDINI_VEX_PATH is set to "<HOUDINI_VEX_PATH>"
-# echo * HOUDINI_DSO_PATH is set to "<HOUDINI_DSO_PATH>"
+echo * HOUDINI_DSO_PATH is set to "<HOUDINI_DSO_PATH>"
 echo * PXR_PLUGINPATH_NAME is set to "<PXR_PLUGINPATH_NAME>"
 
 

@@ -451,7 +451,7 @@ def applyRendererOptions_default():
     else:
         arg.rop.parm('soho_outputmode').set(0)
         orgDirName0= rrGetDirName( arg.rop.parm('vm_picture').eval() )
-        arg.rop.parm('vm_picture').set(outFileName)
+        setROPValue('output', 'vm_picture', outFileName)
         newDirName0= rrGetDirName( arg.rop.parm('vm_picture').eval() )
 
         orgDirName0 = rrReplaceUpLevel(orgDirName0)
@@ -521,12 +521,12 @@ def applyRendererOptions_createUSD():
     if (argValid(arg.take)):
         setROPValue("take", "take", arg.take, True)
     outFileName= addFrameNumber_and_Log(arg.FName)
-    arg.rop.parm('lopoutput').set(outFileName)
+    setROPValue('output', 'lopoutput', outFileName)
     try:
         if (not arg.FSingleFile):
-            arg.rop.parm('fileperframe').set(1)
+            setROPValue('fileperframe', 'fileperframe', 1)
         #else:     
-            #arg.rop.parm('fileperframe').set(0)  required for file per frame, BUT OPTIONAL for single .usd files.
+            #setROPValue('fileperframe', 'fileperframe', 0)  required for file per frame, but OPTIONAL for single .usd files.
     except:
         pass
     
@@ -541,11 +541,11 @@ def applyRendererOptions_USD():
     setFirst=True
     setSecond=True
     try:
-        arg.rop.parm('outputimage').set(outFileName)
+        setROPValue('output', 'outputimage', outFileName)
     except:
         setFirst=False
     try:
-        arg.rop.parm('picture').set(outFileName)
+        setROPValue('output', 'picture', outFileName)
     except:
         setSecond=False
     if (not setFirst and not setSecond):
@@ -560,7 +560,7 @@ def applyRendererOptions_openGl():
     if (argValid(arg.take)):
         setROPValue("take", "take", arg.take, True)
     outFileName= addFrameNumber_and_Log(arg.FName)
-    arg.rop.parm('picture').set(outFileName)
+    setROPValue('output', 'picture', outFileName)
 
   
 def applyRendererOptions_geometry():
@@ -603,11 +603,12 @@ def applyRendererOptions_alembic():
         arg.allFramesAtOnce= True
         outFileName= outFileName
         logMessageSET("output name to "+outFileName)
-        arg.rop.parm('render_full_range').set(1)
+        setROPValue('render_full_range', 'render_full_range', 1)
     else:
         outFileName= addFrameNumber_and_Log(outFileName)
-        arg.rop.parm('render_full_range').set(0)
-    arg.rop.parm('filename').set(outFileName)
+        setROPValue('render_full_range', 'render_full_range', 0)
+    setROPValue('filename', 'filename', outFileName)
+
     
     
 def applyRendererOptions_Arnold():
@@ -680,19 +681,19 @@ def applyRendererOptions_VRay():
     if (argValid(arg.take)):
         setROPValue("take", "take", arg.take, True)
     if (arg.rendererExportMode):
-        arg.rop.parm('render_export_mode').set("2")
+        setROPValue('Enable Archive', 'render_export_mode', "2")
         archiveName=""
         if (arg.FSingleFile):
             archiveName= arg.FName + arg.FExt
             logMessageSET("archive output name to "+archiveName)
         else:
             archiveName= addFrameNumber_and_Log(arg.FName)
-        arg.rop.parm('render_export_filepath').set(archiveName)
+        setROPValue('output', 'render_export_filepath', archiveName)
         logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('SettingsOutput_img_file_path').eval()))
     else:
-        arg.rop.parm('render_export_mode').set("0")
+        setROPValue('Enable Archive', 'render_export_mode', "0")
         outFileName= addFrameNumber_and_Log(arg.FName)
-        arg.rop.parm('SettingsOutput_img_file_path').set( outFileName)
+        setROPValue('output', 'SettingsOutput_img_file_path', outFileName)
     
     
 def applyRendererOptions_Redshift():
@@ -725,7 +726,7 @@ def applyRendererOptions_Redshift():
         else:
             setROPValue('Skip Existing Frames', 'RS_archive_skipFiles', 0)
         setROPValue('Enable Archive', 'RS_archive_enable', 1)
-        arg.rop.parm('RS_archive_file').set(outFileName)
+        setROPValue('output', 'RS_archive_file', outFileName)
         logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('RS_outputFileNamePrefix').eval()))
     else:
         if (argValid(arg.SkipExisting)):

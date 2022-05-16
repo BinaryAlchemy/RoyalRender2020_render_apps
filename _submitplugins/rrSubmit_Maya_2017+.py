@@ -728,15 +728,6 @@ class rrMayaLayer:
         RenderOut= cmds.renderSettings( ign=True,lyr=self.name)        
         RenderOut= RenderOut[0]
         #printDebug("     getImageOut_imageFilePrefix   RenderOut "+RenderOut)
-        if (self.renderer=="redshift"):
-            redVersion = self.rendererVersion
-            redVersion = redVersion[:5]
-            if (redVersion<"1.2.9"):
-                RenderOut = self.get_attr('redshiftOptions.imageFilePrefix') 
-                if (RenderOut == None):
-                    RenderOut=  "<Scene>.%e"
-                else:
-                    RenderOut= RenderOut +".%e"
         RenderOut=RenderOut.replace("\\","/")
         FNsplitter=""
         self.imageFramePadding=0
@@ -817,6 +808,7 @@ class rrMayaLayer:
         self.imageFileName=self.imageFileName.replace("%l","<Layer>")
         self.imageFileName=self.imageFileName.replace("<layer>","<Layer>")
         self.imageFileName=self.imageFileName.replace("<RenderLayer>","<Layer>")
+        self.imageFileName=self.imageFileName.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but by Redshift
         self.imageFileName=self.imageFileName.replace("<RenderPass>","<Channel>")
         self.imageFileName=self.imageFileName.replace("%/c","<Camera>/")
         self.imageFileName=self.imageFileName.replace("%c","<Camera>")
@@ -1353,13 +1345,13 @@ class rrMayaLayer:
         if (returnSuc == False):
             return False
 
-        #print (self.name+ "    "+self.camera+ " is renderable" )
-        #If there are more than one rederable cam, then RR should not set the -cam flag at render time
+        #this message is never shown as we replace lowercase renderlayer before
         if ("<renderLayer>" in self.imageFileName):
             rrWriteLog("You are using <renderLayer> in your filename.\nMaya support uppercase <RenderLayer> only.\nMaya might add an unwanted subfolder <RenderLayer>.\n\n(Please review the resolved filename in the render dialog)")
             return False
         
-        
+        #print (self.name+ "    "+self.camera+ " is renderable" )
+        #If there are more than one rederable cam, then RR should not set the -cam flag at render time
         if (self.nbRenderableCams>1):
             for c in range(0, len(self.tempCamRenderable)):
                 if (self.tempCamRenderable[c]):
