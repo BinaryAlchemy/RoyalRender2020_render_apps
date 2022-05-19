@@ -41,7 +41,7 @@ CommandLine= "<Exe>"
     -FPadding <ImageFramePadding>
     <AppRenderer -renderer <AppRenderer>>
     -avFrameTime <AvFrameTimeSec>
-    -noFrameLoop False
+    -noFrameLoop <CONoFrameLoop True ? False>
     -sceneOS <sceneOS>
     <Channel -Channel <Channel> >
     <Camera -camera <Camera> >

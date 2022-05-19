@@ -4,6 +4,8 @@ Frozen_MinCoreUsage=0.30
 IconRenderer=r_redshift.png
 
 
+errorSearchLine= Failed to allocate mem
+
 
 RealTimeAbortLine= Failed to init CUDA
 RealTimeAbortLine= License subsystem failed to initialize
