@@ -19,6 +19,8 @@ AllowImageDirChange= 1
 AllowLocalSceneCopy= 1~0
 UIStyle= 1~dark
 
+CONoFrameLoop= 1 ~ 0
+
 
 ################################## Client Settings ################################## 
 
