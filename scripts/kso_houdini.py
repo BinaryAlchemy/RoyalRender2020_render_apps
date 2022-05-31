@@ -1,5 +1,5 @@
 #python
-# -*- coding: cp1252 -*-
+# -*- coding: latin-1 -*-
 ######################################################################
 #
 # Royal Render Render script for Houdini
@@ -13,7 +13,8 @@ import datetime
 import time
 import sys
 import os
-
+import struct
+FSCODING = sys.stdout.encoding or sys.getfilesystemencoding()
 
 if sys.version_info.major == 2:
     range = xrange
@@ -86,14 +87,32 @@ def switchWedge(arg):
     #logMessageSET("Current frame to start frame  "+str(startFrame) +" to update sims with wedge change.")
     #hou.setFrame(startFrame)
     
-    
 
+def rawbytes(s):
+    """Convert a string to raw bytes without encoding"""
+    outlist = []
+    for cp in s:
+        num = ord(cp)
+        if num < 255:
+            outlist.append(struct.pack('B', num))
+        elif num < 65535:
+            outlist.append(struct.pack('>H', num))
+        else:
+            b = (num & 0xFF0000) >> 16
+            H = num & 0xFFFF
+            outlist.append(struct.pack('>bH', b, H))
+    return b''.join(outlist)
+    
+    
 class argParser:
     def getParam(self,argFindName):
         argFindName=argFindName.lower()
         for a in range(0,  len(sys.argv)):
             if ((sys.argv[a].lower()==argFindName) and (a+1<len(sys.argv))):
                 argValue=sys.argv[a+1]
+                if sys.version_info.major == 3:
+                    argValue = rawbytes(argValue)
+                    argValue = argValue.decode(FSCODING)                
                 if (argValue.lower()=="true"):
                     argValue=True
                 elif (argValue.lower()=="false"):

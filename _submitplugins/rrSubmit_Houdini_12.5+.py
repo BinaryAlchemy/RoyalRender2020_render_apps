@@ -1,6 +1,6 @@
 # Royal Render Plugin script for Houdini 12.5+
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
-# Last change: %rrVersion%
+# Last change: v8.3.05
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # rrInstall_Copy: ../houdini/scripts/
 # rrInstall_Change_File_delete: ../houdini/MainMenuCommon.xml, before "</mainMenu>", "<addScriptItem id=\"h.royalrender\">\n	<parent>render_menu</parent>\n	<label>Submit RRender</label>\n	<scriptPath>$HFS/houdini/scripts/rrSubmit_Houdini_12.5+.py</scriptPath>\n	<scriptArgs></scriptArgs>\n	<insertAfter/>\n  </addScriptItem>\n\n"
@@ -19,7 +19,7 @@ def getRR_Root():
         return os.environ['RR_ROOT']
     HCPath= "%"
     if ((sys.platform.lower() == "win32") or (sys.platform.lower() == "win64")):
-        HCPath="%RRLocationWin%"
+        HCPath="E:\\RoyalRender"
     elif (sys.platform.lower() == "darwin"):
         HCPath="%RRLocationMac%"
     else:
@@ -123,13 +123,18 @@ def append_prman_params(submit_args):
 
 
 def rrSubmit():
-    print ("rrSubmit %rrVersion%")
+    print ("rrSubmit v8.3.05")
     hou.hipFile.save()
     sceneFile = hou.hipFile.name()
     rrRoot = getRR_Root()
 
     if not sceneFile:
-        raise Exception("rrSubmission FAILED: No scene file to submit")
+        raise Exception("rrSubmission FAILED: No scene file opened")
+        
+    sceneFile= sceneFile.encode("utf-8")
+    if sys.version_info.major >= 3:
+        sceneFile= repr(sceneFile)
+        sceneFile=sceneFile[2:-1]
 
     exe_args = []
 
@@ -152,7 +157,10 @@ def rrSubmit():
     append_prman_params(exe_args)
     
     # finally open
-    subprocess.Popen(exe_args)
+    if sys.version_info.major >= 3:
+        subprocess.Popen(exe_args, encoding='UTF-8')
+    else:
+        subprocess.Popen(exe_args)
 
 
 rrSubmit()
