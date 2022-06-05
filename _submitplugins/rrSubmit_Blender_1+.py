@@ -152,6 +152,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
                                                                scn.frame_start, scn.frame_end,
                                                                padding,
                                                                suffix)
+        return renderOut, extension
 
     def writeSceneInfo(self, scn, fileID, scene_state="", is_active=True):
         img_type = scn.render.image_settings.file_format
@@ -173,14 +174,14 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             hash_position = renderOut.rindex('#')
             renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if renderOut[i] != '#')
         except ValueError:
-            hash_idx = -1
+            hash_position = -1
             renderPadding = 4
 
         extension = ""
 
         if scn.render.use_file_extension:
             if ImageSingleOutputFile:
-                extension = self.getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, renderPadding)
+                renderOut, extension = self.getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, renderPadding)
             else:
                 extension = scn.render.file_extension
 
