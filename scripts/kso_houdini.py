@@ -434,6 +434,15 @@ def addFrameNumber_and_Log(outFileName):
     return outFileName
 
 
+def applyRendererOptions_comp():
+    global arg
+    logMessage("Rendering comp ")
+    if (argValid(arg.take)):
+        setROPValue("take", "take", arg.take, True)
+    outFileName=arg.FName
+    outFileName= addFrameNumber_and_Log(outFileName)
+    setROPValue('output', 'copoutput', outFileName)
+            
 def applyRendererOptions_default():
     global arg
     logMessage("Rendering with default renderer")
@@ -1035,6 +1044,8 @@ try:
         pass
     elif (arg.renderer=="anyNode"):
         pass
+    elif (arg.renderer=="Comp"):
+        applyRendererOptions_comp()
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()
