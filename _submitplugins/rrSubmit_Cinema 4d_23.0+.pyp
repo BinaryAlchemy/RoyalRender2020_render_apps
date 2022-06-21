@@ -1924,6 +1924,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 job.channelFileName.append(reg_out)
                 job.channelExtension.append(IMG_FORMATS.get(render_data[c4d.RDATA_FORMAT], ".exr"))
                 job.maxChannels += 1
+                job.imageFormat = IMG_FORMATS.get(render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT], ".exr")
             else:
                 LOGGER.debug("Channel: MultiPass")
                 job.channel = "MultiPass"
