@@ -8,6 +8,7 @@ Name= USD_StdA_single
 OverrideClientInstallName= Houdini
 Version=18
 Type=Archive
+TYPEv9=Archive
 
 
 
@@ -51,6 +52,9 @@ Frozen_MinCoreUsage=1.90
 
 licenseFailLine=  no license available
 licenseFailLine=  no licenses could be found to run this application
+licenseFailLine=  No karma license found
+BrokenImageLine=  No karma license found
+
 
 permanentErrorSearchLine = Unable to connect to hserver for license
 permanentErrorSearchLine = There must be a camera in the USD file

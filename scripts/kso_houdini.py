@@ -204,8 +204,12 @@ def setParmValue(parm, value):
     
 def setROPValue(paramdesc, parmName, value, logError=True):
     global arg
-    logMessageSET("ROP " + paramdesc + " (."+str(parmName)+") to " + str(value))
-    setParmValue(arg.rop.parm(parmName), value)
+    parmObj= arg.rop.parm(parmName)
+    if (parmObj==None):
+        logMessage("WRN: ROP parmameter does not exist: " + paramdesc + " (."+str(parmName)+") to " + str(value))
+    else:
+        logMessageSET("ROP " + paramdesc + " (."+str(parmName)+") to " + str(value))
+        setParmValue(arg.rop.parm(parmName), value)
 
 def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
     beforeFrame = datetime.datetime.now()
@@ -706,6 +710,7 @@ def applyRendererOptions_VRay():
     logMessage("Rendering with VRay")
     if (argValid(arg.camera)):
         setROPValue("camera", "camera", arg.camera, True)
+        setROPValue("camera", "render_camera", arg.camera, True)
     if (argValid(arg.take)):
         setROPValue("take", "take", arg.take, True)
     if (arg.rendererExportMode):
