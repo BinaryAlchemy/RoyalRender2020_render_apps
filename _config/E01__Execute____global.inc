@@ -21,6 +21,9 @@ Frozen_MinCoreUsage=0.3
 Frozen_Minutes=30
 
 
+#MAXON licensing command should not be shown because of password
+RemoveFromLog= Contains ~ user login
+
 ::include(E01__Execute____global__inhouse.inc)
 
 
