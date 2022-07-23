@@ -1734,8 +1734,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 aov_name = aov_name.lower()
 
                 if mainMP.isValid():
-                    if nondiffuse_main:
-                        # we have a main pass, but we wish it was a diffuse pass instead
+                    if nondiffuse_main and aov_type_name in diffuse_passes:
+                        # we have a main pass, but we wish it for a diffuse pass instead
                         # store current main pass as an additional channel
                         self.addChannel(job, mainMP.channel_name, mainMP.channel_description,
                                         render_data[c4d.RDATA_MULTIPASS_SUFFIX])
@@ -1752,12 +1752,14 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     # store as main pass
                     mainMP.channel_name = aov_name
                     mainMP.channel_description = "$userpass"
-
-                    LOGGER.warning(
-                        """Using {0} as first pass, but adding at least
-                         a 'rgba' multipass is reccomended""".format(aov_type_nice)
-                    )
+                    
                     nondiffuse_main = aov_type_name not in diffuse_passes
+                    if nondiffuse_main:
+                        LOGGER.warning(
+                            """Using {0} as first pass, but adding at least
+                            a 'rgba' multipass is reccomended""".format(aov_type_nice)
+                        )
+                    
 
             aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_ENABLED, c4d.DTYPE_BOOL, 0)
             direct_save = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
@@ -1767,19 +1769,26 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 aov_name = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
 
                 aov_name = aov_name if aov_name else aov_names.get(aov_type, aov_type_nice)
+                try:
+                    aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_EFFECTIVE_PATH, c4d.DTYPE_STRING, 0)
+                except AttributeError:
+                    # build output path the old way
+                    aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_PATH, c4d.DTYPE_STRING, 0)
+                    aov_file = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
 
-                aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_PATH, c4d.DTYPE_STRING, 0)
-                aov_file = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
+                    aov_file = aov_file.replace("$filepath", img_dir)
+                    aov_file = aov_file.replace("$filename", f'{scn_name}_AOV_')
+                    aov_file = aov_file.replace("$pass", aov_name)
+
+                    aov_file = self.replacePathTokens(job, aov_file, render_data)
+                    aov_file = aov_file.replace("<Channel_intern>", aov_name)
+
+                    # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
+                else:
+                    aov_file = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
+                
                 aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_FORMAT, c4d.DTYPE_LONG, 0)
                 aov_format = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
-
-                aov_file = aov_file.replace("$filepath", img_dir)
-                aov_file = aov_file.replace("$filename", scn_name)
-                aov_file = aov_file.replace("$pass", aov_name)
-
-                aov_file = self.replacePathTokens(job, aov_file, render_data)
-                aov_file = aov_file.replace("<Channel_intern>", aov_name)
-                # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
                 aov_file, aov_ext = self.getNameFormat(job, aov_file, aov_formats[aov_format])
 
                 if mainMP.isValid():
@@ -1791,10 +1800,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     mainMP.channel_name = aov_name
                     mainMP.channel_description = "$userpass"
 
-                    LOGGER.warning(
-                        """Using {0} as first pass, but adding at least
-                         a 'rgba' multipass is reccomended""".format(aov_type_nice)
-                    )
+                    if aov_type not in diffuse_passes:
+                        LOGGER.warning(
+                            """Using {0} as first pass, but adding at least
+                            a 'rgba' multipass is reccomended""".format(aov_type_nice)
+                        )
 
             if added_to_channels:
                 aov_channels += 1

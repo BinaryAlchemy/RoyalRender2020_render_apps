@@ -1495,8 +1495,10 @@ def init_c4d():
 
     if arg.KSOMode and argValid(arg.KSOMode):
         render_KSO()
+        logMessage("KSO Session Ended, Exiting")
     else:
         render_default()
+        logMessage("Task Frames Rendered, Exiting")
 
     return True
 
