@@ -15,6 +15,10 @@ echo * ------ cinema 4d__inhouse.rrEnv ------
 # LicenseFlags=-license 127.0.0.1 5264
 
 
+# # Uncomment the following line if you have Organizational licenses and have issues with licenses releasing
+# g_licenseReleaseLicenseOnQuit=true
+# g_licenseLeaseTimeHours=0.5
+
 
 # C4D_rrPluginFolder requires Cinema4D R20.
 # Your path should contain the variable <rrExeVersionMajor>, this will be replaced with the Cinema4D version.
