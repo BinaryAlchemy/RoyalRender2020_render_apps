@@ -21,12 +21,14 @@ rrLogger.setLevel(logging.INFO)
 
     
 
+def get_logger():
+    return logging.getLogger("rrPy")
+    
+    
 def is_64bit():
     import struct
     return (struct.calcsize("P") == 8)
     
-
-
 
 def get_rr_bin_folder():
     """Return the path of Royal Render's bin folder. Only works if RR was installed on the machine,
@@ -36,7 +38,7 @@ def get_rr_bin_folder():
         rr_path= os.environ['RR_ROOT9']
     else:
         if not ('RR_ROOT' in os.environ):
-            raise RR_EnvironNotFound("env var RR_ROOT needed to find module search path,"
+            raise RR_EnvironNotFound("env var RR_ROOT required to find module search path,"
                                     " please run rrWorkstationInstaller")
             return ""
         rr_path=os.environ['RR_ROOT']
@@ -54,8 +56,7 @@ def get_rr_bin_folder():
     else:
         bin_path = os.path.join(bin_path, "lx")
 
-    if is_64bit():
-        bin_path += '64'
+    bin_path += '64'
 
     bin_path = bin_path.replace("_debug", "_release")
     return bin_path
@@ -80,17 +81,19 @@ def rr_sync_copy(src_path, dst_path, errors):
     try:
         if os.path.isfile(dst_path):
             if os.path.isfile(dst_path+".old"):
-                os.remove(dst_path+".old") 
+                if os.path.isfile(dst_path+".old2"):
+                    os.remove(dst_path+".old2") 
+                os.rename(dst_path+".old", dst_path+".old2")
             os.rename(dst_path, dst_path+".old")
     except OSError as reason:
-        errors.extend(("Rename old",  dst_path+".old", str(reason).replace("\\\\", "\\")))        
+        errors.extend(("Rename old",  dst_path, str(reason).replace("\\\\", "\\")))        
     # exceptions are handled in parent function
     shutil.copyfile(src_path, dst_path)
     
     try:
         shutil.copystat(src_path, dst_path)
     except OSError as reason:
-        print("ERROR {}".format(reason))
+        logger.error("ERROR {}".format(reason))
         # special exceptions NOT handled in parent function
         if WindowsError is not None and isinstance(reason, WindowsError):
             # Copying file access times may fail on Windows
@@ -104,30 +107,33 @@ def rr_sync_tree(src_dir, dst_dir, symlinks=False):
     logger = get_logger()
     dir_content = os.listdir(src_dir)
 
-    ignored_names = ('QtGui', 'QtXml', 'avcodec', 'avformat', 'avutil', 'cuda',
-                     'Half', 'Iex', 'IlmImf', 'IlmThread', 'Imath', 'libcurl', 'libpng', 'rrJpeg',
-                     'rrShared', 'swscale',
-                     'Qt5Gui', 'Qt5Wiogets', 'D3Dcompiler', 'iconengines', 'imageformats',
+    ignored_names = ('QtGui', 'Qt5Gui', 'QtXml', 'Qt5Xml', 'Qt5Widgets', 
+                     'avcodec', 'avformat', 'avutil', 'cuda', 'swscale',
+                     'Half', 'Iex', 'IlmImf', 'IlmThread', 'Imath', 'OpenEXR',
+                     'libcurl', 'libpng', 'rrJpeg', 'curl', 'rrShared', '7z', 
+                     'D3Dcompiler', 'iconengines', 'imageformats',
                      'platforms', 'bearer', 'translations')
 
     if sys.platform.lower().startswith("win32"):
         contain_names = ('.dll', '.pyd')
+    elif sys.platform.lower() == "darwin":
+        contain_names = tuple() #QT libs have no extension
     else:
-        contain_names = tuple()  # or possibly ('.so', '.dylib')
+        contain_names = ('.so')
 
     if not os.path.isdir(dst_dir):
         os.makedirs(dst_dir)
 
     errors = []
 
-    logger.info("Sync local folder " + src_dir)
+    logger.info("Sync local folder " + dst_dir)
     for name in dir_content:
         if any(s in name for s in ignored_names):
             logger.debug("skipping: filename contains ignore string {0}".format(name))
             continue
 
         if len(contain_names) > 0 and not any(s in name for s in contain_names):
-            logger.debug("skipping: filename contains ignore string {0}".format(name))
+            logger.debug("skipping: filename does not contain extension {0}".format(name))
             continue
 
         src_path = os.path.join(src_dir, name)
@@ -154,8 +160,9 @@ def rr_sync_tree(src_dir, dst_dir, symlinks=False):
 def cache_module_locally(module_folder=None):
     """Copy files required for python script execution to a local temp folder, add temp folder to modules path.
 
-    module files and their required dependenicy libs are locked while they are in use,
-    if launched from the RR network folder, they might prevent from updating Royal Render.
+    Module files and their required dependenicy libs are locked while they are in use.
+    If launched from the RR network folder, they might prevent updating Royal Render files.
+    And there is a constant network connection. There have been cases in which a tiny network disruption caused Windows to fail loading additional functions from a dll
     """
     logger = get_logger()
     if not module_folder:
@@ -188,7 +195,3 @@ def cache_module_locally(module_folder=None):
     sys.path.append(module_path)
     logger.info("added module path " + module_path)
 
-
-def get_logger():
-    return logging.getLogger("rrPy")
-    

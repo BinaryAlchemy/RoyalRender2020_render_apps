@@ -1,7 +1,10 @@
 import sys
+import logging
 from .errors import RR_GenericError
 
 loaded_rrData=False
+global rrData
+rrLogger=logging.getLogger("rrPy")
 
 if (sys.version_info.major == 2):
     import libpyRR2_datafiles as rrData
@@ -16,5 +19,5 @@ elif (sys.version_info.major == 3):
 if (not loaded_rrData):
     raise RR_GenericError("\n    Unable to load RR module for python version {}.{}.\n".format(sys.version_info.major,sys.version_info.minor))
 else:
-    print("libpyRR_datafiles loaded ({})".format(rrData.__file__))
+    rrLogger.info("libpyRR_datafiles loaded ({})".format(rrData.__file__))
     pass

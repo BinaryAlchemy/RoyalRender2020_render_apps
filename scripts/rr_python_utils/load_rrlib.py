@@ -1,7 +1,10 @@
 import sys
+import logging
 from .errors import RR_GenericError
 
 loaded_rrLib=False
+global rrLib
+rrLogger=logging.getLogger("rrPy")
 
 if (sys.version_info.major == 2):
     import libpyRR2 as rrLib
@@ -16,5 +19,5 @@ elif (sys.version_info.major == 3):
 if (not loaded_rrLib):
     raise RR_GenericError("\n    Unable to load RR module for python version {}.{}.\n".format(sys.version_info.major,sys.version_info.minor))
 else:
-    print("libpyRR loaded ({})".format(rrLib.__file__))
+    rrLogger.info("libpyRR loaded ({})".format(rrLib.__file__))
     pass

@@ -5,7 +5,7 @@ from .errors import RR_ConnectionError
 from .load_rrlib import rrLib
 
 
-def server_connect(user_name=None, password=None):
+def server_connect(user_name=None, password=None, askForlogin=True):
     """Return a rrServer tcp connection
     NOTE: only works in your company: uses RR_ROOT enviroment variable."""
     logger = get_logger()
@@ -29,9 +29,19 @@ def server_connect(user_name=None, password=None):
         logger.error("Server connection setup error: " + tcp.errorMessage())
         sys.exit()
 
-    tcp.setLogin("", "")
+    if not user_name:
+        tcp.setLogin("", "")
+    elif not password:
+        tcp.setLogin(user_name, "")
+    else:
+        tcp.setLogin(user_name, password)
+
+    
     if not tcp.connectAndAuthorize():
-        server_login(tcp, user_name, password)
+        if askForlogin:
+            server_login(tcp, user_name, password)
+        else:
+            raise RR_ConnectionError(tcp.errorMessage())
 
     return tcp
 
@@ -47,9 +57,9 @@ def server_login(tcp, user_name=None, password=None):
     import getpass
     if not user_name:
         current_user = getpass.getuser()
-        user_name = input("UserName ({0}):\n".format(current_user)) or current_user
+        user_name = input("Please enter userName ({0}):\n".format(current_user)) or current_user
     if not password:
-        password = getpass.getpass("Password:")
+        password = getpass.getpass("Please enter the password for the user:")
 
     tcp.setLogin(user_name, password)
     if not tcp.connectAndAuthorize():
@@ -57,19 +67,5 @@ def server_login(tcp, user_name=None, password=None):
 
 
 def get_logger():
-    return logging.getLogger("RR_connect")
+    return logging.getLogger("rrPy")
 
-def set_logger(level=logging.WARNING):
-    logger = get_logger()
-
-    while logger.handlers:  # remove existing handlers to avoid double output
-        logger.handlers.pop()
-
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter( '%(asctime)s %(name)-12s %(levelname)-8s %(message)s', "%H:%M:%S")
-
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(level)
-
-    return logger
