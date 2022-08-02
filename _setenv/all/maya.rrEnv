@@ -373,7 +373,9 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
     [If] <RR_YETI_BASE>  [==] 
         RR_YETI_BASE  =  <rrPlugins><rrExeVersionMinReq>\yeti
     [EndIf]
-    RR_YETI_BASE_LOCAL  =  <rrLocalPlugins><rrExeVersionMinReq>\yeti
+	[If] <RR_YETI_BASE_LOCAL>  [==] 
+        RR_YETI_BASE_LOCAL  =  <rrLocalPlugins><rrExeVersionMinReq>\yeti
+	[EndIf]
 [EndIf]
 
 [If] <RR_YETI_NETWORK>  [==] 1
