@@ -884,7 +884,11 @@ class TakeManager(object):
             new_job.isActive = True
 
         self._takedata.SetCurrentTake(take)
-        render_data, _ = take.GetEffectiveRenderData(self._takedata)
+        try:
+            render_data, _ = take.GetEffectiveRenderData(self._takedata)
+        except TypeError:
+            LOGGER.warning("Could not submit Take {0}: RenderData not found".format(take_name))
+            return
 
         if render_data and not self._is_archive:
             new_job.channelFileName = []
@@ -1616,7 +1620,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
         return len([elem for elem in elems if elem])
 
-    def addChannelsRedshift(self, job, mainMP, render_data):
+    def addChannelsRedshift(self, job, mainMP, render_data, direct_only=False):
         """Add channels for redshift AOVs and populates mainMP if empty. Return the number of Redshift channels"""
         _vp = render_data.GetFirstVideoPost()
         rs_vp = None  # Redshift VideoPost
@@ -1718,7 +1722,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             multipass = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
 
             # TODO: duplicate entries
-            if multipass:
+            if multipass and not direct_only:
                 aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_NAME, c4d.DTYPE_STRING, 0)
                 aov_name = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
 
@@ -1786,12 +1790,20 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     # aov_file = aov_file.replace("<Channel_name>", aov_name)  # aov don't support $userpass
                 else:
                     aov_file = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
+
+                    # remove extension from effective path
+                    aov_file, _ = os.path.splitext(aov_file)
+                    # remove frame number from effective path
+                    aov_file = aov_file[:-job.imageFramePadding]
                 
                 aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_FORMAT, c4d.DTYPE_LONG, 0)
                 aov_format = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
                 aov_file, aov_ext = self.getNameFormat(job, aov_file, aov_formats[aov_format])
 
-                if mainMP.isValid():
+                if aov_file.startswith("./"):
+                    aov_file = "<SceneFolder>" + aov_file[1:]
+
+                if mainMP.isValid() or direct_only:
                     job.channelExtension.append(aov_ext)
                     job.channelFileName.append(aov_file)
                     job.maxChannels += 1
@@ -1931,6 +1943,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 reg_out = self.replacePathTokens(job, reg_out, render_data)
                 reg_out += "<IMS>"
 
+                # if $pass is present then rgb/rgba should be used
+                reg_out = reg_out.replace("<Channel_intern>", "rgba" if has_alpha else "rgb")
+
                 job.channelFileName.append(reg_out)
                 job.channelExtension.append(IMG_FORMATS.get(render_data[c4d.RDATA_FORMAT], ".exr"))
                 job.maxChannels += 1
@@ -2021,8 +2036,17 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 self.addChannelsArnold(job, mainMP, render_data)
 
         if not mainMP.isValid():
+            # no need to go through the multipass channels
             is_multipass = False
-            if not is_mp_single:
+
+            if is_mp_single:
+                # the reason why we have no pass is the output file is multilayer
+                job.imageName = job.imageName.replace("<Channel_intern>", "unresolved")
+                if job.renderer == "Redshift":
+                    # add direct save AOVs
+                    self.addChannelsRedshift(job, mainMP, render_data, direct_only=True)
+            else:
+                # Apparently, this scene has no Multipass available, no need to set the channel for the kso plugin
                 job.channel = ""
 
         if self.hasAlpha:
@@ -2339,6 +2363,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         del self.job[:]
         self.job.append(rrJob())
 
+        doc_changed = doc.GetChanged()
+
         # read current render settings
         self.getLanguage()
         self.renderSettings = doc.GetActiveRenderData()
@@ -2418,10 +2444,13 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if self.takeData.GetCurrentTake() != backupCurrentTake:
             self.takeData.SetCurrentTake(backupCurrentTake)
 
-        if doc.GetChanged():
+        if doc_changed:
             rvalue = gui.QuestionDialog("Save Scene?")
             if rvalue:
                 c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
+        elif doc.GetChanged():
+            # we have changed the scene while collecting, we should save
+            c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
         self.submitToRR(self.job, False, PID=None, WID=None)
 
