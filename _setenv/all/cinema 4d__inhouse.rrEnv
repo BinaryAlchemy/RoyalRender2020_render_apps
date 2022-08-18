@@ -15,9 +15,9 @@ echo * ------ cinema 4d__inhouse.rrEnv ------
 # LicenseFlags=-license 127.0.0.1 5264
 
 
-# # Uncomment the following line if you have Organizational licenses and have issues with licenses releasing
-# g_licenseReleaseLicenseOnQuit=true
-# g_licenseLeaseTimeHours=0.5
+# The following lines are requires to release floating licenses again:
+g_licenseReleaseLicenseOnQuit=true
+g_licenseLeaseTimeHours=0.5
 
 
 # C4D_rrPluginFolder requires Cinema4D R20.
