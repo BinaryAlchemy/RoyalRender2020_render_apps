@@ -93,6 +93,10 @@ PXR_PLUGINPATH_NAME = <RR_HTOA_BASE_LOCAL>\arnold\plugins;<PXR_PLUGINPATH_NAME>
 
 # ###################  RedShift environment variables ###################
 REDSHIFT_USED = 0
+[If] <RR_REDSHIFT_VERSION>  [==] 
+    RR_REDSHIFT_VERSION= ""
+[EndIf]
+
 [If] <rrJobRenderer>  [contains] redshift
     echo * Rendering with Redshift
     REDSHIFT_USED = 1
