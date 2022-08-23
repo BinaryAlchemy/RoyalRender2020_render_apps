@@ -18,7 +18,7 @@ echo * ------ arnold.rrEnv version %rrVersion% ------
 [If] <JOB>  [==] 
     JOB  =  <CustomHoudiniJob>
 [EndIf]
-echo * (Houdini) JOB env variable is set to  <JOB>
+echo * Houdini JOB env variable is set to  <JOB>
 
 
 ARNOLD_PLUGIN_PATH  =  <rrBaseAppPath>\shaders;<rrBaseAppPath>\arnold\plugins;<ARNOLD_PLUGIN_PATH>

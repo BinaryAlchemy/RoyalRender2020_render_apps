@@ -55,7 +55,8 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 
 
 # ###################  Arnold/HtoA environment variables ###################
-# we cannot use contains inside an other if because of the Windows delayedexpansion
+# we cannot use contains inside an other if because of the Windows delayed expansion
+RR_HTOA_VERSION=<RR_HTOA_VERSION>
 [If] <rrJobRenderer>  [contains] arnold
     [If] <RR_HTOA_VERSION>  [==] 
         echo * Rendering with Arnold
@@ -93,9 +94,7 @@ PXR_PLUGINPATH_NAME = <RR_HTOA_BASE_LOCAL>\arnold\plugins;<PXR_PLUGINPATH_NAME>
 
 # ###################  RedShift environment variables ###################
 REDSHIFT_USED = 0
-[If] <RR_REDSHIFT_VERSION>  [==] 
-    RR_REDSHIFT_VERSION= ""
-[EndIf]
+RR_REDSHIFT_VERSION= <RR_REDSHIFT_VERSION>
 
 [If] <rrJobRenderer>  [contains] redshift
     echo * Rendering with Redshift
@@ -118,6 +117,8 @@ REDSHIFT_USED = 0
 [EndIf]
 
 RR_REDSHIFT_FLT = <RR_REDSHIFT_FLT>
+RR_REDSHIFT_BASE = <RR_REDSHIFT_BASE>
+RR_REDSHIFT_BASE_LOCAL = <RR_REDSHIFT_BASE_LOCAL>
 [If] <RR_REDSHIFT_FLT>  [==] 1
     [If] <RR_REDSHIFT_BASE>  [==] 
         RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>_flt
@@ -202,7 +203,7 @@ REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
 
 # ###################  VRay environment variables ###################
 
-RR_VRAY_IS_USED  =  
+RR_VRAY_IS_USED  =  FALSE
 
 [If] <rrJobRenderer>  [contains] vray
     [If] <RR_VRAY_VERSION>  [==] 
@@ -276,6 +277,8 @@ QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 [If] <RR_RENDERMAN_USED>  [==] 
     RR_RENDERMAN_USED = 0
 [EndIf]
+
+RR_RENDERMAN_VERSION=<RR_RENDERMAN_VERSION>
 
 [If] <rrJobRenderer>  [contains] prman
     echo * Rendering with Pixars Renderman
