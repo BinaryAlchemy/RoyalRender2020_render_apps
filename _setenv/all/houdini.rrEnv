@@ -204,6 +204,7 @@ REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
 # ###################  VRay environment variables ###################
 
 RR_VRAY_IS_USED  =  FALSE
+RR_VRAY_VERSION= <RR_VRAY_VERSION>
 
 [If] <rrJobRenderer>  [contains] vray
     [If] <RR_VRAY_VERSION>  [==] 
