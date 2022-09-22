@@ -1,11 +1,10 @@
-# config file format version 8.0
 #
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
 # %rrVersion%
 #
 #
 ################################## Identify Render Application ################################## 
-Name= rez_Python
+Name= rez_Execute
 rendererName= Once
 Version=1
 Version_Minor=0
@@ -14,23 +13,19 @@ TYPEv9=Execute
 ExecuteJobType=Once
 
 
-REZ_EXE_WIN=  python.exe
-REZ_EXE_LX=  python
-REZ_EXE_MAC=  python
+REZ_EXE_WIN=  *NONE*
+REZ_EXE_LX=  *NONE*
+REZ_EXE_MAC=  *NONE*
 
-
-################################## [Windows] [Linux] [Osx] ##################################
-
+################################## [Windows] [Linux] [Osx] [KSO] ##################################
 
 CommandLine=<envFileExecute <rrEnvFile>> 
 
 CommandLine=<rrEnvLine>
 
-
 ::win CommandLine= set   "CUDA_VISIBLE_DEVICES=<GpuListC>"
 ::lx  CommandLine= setenv CUDA_VISIBLE_DEVICES <GpuListC> 
 ::osx CommandLine= setenv CUDA_VISIBLE_DEVICES <GpuListC>  
-
 
 CommandLine=
 	<SetEnvGlobal>
@@ -38,49 +33,26 @@ CommandLine=
 CommandLine=
 	<SetEnvSoft>
 
+
 CommandLine=
 	<ResetExitCode> 
 
-CommandLine="<Exe>"  
-	"<Scene>" 
-	<AdditionalCommandlineParam>
-    <CustomFlags>
-
+CommandLine= 
+			<Exe>
+			<AdditionalCommandlineParam>
 
 CommandLine=
 	<CheckExitCode> 
 
-
-
-################################## Render Settings ################################## 
-
-
-
 ################################## Submitter Settings ################################## 
-StartMultipleInstances= 0~0
-SceneFileExtension= *.py
-AllowImageNameChange= 0
-AllowImageDirChange= 0
-SequenceDivide= 0~1
 PPSequenceCheck=0~0
 PPCreateSmallVideo=0~0
 PPCreateFullVideo=0~0
-AllowLocalRenderOut= 0~0
-
-
-################################## Client Settings ################################## 
-
-IconApp=E02__Python.png
-
-licenseFailLine=  
-
-errorSearchLine=  
-
-permanentErrorSearchLine = 
-
-Frozen_MinCoreUsage=0.3
-Frozen_Minutes=30
 
 
 
+::include(E01__Execute____global.inc)
 ::include(rez____global.inc)
+
+
+
