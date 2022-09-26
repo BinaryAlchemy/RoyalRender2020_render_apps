@@ -1794,7 +1794,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                     # remove extension from effective path
                     aov_file, _ = os.path.splitext(aov_file)
                     # remove frame number from effective path
-                    aov_file = aov_file[:-job.imageFramePadding]
+                    if aov_file[-job.imageFramePadding:].isdigit():
+                        aov_file = aov_file[:-job.imageFramePadding]
                 
                 aov_param = c4d.DescLevel(c4d.REDSHIFT_AOV_FILE_FORMAT, c4d.DTYPE_LONG, 0)
                 aov_format = rs_vp.GetParameter(c4d.DescID(aov_attrs, aov_param), c4d.DESCFLAGS_GET_0)
