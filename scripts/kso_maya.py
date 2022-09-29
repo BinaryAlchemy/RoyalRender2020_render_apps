@@ -912,9 +912,9 @@ def doCrossOSPathConversion_sub(arg, fromOS, toOS):
     for i, toOS_path in enumerate(toOS):
         toOS[i] = allForwardSlashes(toOS_path)
 
-    print("______________________________________________________ doCrossOSPathConversion() _____________________________________________________________________" )            
-    #logMessage("fromOS  is "+str(type(fromOS))+"     "+str(fromOS))            
     if (len(fromOS)>0):
+        print("______________________________________________________ doCrossOSPathConversion() _____________________________________________________________________" )            
+        #logMessage("fromOS  is "+str(type(fromOS))+"     "+str(fromOS))            
         #Mayas conversion does not work for texture file nodes of VRay with a <variable> in it
         textureFileList=cmds.ls(type='file')
         #logMessage("textureFileList  is "+str(type(textureFileList))+"     "+str(textureFileList))            
@@ -990,6 +990,7 @@ def doCrossOSPathConversion_sub(arg, fromOS, toOS):
                             cmds.colorManagementPrefs(e=True, cmEnabled=True)
                             cmds.colorManagementPrefs(e=True, cmConfigFileEnabled=True)
                             logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in colorManagementPrefs')   
+        print("______________________________________________________________________________________________________________________________________________________" )  
 
 
 def doCrossOSPathConversion(arg):        
