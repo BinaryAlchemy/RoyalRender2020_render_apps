@@ -266,15 +266,9 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             submitCMDs = ('{0}/lx__rrSubmitter.sh'.format(RR_ROOT), TempFileName)
 
         try:
-            if is_win_os:
-                subprocess.run(submitCMDs, check=True, close_fds=True)
-            else:
-                # subprocess.run(...) will not free the handles on Unix
-                # we check manually and use Popen, or rrSubmitter will lock blender
-                # until it's closed
-                if not os.path.isfile(submitCMDs[0]):
-                    raise FileNotFoundError
-                subprocess.Popen(submitCMDs, close_fds=True)
+            if not os.path.isfile(submitCMDs[0]):
+                raise FileNotFoundError
+            subprocess.Popen(submitCMDs, close_fds=True)
         except FileNotFoundError:
             self.report({'ERROR'}, "rrSubmitter not found\n({0})".format(submitCMDs[0]))
             return False
