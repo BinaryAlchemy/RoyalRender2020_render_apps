@@ -1735,7 +1735,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         aov_name = "{0}_{1}".format(aov_name, rs_name_idx)
                         rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
 
-                aov_name = aov_name.lower()
+                aov_name = aov_name.lower().replace(" ", "_")
 
                 if mainMP.isValid():
                     if nondiffuse_main and aov_type_name in diffuse_passes:
