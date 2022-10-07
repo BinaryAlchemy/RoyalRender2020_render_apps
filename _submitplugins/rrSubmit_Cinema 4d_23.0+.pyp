@@ -1734,6 +1734,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                         # Redshift appends an index to the name, only when Redshift names (not c4d) are used
                         aov_name = "{0}_{1}".format(aov_name, rs_name_idx)
                         rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
+                else:
+                    aov_name = "{0}_{1}".format(aov_name, rs_name_idx)
+                    rs_name_idx += 1  # redshift appends the AOV index unless compatibility picks a c4d name
 
                 aov_name = aov_name.lower().replace(" ", "_")
 
