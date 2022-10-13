@@ -999,6 +999,9 @@ try:
     except Exception as e:
         logMessageError( "Error loading scene: \n"+str(e), True)
         
+    tmpJob = hou.getenv("JOB")
+    logMessage("$JOB is set to " + str(tmpJob))
+    
     if (argValid(arg.take)):
         switchTake("Main") #we have to switch to the main take to be able to change render settings
         arg.FName= arg.FName.replace("<Channel>",arg.take)
