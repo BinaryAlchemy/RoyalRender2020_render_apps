@@ -1,7 +1,7 @@
 echo * ------ houdini__inhouse.rrEnv ------
 
 # changes the user folder on windows to ignore the local houdini.env of the artist
-USERPROFILE  =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
+USERPROFILE  =  <rrLocalRoot>SysUserPrefs\All
 LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
 # <rrBaseAppPath>\houdini\hserver -S myLicenseServerIP
