@@ -47,10 +47,16 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 
 [If] <JOB>  [==]
     [If] <CustomHoudiniJob>  [!=]  
-        [BSlashConvert] JOB  =  <CustomHoudiniJob>
-        echo * JOB Env variable is set to  "<CustomHoudiniJob>"
+        JOB  =  <CustomHoudiniJob>
     [EndIf]
 [EndIf]
+[If] <JOB>  [!=]
+    [BSlashConvert] JOB  =  <JOB>
+[EndIf]	
+[If] <JOB>  [!=]
+    echo * JOB Env variable is set to  "<JOB>"
+[EndIf]	
+
 
 
 
