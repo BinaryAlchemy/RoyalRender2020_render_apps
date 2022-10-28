@@ -73,6 +73,7 @@ RenderAppWindow_WIN= Layers ~
 RenderAppWindow_WIN= Axis Constraints ~
 RenderAppWindow_WIN= PhoenixFD Toolbar ~
 RenderAppWindow_WIN= Pixel information - ~
+RenderAppWindow_WIN= Asset Tracking ~
 
 
 RenderAppWindow_WIN= Maxwell Translation Window ~

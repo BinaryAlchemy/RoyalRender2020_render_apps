@@ -91,7 +91,8 @@ RenderAppWindow_WIN= AnimatePanel ~
 RenderAppWindow_WIN= TimePanel ~
 RenderAppWindow_WIN= TimeSlider ~
 RenderAppWindow_WIN= Brush Presets ~
-
+RenderAppWindow_WIN= Asset Tracking ~
+RenderAppWindow_WIN= Scripting Editor ~
 
 
 RenderAppWindow_WIN= Maxwell Translation Window ~
@@ -102,6 +103,8 @@ RenderAppWindow_WIN= V-Ray frame buffer - ~
 RenderAppWindow_WIN= Render history - ~
 RenderAppWindow_WIN= Color corrections - ~
 RenderAppWindow_WIN= Stamp variables window - ~
+RenderAppWindow_WIN= Chaos Scatter Toolbar - ~
+
 
 RenderAppWindow_WIN= Pixel information - ~
 RenderAppWindow_WIN= Corona 5 | - ~

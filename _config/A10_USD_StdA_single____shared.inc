@@ -43,6 +43,8 @@ SeqDivMIN= 1~1
 SeqDivMAX= 1~10
 AllowLocalSceneCopy= 0~0
 
+COSingleRenderProduct= 1 ~ 0
+
 ################################## Client Settings ################################## 
 
 IconApp=r_usd.png
