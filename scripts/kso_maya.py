@@ -959,6 +959,8 @@ def doCrossOSPathConversion_sub(arg, fromOS, toOS):
         if ("vray" in arg.Renderer):
             doCrossOSPathConversion_node('VRayVolumeGrid', '.inPath', fromOS, toOS)
             doCrossOSPathConversion_node_OnlyWithVariable('VRayMesh', '.fileName2', fromOS, toOS)
+            doCrossOSPathConversion_node_OnlyWithVariable('VRayProxy', '.fileName', fromOS, toOS)
+            doCrossOSPathConversion_node_OnlyWithVariable('VRayScene', '.FilePath', fromOS, toOS)
 
         if ("redshift" in arg.Renderer):
             doCrossOSPathConversion_node('RedshiftProxyMesh', '.fileName', fromOS, toOS)
