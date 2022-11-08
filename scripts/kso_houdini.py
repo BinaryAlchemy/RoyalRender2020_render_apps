@@ -110,8 +110,13 @@ class argParser:
         for a in range(0,  len(sys.argv)):
             if ((sys.argv[a].lower()==argFindName) and (a+1<len(sys.argv))):
                 argValue=sys.argv[a+1]
-                if sys.version_info.major == 3:
+                
+                #hexString=':'.join(hex(ord(x))[2:] for x in argValue)
+                #logMessage("sys.argv as Hex  '"+str(hexString)+"'")
+                if (sys.version_info.major == 3) and (FSCODING != "utf-8"):
                     argValue = rawbytes(argValue)
+                    #hexString=':'.join(hex(x)[2:] for x in argValue)
+                    #logMessage("rawbytes as Hex  '"+str(hexString)+"'")
                     argValue = argValue.decode(FSCODING)                
                 if (argValue.lower()=="true"):
                     argValue=True
@@ -122,6 +127,9 @@ class argParser:
         return ""
     
     def readArguments(self):
+        logMessage("Python::sys.stdout.encoding is "+str(sys.stdout.encoding))
+        logMessage("Python::sys.getfilesystemencoding is "+str(sys.getfilesystemencoding()))
+        logMessage("FSCODING is "+str(FSCODING))
         self.renderer= self.getParam("-renderer")
         self.rendererExportMode=self.getParam("-exportmode")
         self.sceneFile=self.getParam("-scene")
