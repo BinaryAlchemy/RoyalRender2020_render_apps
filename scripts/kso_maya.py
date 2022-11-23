@@ -1038,59 +1038,61 @@ def rrYetiChanges(arg):
     if (hasYeti):
         yetiNodes= cmds.ls( type='pgYetiGroom' ) + cmds.ls( type='pgYetiMaya' ) + cmds.ls( type='pgYetiMayaFeather' )
         hasYeti= (len(yetiNodes)>0)
-    if (not hasYeti):
-        logMessage("Removing potential Yeti commands as there are no yeti nodes");
-        melStrg= cmds.getAttr('defaultRenderGlobals.preMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiVRayPreRender","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.preMel',melStrg, type="string") 
+    try:
+        if (not hasYeti):
+            logMessage("Removing potential Yeti commands as there are no yeti nodes");
+            melStrg= cmds.getAttr('defaultRenderGlobals.preMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiVRayPreRender","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.preMel',melStrg, type="string") 
 
-        melStrg= cmds.getAttr('defaultRenderGlobals.postMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiVRayPostRender","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.postMel',melStrg, type="string") 
+            melStrg= cmds.getAttr('defaultRenderGlobals.postMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiVRayPostRender","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.postMel',melStrg, type="string") 
 
-        melStrg= cmds.getAttr('defaultRenderGlobals.preRenderMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiPrmanFlush","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.preRenderMel',melStrg, type="string") 
-            
-        melStrg= cmds.getAttr('defaultRenderGlobals.postRenderMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiPrmanFlush","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.postRenderMel',melStrg, type="string") 
-            
-        melStrg= cmds.getAttr('defaultRenderGlobals.preRenderLayerMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiPrmanFlush","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.preRenderLayerMel',melStrg, type="string") 
-            
-        melStrg= cmds.getAttr('defaultRenderGlobals.postRenderLayerMel') 
-        if (melStrg!=None):
-            melStrg=melStrg.replace("pgYetiPrmanFlush","")
-            melStrg=melStrg.replace(";;",";")
-            cmds.setAttr('defaultRenderGlobals.postRenderLayerMel',melStrg, type="string")                 
-    else:
-        #changing YETI temp folder to localhosts temp instead of the Maya scene/project folder
-        if 'TEMP' in os.environ and 'YETI_TMP' in os.environ:
-            tempPath = os.environ['TEMP']
-            tempPath = allForwardSlashes(tempPath)
-            os.environ['currentYetiTempDirectory'] = tempPath
+            melStrg= cmds.getAttr('defaultRenderGlobals.preRenderMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiPrmanFlush","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.preRenderMel',melStrg, type="string") 
+                
+            melStrg= cmds.getAttr('defaultRenderGlobals.postRenderMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiPrmanFlush","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.postRenderMel',melStrg, type="string") 
+                
+            melStrg= cmds.getAttr('defaultRenderGlobals.preRenderLayerMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiPrmanFlush","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.preRenderLayerMel',melStrg, type="string") 
+                
+            melStrg= cmds.getAttr('defaultRenderGlobals.postRenderLayerMel') 
+            if (melStrg!=None):
+                melStrg=melStrg.replace("pgYetiPrmanFlush","")
+                melStrg=melStrg.replace(";;",";")
+                cmds.setAttr('defaultRenderGlobals.postRenderLayerMel',melStrg, type="string")                 
+        else:
+            #changing YETI temp folder to localhosts temp instead of the Maya scene/project folder
+            if 'TEMP' in os.environ and 'YETI_TMP' in os.environ:
+                tempPath = os.environ['TEMP']
+                tempPath = allForwardSlashes(tempPath)
+                os.environ['currentYetiTempDirectory'] = tempPath
 
-        melStrg = cmds.getAttr('defaultRenderGlobals.preMel')
+            melStrg = cmds.getAttr('defaultRenderGlobals.preMel')
 
-        if 'TEMP' in os.environ or 'YETI_TMP' in os.environ:
-            if melStrg:
-                melStrg = melStrg.replace("putenv \"YETI_TMP\" \"\\\\\\\\jfpsohostorage\\\\render\\\\yeti_render_data\"","")
-                melStrg = melStrg.replace("pgYetiPreRender", "")
-                melStrg = melStrg.replace(";;", ";")
-                cmds.setAttr('defaultRenderGlobals.preMel', melStrg, type="string")
-                 
+            if 'TEMP' in os.environ or 'YETI_TMP' in os.environ:
+                if melStrg:
+                    melStrg = melStrg.replace("putenv \"YETI_TMP\" \"\\\\\\\\jfpsohostorage\\\\render\\\\yeti_render_data\"","")
+                    melStrg = melStrg.replace("pgYetiPreRender", "")
+                    melStrg = melStrg.replace(";;", ";")
+                    cmds.setAttr('defaultRenderGlobals.preMel', melStrg, type="string")
+    except Exception as e:
+        logMessage(str(e))  
 
 def rrStart(argAll):
     try:    
