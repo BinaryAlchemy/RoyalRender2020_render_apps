@@ -266,8 +266,8 @@ ARNOLD_ADP_OPTIN = 0
 
 #small bug in RR, this is required because of the YETI section. RR thinks the var was already used, but it is not if redshift is not used
 REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
-RR_REDSHIFT_BASE= RR_REDSHIFT_BASE
-RR_REDSHIFT_NETWORK= RR_REDSHIFT_NETWORK
+RR_REDSHIFT_BASE= <RR_REDSHIFT_BASE>
+RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
 
 [If] <rrJobRenderer>  [contains] redshift
     #enable RR_REDSHIFT_NETWORK by default if not set in __inhouse file
