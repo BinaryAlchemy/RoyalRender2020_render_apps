@@ -561,7 +561,8 @@ struct rrSubmit_scriptrender
         masterState.CollectDescendantStateSets statesList
         stateSets_count = masterState.DescendantStateCount
 
-        
+        current_state = masterState.CurrentState
+		masterState.CurrentState = null
         for i=0 to (stateSets_count - 1) do
         (
             stateSet=statesList.Item[i]
@@ -570,9 +571,6 @@ struct rrSubmit_scriptrender
             )
             else if (stateSet.Children.count == 0) then (
                 continue
-            )
-            else if (masterState.CurrentState != null) then (
-                masterState.CurrentState = null
             )
             
             outimageChanged = false
@@ -753,6 +751,7 @@ struct rrSubmit_scriptrender
             append rrJobs newJob
         )
 
+		masterState.CurrentState = current_state
         
         if (rrJobs.count > 1) then (
             -- disable first job (master) if we have layers
