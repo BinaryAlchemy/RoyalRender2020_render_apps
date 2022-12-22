@@ -13,9 +13,8 @@ CommandLine=
 CommandLine=
 	<SetEnvSoft>
 
-::win CommandLine= set   "CUDA_VISIBLE_DEVICES=<GpuListC>"
-::lx  CommandLine= setenv CUDA_VISIBLE_DEVICES <GpuListC> 
-::osx CommandLine= setenv CUDA_VISIBLE_DEVICES <GpuListC>  
+CommandLine=
+	<OSSetEnv CUDA_VISIBLE_DEVICES ; <GpuListC>> 
     
 CommandLine=
     ::win <rrLocalBin><OsxApp rrCopy> -oa <rrLocalRenderScripts>kso_c4d.pyp "%C4D_rrRenderScriptFolder%<PD>kso_c4d.pyp"
