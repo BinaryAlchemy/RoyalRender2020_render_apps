@@ -1,0 +1,20 @@
+<menuDocument>
+    <menu>
+    <scriptItem id="rr_submit">
+            <insertAfter>jump</insertAfter>
+            <label>Submit to Royal Render</label>
+            <context>
+                <expression>kwargs["node"].type().nameComponents()[-2] in __import__('htorr').rrnode.NODE_REGISTRY</expression>
+            </context>
+            <scriptCode><![CDATA[__import__("htorr").submit.submit(gui=True)]]></scriptCode>
+        </scriptItem>
+   <scriptItem id="rr_submit_console">
+            <insertAfter>jump</insertAfter>
+            <label>Submit to Royal Render (no UI)</label>
+            <context>
+                <expression>kwargs["node"].type().nameComponents()[-2] in __import__('htorr').rrnode.NODE_REGISTRY</expression>
+            </context>
+            <scriptCode><![CDATA[__import__("htorr").submit.submit(gui=False)]]></scriptCode>
+        </scriptItem>
+    </menu>
+</menuDocument>

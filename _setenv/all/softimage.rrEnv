@@ -1,0 +1,17 @@
+echo * ------ softimage.rrEnv version %rrVersion% ------
+
+#XSI_LOG_LOAD_TIME= 1
+XSI_USERHOME= <rrLocalPrefs><rrExeVersion>
+XSI_USERROOT= <rrLocalPrefs>
+
+WorkgroupPath= <rrPluginsNoOS>workgroup_<rrJobVersionMajor>
+
+RR_REDSHIFT_BASE=  c:\ProgramData\Redshift
+RR_REDSHIFT_BASE_LOCAL=  <RR_REDSHIFT_BASE>
+@echo * RedShift  path is set to <RR_REDSHIFT_BASE>
+REDSHIFT_COREDATAPATH=  <RR_REDSHIFT_BASE_LOCAL>
+PATH=  <RR_REDSHIFT_BASE_LOCAL>\bin;<PATH>
+REDSHIFT_LICENSEPATH=  <RR_REDSHIFT_BASE_LOCAL>
+
+
+

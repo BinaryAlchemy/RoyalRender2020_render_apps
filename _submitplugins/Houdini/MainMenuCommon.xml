@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mainMenu>
+    <menuBar>
+        <subMenu id="render_menu">
+            <separatorItem id="rr_seperator">
+                <insertAfter>mplay_submenu</insertAfter>
+            </separatorItem>
+            <scriptItem id="rr_submit">
+                    <label>Submit to Royal Render</label>
+                    <scriptCode><![CDATA[__import__("htorr").submit.submit(gui=True)]]></scriptCode>
+            </scriptItem>
+            <scriptItem id="rr_submit_console">
+                    <label>Submit to Royal Render (no UI)</label>
+                    <scriptCode><![CDATA[__import__("htorr").submit.submit(gui=False)]]></scriptCode>
+            </scriptItem>
+        </subMenu>
+    </menuBar>
+</mainMenu>
