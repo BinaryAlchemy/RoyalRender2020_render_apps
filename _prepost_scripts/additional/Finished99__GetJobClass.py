@@ -1,6 +1,6 @@
 import sys
 
-print "Get the full job class from the rrServer..."
+print("Get the full job class from the rrServer...")
 #  This can be used if the variables available for the commandline are not sufficient
 #  (See rrHelp Section Customization/ Render Applications/ Render config files/Commandlines )
 #  Using commandline variables is a bit faster than requesting the job from the rrServer

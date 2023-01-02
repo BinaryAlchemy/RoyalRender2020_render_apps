@@ -139,7 +139,7 @@ def rrKSOStartServer(arg):
             logMessageDebug("rrKSO waiting for new command...")
             server.handle_request()
             time.sleep(1) # handle_request() seem to return before handle() completed execution
-        except Exception, e:
+        except Exception as e:
             logMessage("ERR", e)
             server.continueLoop= False;
             import traceback

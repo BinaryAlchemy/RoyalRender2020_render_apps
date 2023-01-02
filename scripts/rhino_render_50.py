@@ -152,7 +152,7 @@ def getTotalFrames():
     # tries to set an outrageously high frame number,
     # parses the "Number must be Smaller than x" reply message
     if Rhino.ApplicationSettings.AppearanceSettings.LanguageIdentifier != 1033:  # U.S. English
-        print "warning: Animation properties only available with U.S. English locales"
+        print("warning: Animation properties only available with U.S. English locales")
         return 0
 
     rs.Command('_ViewFirstFrame')

@@ -13,7 +13,7 @@ def convert(katanaFile, renderer, outputnode, startframe, endframe, imagename, i
         elif renderer == 'arnold':
             fileExtension = 'ass'
         fileName = os.path.join(imagedir, '%s%04d.%s') %(imagename, i, fileExtension)
-        print '############################', fileName, '###############################'
+        print('############################', fileName, '###############################')
         NodeDebugOutput.WriteRenderOutput(NodegraphAPI.GetNode(outputnode), renderer, filename=fileName)
         sys.stdout.write('[k2rrFrameConvProgress]_' +  str(i) + '_thread_' + str(threadId) + '_')
 

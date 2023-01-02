@@ -41,14 +41,14 @@ class VrayBakeTexures(object):
         mel.vrayStartBake()
 
 def rr_start(obj_name, image_dir, seq_start, seq_end, seq_step):
-    print '[D] Baking textures...'
-    print '[D] Object Name: ', obj_name
-    print '[D] Image Directory: ', image_dir
-    print '[D] Seq start: ', seq_start
-    print '[D] Seq end: ', seq_end
-    print '[D] Seq step: ', seq_step
+    print('[D] Baking textures...')
+    print('[D] Object Name: ', obj_name)
+    print('[D] Image Directory: ', image_dir)
+    print('[D] Seq start: ', seq_start)
+    print('[D] Seq end: ', seq_end)
+    print('[D] Seq step: ', seq_step)
 
     vb = VrayBakeTexures(object_name=obj_name, output_texture_path=image_dir)
     vb.bake()
 
-    print '[D] Baking is done!'
+    print('[D] Baking is done!')

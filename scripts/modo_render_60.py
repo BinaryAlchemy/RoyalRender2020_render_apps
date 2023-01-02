@@ -160,7 +160,7 @@ def render_frame(FrStart,FrEnd,FrStep):
             afterFrame=afterFrame-beforeFrame;
             logMessage("Frame time: "+str(afterFrame)+"  h:m:s.ms")
             flushLog()
-    except Exception, e:
+    except Exception as e:
         logMessageError ("Crash during render: "+str(e))
         lx.eval("app.quit")
         return False

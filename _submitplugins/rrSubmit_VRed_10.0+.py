@@ -4,7 +4,7 @@
 #
 # Royal Render Plugin script for VRed
 # Author:  Paolo Acampora
-# Last change: v8.1.01
+# Last change: %rrVersion%
 # Copyright (c)  Holger Schoenberger - Binary Alchemy
 # #win:     rrInstall_Copy: <USERPROFILE>\Documents\Autodesk\VRED-<ExeVersionMajor>.<ExeVersionMinor>\ScriptPlugins\
 #
@@ -346,7 +346,7 @@ def submitCurrentScene(multicam=False, variants=False, stereo=False, console=Fal
     :param console: if True, don't show submission window
     :return: 0 == success, 1 == cancel; If no value is returned, success is assumed
     """
-    print "rrSubmit"
+    print("rrSubmit %rrVersion%")
     jobs = [rrJob()]
     jobs[0].sceneFilename = vrFileIO.getFileIOFilePath()
     jobs[0].versionInfo = vrController.getVredVersion()
@@ -366,7 +366,7 @@ def submitCurrentScene(multicam=False, variants=False, stereo=False, console=Fal
             dlg.setIcon(QtWidgets.QMessageBox.Warning)
             ret = dlg.exec_()
             if ret == QtWidgets.QMessageBox.Cancel:
-                print "Submission aborted"
+                print("Submission aborted")
                 return
 
         jobs[0].seqStart = vrRenderSettings.getRenderStartFrame()

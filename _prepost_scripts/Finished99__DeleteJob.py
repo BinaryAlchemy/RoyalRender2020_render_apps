@@ -1,7 +1,7 @@
 import sys
 
 
-print "Deleting this job from the RR queue"
+print("Deleting this job from the RR queue")
 
 modPath=rrGlobal.rrModPyrrPath()
 
@@ -28,4 +28,4 @@ jobsApply=[]
 jobsApply.append(int(args.jid))
 tcp.jobSendCommand(jobsApply,rrJob._LogMessage.lDelete,0)
 
-print "done"
+print("done")

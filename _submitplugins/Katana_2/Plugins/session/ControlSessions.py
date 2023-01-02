@@ -210,7 +210,7 @@ class ScriptSession(QtCore.QThread):
             sessionScript = os.path.join(self._scriptDir, 'ScriptSession.py')
         env = subprocess.Popen(env)
         env.wait()
-        print 'PING'
+        print('PING')
         katanaSession = subprocess.Popen(
             [
                 '/opt/katana2.5v3/katana',
@@ -241,9 +241,9 @@ class ScriptSession(QtCore.QThread):
                 threadId = line.split('_')[1]
                 exitCode = threadId
             if '[ERROR python.NodeDebugOutput]' in line:
-                print '#########################################################'
-                print line
-                print '#########################################################'
+                print('#########################################################')
+                print(line)
+                print ('#########################################################')
 
             if not self._live:
                 katanaSession.kill()
@@ -262,7 +262,7 @@ class ScriptSession(QtCore.QThread):
         return self._endframe
 
     def kill(self):
-        print 'set kill'
+        print('set kill')
         self._live = False
 
 
