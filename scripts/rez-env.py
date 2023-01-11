@@ -1,3 +1,9 @@
+#  Script for Rez to fix commandline issues
+#  Last Change: %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
+import sys
+
 def escape_string(value):
     import re
     from rez.rex import EscapedString
