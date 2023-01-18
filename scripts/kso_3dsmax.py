@@ -1158,6 +1158,7 @@ def render_main():
         arg.FNameVar = arg.FName
 
     arg.FNameVar = arg.FNameVar.replace("<channel>", "<Channel>")
+    arg.FNameVar = arg.FNameVar.replace("<aov>", "<AOV>")
     arg.FNameVar = arg.FNameVar.replace("<camera>", camFileName)
     arg.FNameVar = arg.FNameVar.replace("<Camera>", camFileName)
     arg.FNameVar = arg.FNameVar.replace("<Layer>", arg.StateSetFilename)

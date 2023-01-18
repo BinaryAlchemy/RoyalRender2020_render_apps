@@ -449,12 +449,12 @@ struct rrSubmit_scriptrender
             rrJob.outimageChannelName=rrJob.channelFileNames[1]
             if (channelIntoSubfolder) then (
                 splitFileDir &rrJob.imageFileNameBase &imgFile
-                rrJob.imageFileNameBase= rrJob.imageFileNameBase + "<Channel>\\"+imgFile
+                rrJob.imageFileNameBase= rrJob.imageFileNameBase + "<AOV>\\"+imgFile
                 splitFileDir &rrJob.outimageFileName &imgFile
-                rrJob.outimageFileName  = rrJob.outimageFileName  + "<Channel <Channel>>\\"+imgFile
+                rrJob.outimageFileName  = rrJob.outimageFileName  + "<AOV <AOV>>\\"+imgFile
             ) 
-            rrJob.imageFileNameBase= rrJob.imageFileNameBase + ".<Channel>."
-            rrJob.outimageFileName  = rrJob.outimageFileName  + "<Channel .<Channel>.>"
+            rrJob.imageFileNameBase= rrJob.imageFileNameBase + ".<AOV>."
+            rrJob.outimageFileName  = rrJob.outimageFileName  + "<AOV .<AOV>.>"
         ) 
         
         
@@ -483,14 +483,14 @@ struct rrSubmit_scriptrender
         rrJob.outchannelFileNames = #()
         rrJob.outchannelExt = #()
         if (rrJob.channelFileNames.count>1) then (
-            --add the last channel first
+            --add the last AOV first
             c=rrJob.channelFileNames.count
             if (rrJob.channelIsFullPath[c]) then (
                 imgName=rrJob.channelFileNames[c]
             ) else (
                 imgName=rrJob.imageFileNameBase
-                imgName = substituteString imgName "..<Channel>" ".<Channel>"
-                imgName = substituteString imgName "<Channel>" rrJob.channelFileNames[c]
+                imgName = substituteString imgName "..<AOV>" ".<AOV>"
+                imgName = substituteString imgName "<AOV>" rrJob.channelFileNames[c]
             )
             imgExt=baseExt
             if (rrJob.channelExt[c]!="") then (
@@ -507,8 +507,8 @@ struct rrSubmit_scriptrender
                 imgName=rrJob.channelFileNames[c]
             ) else (
                 imgName=rrJob.imageFileNameBase
-                imgName = substituteString imgName "..<Channel>" ".<Channel>"
-                imgName = substituteString imgName "<Channel>" rrJob.channelFileNames[c]
+                imgName = substituteString imgName "..<AOV>" ".<AOV>"
+                imgName = substituteString imgName "<AOV>" rrJob.channelFileNames[c]
             )
             imgExt=baseExt
             if (rrJob.channelExt[c]!="") then (
