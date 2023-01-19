@@ -39,6 +39,8 @@ def escape_string(value):
     
     
 print("Running Royal Render embedded Rez")    
+import rez.utils._version as rezVer
+print("REZ version: " + rezVer._rez_version)
 
 if (False):
     print("------------------ARGS------------------")
@@ -58,6 +60,8 @@ if (False):
         print(str(i) + ":" + sys.argv[i] )
     print("----------------------------------------")
 
+sys.stdout.flush()        
+sys.stderr.flush()   
 
 from rez.cli._entry_points import run_rez_env
 sys.exit(run_rez_env())
