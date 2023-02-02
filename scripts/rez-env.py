@@ -37,10 +37,11 @@ def escape_string(value):
         result += txt
     return result
     
-    
+print("\n\n----------------------------------------")    
 print("Running Royal Render embedded Rez")    
 import rez.utils._version as rezVer
 print("REZ version: " + rezVer._rez_version)
+print("----------------------------------------\n\n")    
 
 if (False):
     print("------------------ARGS------------------")
@@ -60,8 +61,36 @@ if (False):
         print(str(i) + ":" + sys.argv[i] )
     print("----------------------------------------")
 
-sys.stdout.flush()        
-sys.stderr.flush()   
+
+
+if (True):
+    rezPackageList=[]
+    for i in range(1, len(sys.argv)):
+        if (sys.argv[i] == "--"):
+            break
+        rezPackageList.append(sys.argv[i])
+    if ('rrLocalRoot' in os.environ):
+        rezInfoFolder= os.environ['rrLocalRoot']
+        rezInfoFolder= rezInfoFolder.replace("\\","/")
+        rezInfoFolder= rezInfoFolder + "rez/"
+        try:
+            if (not os.path.isdir(rezInfoFolder)):
+                os.mkdir(rezInfoFolder)
+            for i in range(0, len(rezPackageList)):  
+                rezFilename=rezInfoFolder + rezPackageList[i] + ".timestamp"
+                f = open(rezFilename, "w")
+                f.write("This Rez Package was used")
+                f.close()
+        except Exception as e:
+            print("Unable to create Rez Pack timestamp info: "+str(e))
+        
+            
+    print("----------------------------------------")
+
+
+if (sys.version_info.major > 2):
+    sys.stdout.flush()        
+    sys.stderr.flush()   
 
 from rez.cli._entry_points import run_rez_env
 sys.exit(run_rez_env())
