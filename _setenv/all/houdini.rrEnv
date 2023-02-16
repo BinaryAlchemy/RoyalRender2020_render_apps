@@ -166,13 +166,16 @@ REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
         [EndIf]
     [EndIf]
 [EndIf]
-REDSHIFT_PLUG_IN_PATH  =  <REDSHIFT_HOUDINI_ROOT>\dso;
-HOUDINI_DSO_ERROR  =  2
-PATH  =  <RR_REDSHIFT_BASE_LOCAL>\bin;<RR_REDSHIFT_BASE_LOCAL>\extensions;<PATH>
-HOUDINI_PATH  =  <REDSHIFT_HOUDINI_ROOT>;<HOUDINI_PATH>
-HOUDINI_OTLSCAN_PATH  =  <REDSHIFT_HOUDINI_ROOT>\otls;<HOUDINI_OTLSCAN_PATH>
-HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;<REDSHIFT_HOUDINI_ROOT>\soho;
-# HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;<REDSHIFT_HOUDINI_ROOT>\dso
+
+[If] <REDSHIFT_USED> [==] 1
+    REDSHIFT_PLUG_IN_PATH  =  <REDSHIFT_HOUDINI_ROOT>\dso;
+    HOUDINI_DSO_ERROR  =  2
+    PATH  =  <RR_REDSHIFT_BASE_LOCAL>\bin;<RR_REDSHIFT_BASE_LOCAL>\extensions;<PATH>
+    HOUDINI_PATH  =  <REDSHIFT_HOUDINI_ROOT>;<HOUDINI_PATH>
+    HOUDINI_OTLSCAN_PATH  =  <REDSHIFT_HOUDINI_ROOT>\otls;<HOUDINI_OTLSCAN_PATH>
+    HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;<REDSHIFT_HOUDINI_ROOT>\soho;
+    # HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;<REDSHIFT_HOUDINI_ROOT>\dso
+[EndIf]
 
 [If] <REDSHIFT_USED> [==] 1
     [If] <rrExeOS>  [==] win
@@ -241,31 +244,42 @@ RR_VRAY_VERSION= <RR_VRAY_VERSION>
 [If] <RR_VRAY_BASE>  [==] 
     RR_VRAY_BASE  =  <rrSharedExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersionFull>
 [EndIf]
-RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersionFull>
-echo * VRay source path is set to <RR_VRAY_BASE>
-echo * VRay cache path is set to <RR_VRAY_BASE_LOCAL>
-[copy] SyncNoCreateDir <RR_VRAY_BASE>   =>   <RR_VRAY_BASE_LOCAL>
 
-VRAY_APPSDK  =  <RR_VRAY_BASE_LOCAL>\appsdk
-VFH_HOME  =  <RR_VRAY_BASE_LOCAL>\vfh_home
-VRAY_OSL_PATH  =  <VRAY_APPSDK>\bin
-VRAY_UI_DS_PATH  =  <RR_VRAY_BASE_LOCAL>\ui
+[If] <RR_VRAY_IS_USED>  [==] TRUE 
+    RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersionFull>
+    echo * VRay source path is set to <RR_VRAY_BASE>
+    echo * VRay cache path is set to <RR_VRAY_BASE_LOCAL>
+    [copy] SyncNoCreateDir <RR_VRAY_BASE>   =>   <RR_VRAY_BASE_LOCAL>
 
-VRAY_FOR_HOUDINI_AURA_LOADERS  =  <VFH_HOME>\libs
-VFH_PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_FOR_HOUDINI_AURA_LOADERS>
+    VRAY_APPSDK  =  <RR_VRAY_BASE_LOCAL>\appsdk
+    VRAY_SDK  =  <RR_VRAY_BASE_LOCAL>\appsdk
+    VRAY_FOR_HOUDINI_APPSDK_BIN = <VRAY_APPSDK>\bin
+    VFH_HOME  =  <RR_VRAY_BASE_LOCAL>\vfh_home
+    VRAY_OSL_PATH  =  <VRAY_APPSDK>\bin
+    VRAY_UI_DS_PATH  =  <RR_VRAY_BASE_LOCAL>\ui
+
+    VRAY_FOR_HOUDINI_AURA_LOADERS  =  <VFH_HOME>\libs
+    VFH_PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_FOR_HOUDINI_AURA_LOADERS>
+[EndIf]
 
 [If] <RR_VRAY_IS_USED>  [==] TRUE 
     HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
-    LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
-    PATH  =  <VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
+    LD_LIBRARY_PATH  =  <VRAY_APPSDK>\bin;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
+    PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
     [If] <rrExeVersionMajor>  [<] 19
         echo using VRay with python 2.7
         PYTHONPATH = <VRAY_APPSDK>\python27;<PYTHONPATH>
         VFH_DSO_PATH = <VFH_HOME>\dso_py2
     [Else]
-        echo using VRay with python 3.7
-        PYTHONPATH = <VRAY_APPSDK>\python37;<PYTHONPATH>
-        VFH_DSO_PATH = <VFH_HOME>\dso_py3
+		[If] <rrExeVersionMinor>  [<] 5000
+			echo using VRay with python 3.7
+			PYTHONPATH = <VRAY_APPSDK>\python37;<PYTHONPATH>
+			VFH_DSO_PATH = <VFH_HOME>\dso_py3
+		[Else]
+			echo using VRay with python 3.9
+			PYTHONPATH = <VRAY_APPSDK>\python\python39;<PYTHONPATH>
+			VFH_DSO_PATH = <VFH_HOME>\dso_py39
+		[EndIf]
     [EndIf]
     VFU_PLUGINS=<VFH_DSO_PATH>/usd_plugins/hdVRay/plugins
 [EndIf]
