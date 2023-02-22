@@ -38,9 +38,9 @@ def escape_string(value):
     return result
     
 print("\n\n----------------------------------------")    
-print("Running Royal Render embedded Rez")    
+print("rrRez: Running Royal Render embedded Rez")    
 import rez.utils._version as rezVer
-print("REZ version: " + rezVer._rez_version)
+print("rrRez: REZ module version: " + rezVer._rez_version)
 print("----------------------------------------\n\n")    
 
 if (False):
@@ -87,7 +87,7 @@ if (True):
             
     print("----------------------------------------")
 
-
+print("rrRez: Starting Rez...") 
 if (sys.version_info.major > 2):
     sys.stdout.flush()        
     sys.stderr.flush()   
