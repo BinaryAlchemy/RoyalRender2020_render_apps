@@ -37,7 +37,7 @@ C4D_rrPluginFolder =
 # redshift_LICENSE  =  5053@licenseserverName
 
 # Set the next line to 0 if you have Redshift installed locally on each render client
-RR_REDSHIFT_NETWORK  =  1
+RR_REDSHIFT_NETWORK  =  0
 
 
 # ###################  Octane environment variables ###################
