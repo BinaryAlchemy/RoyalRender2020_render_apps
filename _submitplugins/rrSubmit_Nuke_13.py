@@ -312,8 +312,8 @@ def rrSubmit_addPluginLicenses(jobList):
             job.RequiredLicenses=plugins
 
 
-def isGizmo(node):
-    gizmo = isinstance(node, nuke.Gizmo)
+def isGroup(node):
+    gizmo = isinstance(node, nuke.Group)
     return gizmo
 
 def isScriptedOutput(pathScripted, gizmo):
@@ -330,7 +330,7 @@ def getAllWriteNodes():
     allNo=nuke.allNodes()
     writeNo=[]
     for gz in allNo:
-        if isGizmo(gz):
+        if isGroup(gz):
             with gz:
                 gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
                 for gnode in gList:
@@ -362,7 +362,7 @@ def rrSubmit_CreateAllJob(jobList, noLocalSceneCopy):
             continue
         pathScripted=""
         writeNode = node
-        if isGizmo(node):
+        if isGroup(node):
             with node:
                 gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
                 for gnode in gList:
@@ -437,7 +437,7 @@ def rrSubmit_CreateSingleJobs_Node(jobList,noLocalSceneCopy, node):
         pathScripted=""
         writeNode = node
         writeNodeName = writeNode['name'].value()
-        if isGizmo(node):
+        if isGroup(node):
             with node:
                 gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
                 for gnode in gList:
@@ -514,7 +514,7 @@ def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy, submitSelectedOnly):
         pathScripted=""
         writeNode = node
         writeNodeName = writeNode['name'].value()
-        if isGizmo(node):
+        if isGroup(node):
             with node:
                 gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
                 for gnode in gList:
@@ -575,7 +575,7 @@ def getAllCopycatNodes():
     allNo=nuke.allNodes()
     writeNo=[]
     for gz in allNo:
-        if isGizmo(gz):
+        if isGroup(gz):
             with gz:
                 gList = nuke.allNodes('CopyCat') 
                 for gnode in gList:
@@ -595,7 +595,7 @@ def rrSubmit_CreateSingleJobs_Copycat(jobList,noLocalSceneCopy):
             continue
         writeNode = node
         writeNodeName = writeNode['name'].value()
-        if isGizmo(node):
+        if isGroup(node):
             with node:
                 gList = nuke.allNodes('CopyCat')
                 for gnode in gList:
