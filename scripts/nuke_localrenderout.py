@@ -41,7 +41,7 @@ def getAllNodes(typeName):
     allNo=nuke.allNodes()
     fileNodes=[]
     for gz in allNo:
-        if isGizmo(gz):
+        if isGroup(gz):
             with gz:
                 gList = nuke.allNodes(typeName)
                 for gnode in gList:
@@ -102,8 +102,8 @@ def convertPath(writeNode, orgDir, orgDirWinDrive, locDir, createFolder, attrNam
     return True
 
 
-def isGizmo(node):
-    gizmo = isinstance(node, nuke.Gizmo)
+def isGroup(node):
+    gizmo = isinstance(node, nuke.Group)
     return gizmo
 
 
@@ -152,7 +152,7 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, wri
         if write_node_output:
             writeNode["file"].setValue(write_node_output)
         else:
-##            if isGizmo(writeNode):
+##            if isGroup(writeNode):
 ##                with writeNode:
 ##                    gList = nuke.allNodes('Write') + nuke.allNodes('DeepWrite')
 ##                    for gnode in gList:
