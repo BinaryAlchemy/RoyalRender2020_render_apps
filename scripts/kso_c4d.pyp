@@ -14,6 +14,8 @@ import time
 import sys
 import c4d
 import os
+import struct
+FSCODING = sys.stdout.encoding or sys.getfilesystemencoding()
 
 if sys.version_info.major == 2:
     range = xrange
@@ -60,23 +62,27 @@ class argParser:
         for a in range(0,  len(sys.argv)):
             if ((sys.argv[a].lower()==argFindName) and (a+1<len(sys.argv))):
                 argValue=sys.argv[a+1]
+                
+                #hexString=':'.join(hex(ord(x))[2:] for x in argValue)
+                #logMessage("sys.argv as Hex  '"+str(hexString)+"'")
+                
+                if (sys.version_info.major == 3) and (sys.version_info.minor==7):
+                    argValue= argValue.encode("latin1")
+                    argValue= argValue.decode(sys.getfilesystemencoding())
+                
                 if (argValue.lower()=="true"):
                     argValue=True
                 elif (argValue.lower()=="false"):
                     argValue=False
-                else:
-                    #argv is an unicode object, but C4D reads in bytes instead of unicode
-                    if sys.version_info[0] == 2:
-                        argValue = argValue.decode(sys.getfilesystemencoding()).encode('utf8')
-                    else:
 
-                        argValue= argValue.encode("latin1")
-                        argValue= argValue.decode(sys.getfilesystemencoding())
                 logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'")
                 return argValue
         return ""
 
     def readArguments(self):
+        logMessage("Python::sys.stdout.encoding is "+str(sys.stdout.encoding))
+        logMessage("Python::sys.getfilesystemencoding is "+str(sys.getfilesystemencoding()))
+        logMessage("FSCODING is "+str(FSCODING))
         self.sceneFile=self.getParam("-Scene")
         self.FrStart=self.getParam("-FrStart")
         self.FrEnd=self.getParam("-FrEnd")
@@ -1433,6 +1439,7 @@ def init_c4d():
     Return False if no scene argument has been passed, False otherwise"""
 
     logMessage("Start cinema4D render setup. %rrVersion%")
+    logMessage("Python version "+str(sys.version))
     timeStart = datetime.datetime.now()
 
     global arg

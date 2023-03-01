@@ -117,7 +117,8 @@ class argParser:
                     argValue = rawbytes(argValue)
                     #hexString=':'.join(hex(x)[2:] for x in argValue)
                     #logMessage("rawbytes as Hex  '"+str(hexString)+"'")
-                    argValue = argValue.decode(FSCODING)                
+                    argValue = argValue.decode(FSCODING)
+                    
                 if (argValue.lower()=="true"):
                     argValue=True
                 elif (argValue.lower()=="false"):

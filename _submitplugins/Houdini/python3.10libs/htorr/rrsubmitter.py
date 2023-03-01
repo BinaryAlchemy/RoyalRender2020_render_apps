@@ -153,13 +153,24 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
                    + " -sameTerminal rrSubmitterconsole  \"" + subm_file_path
                    + "\"" )
 
+        rr_env=os.environ.copy()
+        if 'QT_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_PLUGIN_PATH']
+        if 'QT_LOGGING_RULES' in rr_env:
+            del rr_env['QT_LOGGING_RULES']
+        if 'QT_QPA_FONTDIR' in rr_env:
+            del rr_env['QT_QPA_FONTDIR']
+        if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+
+
         # Execute RR Submitter with Popen Instance
         # Additional Settings to hide Window
         startupinfo = None
         if os.name == 'nt':
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        proc = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, env=rr_env)
 
         out = proc.communicate()[0]
         out= out.decode('ascii')
@@ -195,6 +206,16 @@ class RrGuiSubmitter(RrCmdSubmitter):
         Using subprocess to create another process for submission.
         """
         logger.debug("Submit: \n {}".format(submission))
+        rr_env=os.environ.copy()
+        if 'QT_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_PLUGIN_PATH']
+        if 'QT_LOGGING_RULES' in rr_env:
+            del rr_env['QT_LOGGING_RULES']
+        if 'QT_QPA_FONTDIR' in rr_env:
+            del rr_env['QT_QPA_FONTDIR']
+        if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+        
         subm_text = serialize_to_xml(submission)
         subm_file_path = self.write_submission_file(subm_text)
         command = (self.get_rr_rrStartLocal_path()
@@ -203,4 +224,4 @@ class RrGuiSubmitter(RrCmdSubmitter):
         if (not os.path.exists(self.get_rr_rrStartLocal_path())):
             logger.warning("RR executable does not exist:\n" + self.get_rr_rrStartLocal_path())
         else:
-            subprocess.Popen(command)
+            subprocess.Popen(command, env=rr_env)

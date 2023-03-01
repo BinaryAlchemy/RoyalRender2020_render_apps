@@ -25,6 +25,7 @@ licenseFailLine=  All licenses in use
 licenseFailLine=  License request failed
 licenseFailLine=  FOUNDRY LICENSE ERROR REPORT
 
+errorSearchLine=  Error reading pixel data from image file
 
 permanentErrorSearchLine = Can't render from that Node
 permanentErrorSearchLine = .nk is for nuke

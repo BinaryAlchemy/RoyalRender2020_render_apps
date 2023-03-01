@@ -1,4 +1,4 @@
-# Last change: %rrVersion%
+# Last change: v9.0.00
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
 from htorr.rrnode.base import RenderNode, rrNode
@@ -243,27 +243,35 @@ class rrGenericRop(RenderNode):
         
     @property
     def output_evalAtFrameA(self):        
+        outName=super(rrGenericRop, self).output_evalAtFrameA
         if self._node.evalParm("execute_output"):
-            return "<SceneFolder>"
-        return super(rrGenericRop, self).output_evalAtFrameA
+            if len(outName)<4:
+                return "<SceneFolder>"
+        return outName
         
     @property
     def output_evalAtFrameB(self):
+        outName=super(rrGenericRop, self).output_evalAtFrameB
         if self._node.evalParm("execute_output"):
-            return "<SceneFolder>"
-        return super(rrGenericRop, self).output_evalAtFrameB
+            if len(outName)<4:
+                return "<SceneFolder>"
+        return outName
 
     @property
     def outdir(self):    
+        outName=super(rrGenericRop, self).outdir
         if self._node.evalParm("execute_output"):
-            return "<SceneFolder>"
-        return super(rrGenericRop, self).outdir
+            if len(outName)<4:
+                return "<SceneFolder>"
+        return outName
         
     @property
     def outname(self):
+        outName=super(rrGenericRop, self).outname
         if self._node.evalParm("execute_output"):
-            return ""
-        return super(rrGenericRop, self).outname
+            if len(outName)<4:
+                return "<SceneFolder>"
+        return outName
         
     @property
     def outext(self):

@@ -54,7 +54,8 @@ ErrorSearchLine = Error rendering document
 ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
-ErrorSearchLine = Not enough memory...
+#Disabled as we have a case in which this error is printed on C4D close. And we do not care about that
+#ErrorSearchLine = Not enough memory...
 ErrorSearchLine = net.maxon.ui.class.osclipboard is missing
 ErrorSearchLine = Invalid License from License Server
 

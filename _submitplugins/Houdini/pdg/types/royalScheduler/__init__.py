@@ -1,4 +1,4 @@
-# Last change: %rrVersion%
+# Last change: v9.0.00
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
 import traceback 
@@ -15,5 +15,6 @@ import royalDefs as rrDefs
 
 
 def registerTypes(type_registry):
-    print("Registering royalScheduler " + rrDefs.plugin_version_str) 
+    print("Registering royalScheduler " + rrDefs.plugin_version_str+ ". Houdini Python version: "+str(sys.version_info.major)+"."+str(sys.version_info.minor)) 
+    
     type_registry.registerScheduler(royalScheduler.RoyalScheduler, label="royalScheduler") 
