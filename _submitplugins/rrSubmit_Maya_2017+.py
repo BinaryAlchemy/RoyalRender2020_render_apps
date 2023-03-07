@@ -1837,7 +1837,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(rootElement, "SubmitterParameter", submitOptions)
         # YOU CAN ADD OTHER NOT SCENE-INFORMATION PARAMETERS USING THIS FORMAT:
         # self.subE(rootElement,"SubmitterParameter","PARAMETERNAME=" + PARAMETERVALUE_AS_STRING)
-        if cmds.optionVar(q='renderSetup_includeAllLights') == 0:
+        if cmds.optionVar( exists='renderSetup_includeAllLights' ) and (cmds.optionVar(q='renderSetup_includeAllLights') == 0):
             self.subE(rootElement,"SubmitterParameter","COnoIncludeAllLights=1~1")
         return rootElement
 
