@@ -41,7 +41,6 @@ class RoyalRender_Submitter(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        # We submit the current scene. In the future we can implement multi scene submission as RR layers
         scn = context.scene
         img_type = scn.render.image_settings.file_format
 
@@ -122,20 +121,14 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
     @staticmethod
     def getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, padding):
-        extension = "." + rendertarget.lower()
+        ffmpeg_exts = {'AVI': '.avi', 'FLASH': '.flv', 'MKV': '.mkv',
+                       'MPEG1': '.mpg', 'MPEG2': '.dvd', 'MPEG4': '.mp4',
+                       'OGG': '.ogv', 'QUICKTIME': '.mov', 'WEBM': '.webm'}
 
-        if extension.startswith(".avi"):
-            extension = ".avi"
-            rendertarget = rendertarget.replace("_", "")
-
-        extension = extension.replace(".tiff", ".tif")
-        extension = extension.replace(".jpeg", ".jpg")
-
-        extension = extension.replace(".quicktime", ".mov")
-        extension = extension.replace(".flash", ".flv")
-        extension = extension.replace(".mpeg1", ".mpg")
-        extension = extension.replace(".mpeg2", ".dvd")
-        extension = extension.replace(".mpeg4", ".mp4")
+        if rendertarget.startswith("AVI_"):
+            extension = '.avi'
+        elif rendertarget == 'FFMPEG':
+            extension = ffmpeg_exts(scn.render.ffmpeg.format)
 
         # if the video extension is not part of the output filename,
         # blender will add the frame range
@@ -154,38 +147,48 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
                                                                suffix)
         return renderOut, extension
 
-    def writeSceneInfo(self, scn, fileID, scene_state="", is_active=True):
-        img_type = scn.render.image_settings.file_format
-        rendertarget = img_type.replace("OPEN_", "")
-        if rendertarget == "FFMPEG":
-            ImageSingleOutputFile = True
-            rendertarget = scn.render.ffmpeg.format
-        elif rendertarget == "JPEG2000":
-            ImageSingleOutputFile = False
-            rendertarget = scn.render.image_settings.jpeg2k_codec
+    def writeSceneJobs(self, scn, fileID, scene_state="", is_active=True):
+        try:
+            layers = scn.view_layers
+        except AttributeError:
+            self.writeLayerJob(scn, fileID, scene_state, is_active=is_active)
         else:
-            ImageSingleOutputFile = False
-            rendertarget = rendertarget.replace("TARGA_RAW", "RAWTGA")
-            rendertarget = rendertarget.replace("TARGA", "TGA")
+            for layer in layers:
+                self.writeLayerJob(scn, fileID, scene_state, layer.name, is_active=is_active and layer == bpy.context.view_layer)
 
-        renderOut = bpy.path.abspath(scn.render.filepath)
+    def writeLayerJob(self, scn, fileID, scene_state="", layer="", is_active=True):
+        # file_format and file_codec are used in the render script
+        file_format = scn.render.image_settings.file_format
+        
+        v_major, v_minor, _ = bpy.app.version
+        is_single_output = file_format == 'FFMPEG' or file_format.startswith('AVI_')
+
+        # cmd_frame_format is different in blender 2.79 commandline -F
+        if v_major < 3 and v_minor < 80:
+            file_format = file_format.replace("OPEN_", "")
+            file_format = file_format.replace("TARGA_RAW", "RAWTGA")
+            file_format = file_format.replace("TARGA", "TGA")
+
+        if file_format == "JPEG2000":
+            file_format = scn.render.image_settings.jpeg2k_codec
+
+        render_out = bpy.path.abspath(scn.render.filepath)
 
         try:
-            hash_position = renderOut.rindex('#')
-            renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if renderOut[i] != '#')
+            hash_position = render_out.rindex('#')
+            renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if render_out[i] != '#')
         except ValueError:
             hash_position = -1
             renderPadding = 4
 
-        extension = ""
-
         if scn.render.use_file_extension:
-            if ImageSingleOutputFile:
-                renderOut, extension = self.getSingleOutputExtension(scn, rendertarget, renderOut, hash_position, renderPadding)
+            if is_single_output:
+                render_out, extension = self.getSingleOutputExtension(scn, file_format, render_out, hash_position, renderPadding)
             else:
                 extension = scn.render.file_extension
+        else:
+            extension = ""
 
-        v_major, v_minor, _ = bpy.app.version
         writeNodeStr = self.writeNodeStr
         writeNodeInt = self.writeNodeInt
         writeNodeBool = self.writeNodeBool
@@ -204,22 +207,17 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeStr(fileID, "SceneState", scene_state)
         writeNodeBool(fileID, "IsActive", is_active)
         writeNodeStr(fileID, "SceneName", bpy.data.filepath)
-        writeNodeBool(fileID, "ImageSingleOutputFile", ImageSingleOutputFile)
+        writeNodeBool(fileID, "ImageSingleOutputFile", is_single_output)
         writeNodeInt(fileID, "SeqStart", scn.frame_start)
         writeNodeInt(fileID, "SeqEnd", scn.frame_end)
         writeNodeInt(fileID, "SeqStep", scn.frame_step)
-        writeNodeStr(fileID, "ImageDir", os.path.dirname(renderOut))
-        writeNodeStr(fileID, "ImageFilename", os.path.basename(renderOut))
+        writeNodeStr(fileID, "ImageDir", os.path.dirname(render_out))
+        writeNodeStr(fileID, "ImageFilename", os.path.basename(render_out))
         writeNodeInt(fileID, "ImageFramePadding", renderPadding)
         writeNodeStr(fileID, "ImageExtension", extension)
-        if 'MULTILAYER' in rendertarget:
-            rendertarget = "MULTILAYER"
-        elif v_major == 2 and v_minor < 80:
-            writeNodeStr(fileID, "Layer", scn.render.layers[0].name)
-        if rendertarget in ("TGA", "RAWTGA", "JPEG", "IRIS", "IRIZ", "AVIRAW",
-                            "AVIJPEG", "PNG", "BMP", "HDR", "TIFF", "EXR", "MULTILAYER",
-                            "MPEG", "FRAMESERVER", "CINEON", "DPX", "DDS", "JP2"):
-            writeNodeStr(fileID, "CustomFrameFormat", rendertarget)
+
+        writeNodeStr(fileID, "Layer", layer)
+        writeNodeStr(fileID, "CustomFrameFormat", file_format)
 
         fileID.write("</Job>\n")
 
@@ -240,10 +238,12 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         fileID.write("</SubmitterParameter>")
 
         is_multi_scene = len(bpy.data.scenes) > 1
-        self.writeSceneInfo(bpy.context.scene, fileID, is_active=not is_multi_scene)
+        
         if is_multi_scene:
             for scn in bpy.data.scenes:
-                self.writeSceneInfo(scn, fileID, scn.name, scn == bpy.context.scene)
+                self.writeSceneJobs(scn, fileID, scn.name, scn == bpy.context.scene)
+        else:
+            self.writeSceneJobs(bpy.context.scene, fileID)
 
         fileID.write("</RR_Job_File>\n")
         fileID.close()
@@ -300,6 +300,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
     def execute(self, context):
         if bpy.data.is_dirty:
+
+            # TODO: ask save
             try:
                 self.report({'INFO'}, "Saving mainFile...")
                 bpy.ops.wm.save_mainfile()
