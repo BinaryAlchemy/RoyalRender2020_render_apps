@@ -1,7 +1,7 @@
 #
 # Author: Friedrich Wessel, Callisto FX GmbH
 # Updated: Holger Schoenberger and Paolo Acampora, Binary Alchemy
-# v8.2.45
+# %rrVersion%
 #
 #
 
@@ -16,7 +16,7 @@ FlagsRenderQuality4= -eaa 0 -ss 3 -mss 9 -ufil true -rct 0.05 -gct 0.05 -bct 0.0
 
 FlagsRegion= -reg <X1 <X1> ? 0>  <X2 <X2> ? 19999> <Y1 <Y1> ? 0 > <Y2 <Y2> ? 19999>
 
-ImageSizeCommandline= -x <Width> -y  <Height>
+ImageSizeCommandline= -rX <Width> -rY <Height>
 
 ################################## Submitter Settings ################################## 
 StartMultipleInstances= 1~0

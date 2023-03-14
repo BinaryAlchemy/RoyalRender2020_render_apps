@@ -1,3 +1,9 @@
+#  Render script for Blender
+#  Last Change: %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+#  Author: Paolo Acampora, Binary Alchemy
+
+
 from collections import OrderedDict
 import datetime
 import os
@@ -237,12 +243,12 @@ class RRArgParser(object):
                 self.res_percent = float(value)
                 continue
 
-            if arg == "-rResX":
-                self.res_x = value
+            if arg == "-rX":
+                self.res_x = int(value)
                 continue
 
-            if arg == "-rResY":
-                self.res_y = value
+            if arg == "-rY":
+                self.res_y = int(value)
                 continue
 
             if arg == "-rRenderer":
@@ -516,6 +522,7 @@ def multiply_antialias_settings(renderer, factor):
 ####
 
 if __name__ == "__main__":
+    log_msg(" Royal Render %rrVersion% blender render plugin ".center(100, "_"))
     log_msg(" Blender started ".center(100, "_"))
 
     args = RRArgParser(*sys.argv)
