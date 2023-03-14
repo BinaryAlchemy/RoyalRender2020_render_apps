@@ -23,7 +23,7 @@ USERPROFILE  =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
 # [copy] SyncCreateDir <rrPrefs>   =>   <USERPROFILE>\AppData\Roaming\Blender Foundation\Blender
 
 
-
+PYTHONPATH = <rrLocalRenderScripts>;<PYTHONPATH>
 
 # ###################  RedShift environment variables ###################
 

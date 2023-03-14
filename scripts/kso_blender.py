@@ -9,6 +9,7 @@ import datetime
 import os
 import sys
 import time
+from pathlib import Path
 
 import bpy
 import addon_utils
@@ -112,6 +113,9 @@ def enable_addon(addon_name):
 # Parsing
 
 class RRArgParser(object):
+    """ArgParse replacement, parse the command line arguments and store them internally or as global vars for
+    kso command. DON'T SET BLENDER VALUE INSIDE THIS CLASS: the scene might not be there yet."""
+
     def __init__(self, *args):
         self._debug = False
 
@@ -131,7 +135,9 @@ class RRArgParser(object):
         self.renderer = ""
         self.render_filepath = ""
         self.render_fileext = ""
-        self.multi_layer = False
+        self.overwrite_existing = None
+        self.bl_placeholder = None
+
         self.anti_alias_mult = 1.0
 
         self.res_percent = 100
@@ -213,6 +219,12 @@ class RRArgParser(object):
                 self.render_scene = value
                 global RENDER_SCENE
                 RENDER_SCENE = self.render_scene
+
+            if arg == "-rOverwrite":
+                self.overwrite_existing = bool(value)
+            
+            if arg == "-rPlaceHolder":
+                self.bl_placeholder = bool(value)
 
             if arg == "-rKSOport":
                 self.kso_port = int(value)
@@ -339,11 +351,18 @@ def set_frame_range(start, end, step):
 def render_frame_range(start, end, step, movie=False):
 
     scene = bpy.data.scenes[RENDER_SCENE]
+    Path(os.path.dirname(scene.render.filepath)).mkdir(parents=True, exist_ok=True)
 
     if not (movie or LOCAL_FRAME_LOOP):
         log_msg(f"Rendering Frames: {start} - {end}")
         for fr in range(start, end + 1, step):
-            kso_tcp.writeRenderPlaceholder(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
+            if scene.render.use_overwrite:
+                # if blender does not overwrite, creating placeholder files will prevent from rendering
+                # not considering the case when blender creates its own placeholders via scene.render.use_placeholder.
+                # They would overwrite RR placeholders before the render starts.
+
+                kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
+
             log_msg(f"Rendering Frame #{fr} ...")
 
             scene.frame_start = fr
@@ -368,7 +387,7 @@ def set_output_path():
 def set_output_format(file_ext, file_format='', scene=None):
     scene = bpy.data.scenes[RENDER_SCENE]
 
-    log_msg(f"Scene file format is {scene.render.image_settings.file_format}")
+    log_msg(f"Scene file format is set to {scene.render.image_settings.file_format}")
 
     viable_formats = []
     for k, v in OUT_FORMATS.items():
@@ -408,7 +427,13 @@ def set_output_format(file_ext, file_format='', scene=None):
         if scene.render.image_settings.file_format in viable_formats:
             log_msg(f"More formats for extension {file_ext}, using current format {scene.render.image_settings.file_format}")
         else:
-            log_msg(f"Changing output format based on extension's default {viable_formats[0]}. Check 'file_format' parameter to do otherwise.")
+            log_msg(f"Changing output format based on extension's default {viable_formats[0]}. Check '-rFormat' parameter (CustomFrameFormat variable in rrControl/rrSubmitter) to do otherwise.")
+            
+            log_msg(f"Available formats for {file_ext}:")
+            for viable_format in viable_formats:
+                log_msg(f"\t{viable_format}")
+            log_msg("")
+
             scene.render.image_settings.file_format = viable_formats[0]
     
     if out_format == 'FFMPEG':
@@ -519,6 +544,45 @@ def multiply_antialias_settings(renderer, factor):
         log_msg_wrn(f"AA override not supported for {renderer}")
 
 
+def ensure_scene_and_layer():
+    """Use current scene in case no scene was passed"""
+    global RENDER_SCENE
+
+    if RENDER_SCENE and RENDER_SCENE not in bpy.data.scenes:
+        log_msg_wrn(f"The scene {RENDER_SCENE} was not found in this file, will default to loaded scene")
+        RENDER_SCENE = None
+
+    if not RENDER_SCENE:
+        RENDER_SCENE = bpy.context.scene.name
+        log_msg_wrn(f"No SceneState argument given, using '{RENDER_SCENE}'")
+    
+    global RENDER_LAYER
+
+    if RENDER_LAYER and RENDER_LAYER not in bpy.data.scenes[RENDER_SCENE].view_layers:
+        log_msg_wrn(f"The layer {RENDER_LAYER} was not found in '{RENDER_SCENE}', will default to loaded layer")
+        RENDER_LAYER = None
+
+    if not RENDER_LAYER:
+        RENDER_LAYER = bpy.context.view_layer.name
+        log_msg_wrn(f"No Layer argument given, using '{RENDER_LAYER}'")
+
+
+def adjust_resolution(new_res_x, new_res_y):
+    render_settings = bpy.data.scenes[RENDER_SCENE].render
+    if new_res_x:
+        res_x = render_settings.resolution_x
+        if res_x == new_res_x:
+            log_msg(f"Render width already set to {res_x}, no change necessary")
+        else:
+            render_settings.resolution_x = new_res_x
+    if new_res_y:
+        res_y = render_settings.resolution_y
+        if res_y == new_res_y:
+            log_msg(f"Render height already set to {res_y}, no change necessary")
+        else:
+            render_settings.resolution_y = new_res_y
+
+
 ####
 
 if __name__ == "__main__":
@@ -533,20 +597,29 @@ if __name__ == "__main__":
     open_blend_file(args.blend_file)
     log_msg(" blend file opened ".center(100, "_"))
 
+    ensure_scene_and_layer()
+
     if args.enable_gpu:
         enable_gpu_devices()
     
     if args.load_redshift:
         enable_addon("redshift")
 
+    adjust_resolution(args.res_x, args.res_y)
     multiply_antialias_settings(args.renderer, args.anti_alias_mult)
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)
-
     set_output_path()
     set_output_format(args.render_fileext, args.render_format)
 
-    log_msg("Scene init done, starting to render... ")
+    if args.overwrite_existing != None:
+        bpy.data.scenes[RENDER_SCENE].render.use_overwrite = args.overwrite_existing
+    
+    if args.bl_placeholder != None:
+        bpy.data.scenes[RENDER_SCENE].render.use_placeholder = args.bl_placeholder
+
+    # ensure output dir
+    Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
 
     if args.kso_mode:
         try:
