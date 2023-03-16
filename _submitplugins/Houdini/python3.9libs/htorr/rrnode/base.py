@@ -158,6 +158,8 @@ class rrNode(object):
     def take(self):
         """Property for take name"""
         try:
+            if len(hou.takes.takes()) < 2:
+                return ""
             take = self._node.evalParm("take")
             if take == "_current_":
                 take = hou.takes.currentTake().name()
@@ -212,7 +214,7 @@ class FetchNode(rrNode):
     def childclass_parse(self, parseData):
         source = self._node.evalParm("source")
         if len(source) > 0:
-            sourceNode = hou.node(source)
+            sourceNode = self._node.parm("source").evalAsNode()
             n = rrNode.create(sourceNode)
             n.parse(parseData)
 
@@ -220,7 +222,7 @@ class FetchNode(rrNode):
         retNodes = self._node.inputs()
         source = self._node.evalParm("source")
         if len(source) > 0:
-            sourceNode = hou.node(source)
+            sourceNode = self._node.parm("source").evalAsNode()
             retNodes = retNodes + (sourceNode,)
         logger.debug("{}: dependencies are: {} ".format(self._node.path(), retNodes))
         return retNodes
@@ -525,6 +527,7 @@ class RenderNode(rrNode):
             start = int(hou.frame())
             end = int(hou.frame())
             inc = 1
+        logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
         return (start, end, inc)
 
     @property

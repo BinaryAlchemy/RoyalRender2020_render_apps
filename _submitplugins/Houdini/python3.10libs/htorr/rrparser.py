@@ -17,8 +17,9 @@ This is mainly necessary to alter the job processing, whenever a job is created,
 
 from cmath import log
 import logging
-
+import sys
 from htorr import rrjob
+
 
 logger = logging.getLogger("HtoRR")
 
@@ -94,7 +95,16 @@ class SubmissionFactory(object):
             for j in jobs:
                 j.options.merge(s.options)
             #logger.debug("Baked_Jobs: Jobs: {}".format(jobs))
-
+                if sys.version_info.major == 2:
+                    for name, label in rrjob.RR_PARMS.iteritems():
+                        if name in s.paramOverrides:
+                            j.parm[name].set(s.paramOverrides[name])
+                else:
+                    for name, label in rrjob.RR_PARMS.items():
+                        if name in s.paramOverrides:
+                            logger.debug("SubmissionFactory.get():  override {}: {}".format(name, s.paramOverrides[name]))
+                            j._parms[name].set( s.paramOverrides[name])
+        
             for j in jobs:
                 logger.debug("Submission Jobs: {}".format(j))
                 submission_converted.jobs.append(j)

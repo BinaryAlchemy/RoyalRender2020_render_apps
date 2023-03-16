@@ -3,14 +3,19 @@
 
 """@package rrjob
 This module contains all necessary classes to describe data which can be send to Royal Render.
-This includes Job, Submission, SubmitOptions and Parameters. Job and Submissions are python classes build after their equivalent entities in Royal Render. Their property names are mapped to the official names through
-the dictionaries RR_PARMS and RR_Options. Usually one submission instance contains multiple job instance and while both Job and Submission instances can contain SubmitOptions only Job instances are capable of holding Parameter instances, which are used 
-to describe a job. Furthermore Parameters support the notion of overrides.
+This includes Job, Submission, SubmitOptions and Parameters. Job and Submissions are python classes build after their equivalent entities in Royal Render. 
+Their property names are mapped to the official names through the dictionaries RR_PARMS and RR_Options. Usually one Submission instance contains 
+multiple job instances.
+Both Job and Submission instances can contain SubmitOptions and Parameter instances.
+Parameter instances describe the basic settings of a job like scene or frmae range
+SubmitOptions modify extra parameter of a Royal Renders job
 
-Job, Submission and SubmitOptions follow the serialize interface which is used by the class XML_Serializer in the rrsubmitter package to convert these classes into an appropriate 
-XML file which then can be submitted. To obtain a valid XML file it is important to put a job into an submission and serialize the submssion instance.
+Job, Submission and SubmitOptions follow the serialize interface which is used by the class XML_Serializer in the rrsubmitter package to convert these 
+classes into an appropriate XML file which then can be submitted. To obtain a valid XML file it is important to put a job into an submission 
+and serialize the submssion instance.
 
-The dictionaries RR_PARM and RR_OPTIONS are used to map Royal Render parameter and option names to more python friendly names which are used for the classes in this module.
+The dictionaries RR_PARM and RR_OPTIONS are used to map Royal Render parameter and option names to more python friendly names which are used for the 
+classes in this module.
 """
 import re
 from htorr import utils
@@ -33,7 +38,7 @@ RR_PARMS = {
     "renderer": "Renderer",
     "renderer_version": "rendererVersion",
     "layer": "Layer",
-    "channel": "Channel",
+    "channel": "AOV",
     "scene": "Scenename",
     "outdir": "ImageDir",
     "outname": "Imagefilename",
@@ -103,7 +108,6 @@ class Parm(object):
     """Class to store and evaluate parm values
 
     Dedicated class to store and evaluate parm values.
-    A Parm can contain overrides, which will be considered when parm is evaluated.
     """
 
     def __init__(self, name, label, typ):
@@ -111,7 +115,7 @@ class Parm(object):
 
         Arguments:
             name string -- name of the parameter
-            label string -- label of the parameter which is the Royal Render name
+            label string -- label of the parameter as in the Royal Render XML
             typ string -- Type of parameter which might be needed
         """
         self.name = name
@@ -137,6 +141,7 @@ class Job(object):
     """Class to describe Royal Render jobs."""
 
     """ List of parameters, which are used as a template for new instances of a job.
+        Created from RR_PARMS
     """
     _template_parms = []
 
@@ -150,10 +155,9 @@ class Job(object):
         self.submission = None  # Submssion instance this job belongs to
         logger.debug("Job submitoptions")
         self.options = SubmitOptions()
-        logger.debug("Job submitoptions end")
+        #logger.debug("Job submitoptions end")
         self.aovs = []
         self._dependency = []
-        # self.overrides = []
         self.active = "true"
         self.foffset = 0
         self.scene_os = utils.get_os_sring()
@@ -237,9 +241,7 @@ class Job(object):
     @single_output.setter
     def single_output(self, value):
         """Setter for Property single output"""
-        # TODO: what if unset single_output?
         if value:
-            # self.option("distribution").overrides[0] = "oneclient"
             self._single_output = "true"
 
     def set_dependency(self, jobs):
@@ -280,14 +282,14 @@ class Submission(object):
     def __init__(self):
         logger.info(rrDefs.plugin_version_str)
         self.jobs = []
-        logger.debug(
-            "Submission init SubmitOptions(); Called from: {} in {}".format(
-                sys._getframe().f_back.f_code.co_name,
-                sys._getframe().f_back.f_code.co_filename,
-            )
-        )
+        #logger.debug(
+        #    "Submission init SubmitOptions(); Called from: {} in {}".format(
+        #        sys._getframe().f_back.f_code.co_name,
+        #        sys._getframe().f_back.f_code.co_filename,
+        #    )
+        #)
         self.options = SubmitOptions()
-        # logger.debug("Submission submitoptions end")
+        self.paramOverrides =  {}
         self._factory = None
 
     def __str__(self):
@@ -308,6 +310,13 @@ class Submission(object):
         logger.debug("Add custom option: {} Value: {}".format(name, value))
         self.options.add_custom_option(name, value, type)
         # logger.debug("Submitoptions from Submission: {}".format(self.options))
+
+    def add_param_override(self, name, value):
+        """Adds a parm override"""
+        logger.debug("Add param override: {} = {}".format(name, value))
+        self.paramOverrides[name]= value
+
+
 
     """
     A Submission instance can be used as a context manager. But should only be invoked when created by a Submission factory.
@@ -353,7 +362,7 @@ class Submission(object):
 
 
 class SubmitOptions(object):
-    """Extended Dictonary to store submit options"""
+    """Extended Dictonary to store submit options""" 
 
     def __str__(self):
         text = "\n     SubmitOptions:"
@@ -389,8 +398,8 @@ class SubmitOptions(object):
         self._parms[name].set(value)
         # logger.debug("Set parm value to {}".format(value))
         # logger.debug("Get parm value {}".format(self._parms[name].eval()))
-        logger.debug("Parms after custom:")
-        logger.debug(self)
+        #logger.debug("Parms after custom:")
+        #logger.debug(self)
 
     def serialize(self, serializer):
         """Method which can be used by a serializer to serialize SubmitOptions.
