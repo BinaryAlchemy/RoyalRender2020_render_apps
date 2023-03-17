@@ -383,3 +383,24 @@ class USDStitchClips_ROP(RenderNode):
     def renderer_version(self):
         return
         
+
+    
+class USDStitch_ROP(RenderNode):
+
+    name = "usdstitch"
+
+    @property
+    def output_parm(self):
+        return "outfile1"
+
+    @property
+    def renderer(self):
+        return "anyNode"
+
+    @property
+    def single_output(self):
+        return True    
+
+    @property
+    def renderer_version(self):
+        return        

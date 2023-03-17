@@ -35,8 +35,8 @@ class Output(object):
         
         path_no_ext = ""
         
-        logger.debug("Output for frame 1 is {}".format(str(outf1)))
-        logger.debug("Output for frame 2 is {}".format(str(outf2)))
+        logger.debug("Output for frame 1 is {} (I)".format(str(outf1)))
+        logger.debug("Output for frame 2 is {} (I)".format(str(outf2)))
 
         if outf2 != outf1:
             self.static = False
@@ -89,8 +89,8 @@ class ProductOutput(object):
         
         path_no_ext = ""
         
-        #logger.debug("Output for frame {} is {}".format(seqStart, outf1))
-        #logger.debug("Output for frame {} is {}".format(seqEnd, outf2))
+        logger.debug("Output for frame {} is {} (PO)".format(seqStart, outf1))
+        logger.debug("Output for frame {} is {} (PO)".format(seqEnd, outf2))
 
         if outf2 != outf1:
             self.static = False

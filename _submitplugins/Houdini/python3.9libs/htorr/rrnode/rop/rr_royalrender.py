@@ -162,58 +162,31 @@ class SubmitterNode(rrNode):
             # submission.add_option(
             #            "DefaultClientGroup", "1~{}".format(clients_selected.replace(" ",";")))
 
-        """
-        override = parseData.Override.create()
+
+
+
+        if self._node.evalParm("rr_scenename_enable"):
+            scName = str(self._node.evalParm("rr_scenename"))
+            submission.add_custom_option("CustomSceneName", scName, "custom")
+
 
         if self._node.evalParm("rr_camera_enabled"):
             camera = self._node.evalParm("rr_camera")
-            override.add_parm("camera", camera)
+            submission.add_param_override("camera", camera)
 
         if self._node.evalParm("rr_frange_enabled"):
-            override.add_parm("fstart", self._node.evalParm("rr_frange1"))
-            override.add_parm("fend", self._node.evalParm("rr_frange2"))
-            override.add_parm("finc", self._node.evalParm("rr_frange3"))
+            submission.add_param_override("fstart", self._node.evalParm("rr_frange1"))
+            submission.add_param_override("fend", self._node.evalParm("rr_frange2"))
+            submission.add_param_override("finc", self._node.evalParm("rr_frange3"))
 
         if self._node.evalParm("rr_res_enabled"):
-            override.add_parm("image_width", self._node.evalParm("rr_res1"))
-            override.add_parm("image_height", self._node.evalParm("rr_res2"))
-
-        if self._node.evalParm("rr_distribution_enabled"):
-            distribution = self._node.evalParm("rr_distribution")
-            if distribution == 0:
-                override.add_option("distribution", "full")
-            elif distribution == 1:
-                override.add_option("distribution", "frameaferframe")
-            else:
-                override.add_option("distribution", "oneclient")
-
-        if not self._node.parm("rr_seq_devidex").isDisabled():
-            seq_divide_min = int(self._node.evalParm("rr_seq_devidex"))
-            seq_divide_max = int(self._node.evalParm("rr_seq_devidey"))
-
-            override.add_option("seq_divide_min", [1, seq_divide_min])
-            override.add_option("seq_divide_max", [1, seq_divide_max])
-
-        if self._node.evalParm("rr_required_memory_enabled"):
-            required_memory = int(self._node.evalParm("rr_required_memory"))
-            override.add_option("required_memory", [1, required_memory])
-
-        if self._node.evalParm("rr_priority_enabled"):
-            priority = int(self._node.evalParm("rr_priority"))
-            override.add_option("priority", [1, priority])
-
-        if self._node.evalParm("rr_littlejob_enabled"):
-            littlejob = 1 if self._node.evalParm("rr_littlejob") else 0
-            override.add_option("littlejob", [1, littlejob])
-
-        if self._node.evalParm("rr_local_scene_copy_enabled"):
-            local_scene_copy = int(self._node.evalParm("rr_local_scene_copy"))
-            override.add_option("allow_local_scene_copy", [0, local_scene_copy])
+            submission.add_param_override("image_width", self._node.evalParm("rr_res1"))
+            submission.add_param_override("image_height", self._node.evalParm("rr_res2"))
 
         if self._node.evalParm("rr_take_enabled"):
             take = self._node.parm("rr_take").evalAsString()
-            override.add_parm("channel", take)
-        """
+            submission.add_param_override("channel", take)
+
 
         logger.debug("RRRop -before submission")
         
@@ -274,7 +247,6 @@ class SubmitterNode(rrNode):
             return [self._node.parm("rr_driver").evalAsNode()]
 
 
-
 class SubmitterNodeLop(SubmitterNode):
 
     name = "rrSubmitterLOP"
@@ -284,7 +256,7 @@ class DependencyNode(rrNode):
     name = "rrDependency"
 
     def childclass_parse(self, parseData):
-
+        #logger.debug("UICurrent: {}".format( hou.frame()))
         with parseData.Dependency.create() as d:
             for i in self._node.inputs():
                 n = rrNode.create(i)
