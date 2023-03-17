@@ -63,7 +63,7 @@ def log_msg_err(msg):
 
 # Startup Utilities
 
-def enable_gpu_devices():
+def enable_gpu_devices(addon_name='cycles'):
     v_major, v_minor, _ = bpy.app.version
 
     if v_major > 2 or v_minor > 79:
@@ -71,31 +71,31 @@ def enable_gpu_devices():
     else:
         prefs = bpy.context.user_preferences
 
-    cycles_prefs = prefs.addons['cycles'].preferences
+    addon_prefs = prefs.addons[addon_name].preferences
 
     # Attempt to set GPU device types if available
     for compute_device_type in ('CUDA', 'OPENCL', 'NONE'):
         try:
-            cycles_prefs.compute_device_type = compute_device_type
+            addon_prefs.compute_device_type = compute_device_type
             break
         except TypeError:
             log_msg_wrn("Failed to enable gpu")
             return False
 
     # Enable all CPU and GPU devices
-    log_msg_wrn("GPU set to", cycles_prefs.compute_device_type)
+    log_msg(f"GPU set to {addon_prefs.compute_device_type}")
 
     if v_major > 2:
-        cycles_prefs.refresh_devices()
-        devices = cycles_prefs.devices
+        addon_prefs.refresh_devices()
+        devices = addon_prefs.devices
         for device in devices:
-            log_msg_wrn("\tenabling device", device.name)
+            log_msg(f"\tenabling device {device.name}")
             device.use = True
     else:
-        devices = cycles_prefs.get_devices(bpy.context)
+        devices = addon_prefs.get_devices(bpy.context)
         for device in devices:
             for dev_entry in device:
-                print("\tenabling device", dev_entry.name)
+                log_msg(f"\tenabling device {dev_entry.name}")
                 dev_entry.use = True
     
     return True
@@ -402,9 +402,9 @@ def set_output_format(file_ext, file_format='', scene=None):
         out_format = viable_formats[0]
 
         if file_format:
-            log_msg(f"Only one format for rendering {file_ext} files, ignoring parameter {file_format}")
+            log_msg(f"Only one format for rendering {file_ext} files, ignoring format parameter {file_format}")
             if file_format != out_format:
-                log_msg_wrn(f"format parameter {file_format} doesn't match {file_ext} parameter")
+                log_msg_wrn(f"format parameter {file_format} doesn't match {file_ext} format parameter")
         
         if out_format == scene.render.image_settings.file_format:
             log_msg(f"Output format was already set to: {out_format}")
@@ -601,6 +601,12 @@ if __name__ == "__main__":
 
     if args.enable_gpu:
         enable_gpu_devices()
+
+        if args.renderer == "Cycles":
+            settings = bpy.data.scenes[RENDER_SCENE].cycles
+            if settings.device != 'GPU':
+                log_msg(f"Switching Cycles render device from '{settings.device}' to 'GPU'")
+            settings.device = 'GPU'
     
     if args.load_redshift:
         enable_addon("redshift")
