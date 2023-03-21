@@ -6,18 +6,6 @@
 #
 
 
-################################## Render Settings ################################## 
-
-FlagsRenderQuality0= 
-FlagsRenderQuality1= -eaa 3 -ss 1 -mss 1 -ufil false
-FlagsRenderQuality2= -eaa 1 -ss 2 -mss 8 -ufil true -rct 0.2 -gct 0.2 -bct 0.2
-FlagsRenderQuality3= -eaa 0 -ss 3 -mss 9 -ufil true -rct 0.1 -gct 0.1 -bct 0.1
-FlagsRenderQuality4= -eaa 0 -ss 3 -mss 9 -ufil true -rct 0.05 -gct 0.05 -bct 0.05
-
-FlagsRegion= -reg <X1 <X1> ? 0>  <X2 <X2> ? 19999> <Y1 <Y1> ? 0 > <Y2 <Y2> ? 19999>
-
-ImageSizeCommandline= -x <Width> -y  <Height>
-
 ################################## Submitter Settings ################################## 
 StartMultipleInstances= 1~0
 SceneFileExtension= *.blend
@@ -38,14 +26,17 @@ TexReplaceFormat= .blend ~ FOR4 ~ AlwaysForward
 
 licenseFailLine=  No license suitable to run
 
-errorSearchLine=  
-
 permanentErrorSearchLine = Unknown Blender file version
 permanentErrorSearchLine = Cannot open renderer description file
 permanentErrorSearchLine = Cannot render
+permanentErrorSearchLine = File written by newer Blender binary
 
 findFrameNoPre= <ImageFilenameSlash>
 findFrameNoPost= <ImageExtensionSlash>
+
+
+RemoveFromLog= Contains ~ | Synchronizing object |
+RemoveFromLog= Contains ~ | Updating Images |
 
 
 RenderAppWindow_WIN= Error ~ Unable to locate valid BLENDER_APP_DIR ~ 1 ~ Button ~ OK 

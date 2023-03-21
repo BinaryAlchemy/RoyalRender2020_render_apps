@@ -34,7 +34,7 @@ CommandLine=   "<Exe>"
     -P "<rrLocalRenderScripts>\kso_blender.py"
 	<SceneState -S "<SceneState>">
 	--python-use-system-env -y --
-	<isKSO -rKso >
+	<isKSO -rKso -rKSOport <ksoTCPport> >
 	<COCyclesEnableGPU -rGPU>
     <COLoadRedshift -rLoadRS>
 	-rStart <SeqStart>
@@ -49,6 +49,7 @@ CommandLine=   "<Exe>"
 	<CustomFrameFormat -rFormat <CustomFrameFormat>>
 	<COAntiAliasMultiFloat -rAA <COAntiAliasMultiFloat>>
 	<AdditionalCommandlineParam>
+    -rPyModPath <rrLocalRenderScripts><EL<PD>>
 
 CommandLine=
 	<CheckExitCode> <FN>
@@ -76,3 +77,9 @@ KSOlog_Quit=rrKSO closed
 COCyclesEnableGPU= 0~0
 COLoadRedshift= 0~0
 COAntiAliasMultiFloat= 1 ~ 1 ~ 100
+
+################################## Render Settings ################################## 
+
+FlagsRegion= -reg <X1 <X1> ? 0>  <X2 <X2> ? 19999> <Y1 <Y1> ? 0 > <Y2 <Y2> ? 19999>
+
+ImageSizeCommandline= -rX <Width> -rY <Height>

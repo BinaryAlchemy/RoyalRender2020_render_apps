@@ -14,8 +14,6 @@ from pathlib import Path
 import bpy
 import addon_utils
 
-import kso_tcp
-
 
 # Global values used in kso functions
 GPU_RENDERERS = ("redshift", "Octane", "Eevee")
@@ -119,6 +117,8 @@ class RRArgParser(object):
     def __init__(self, *args):
         self._debug = False
 
+        self.PyModPath=""
+
         self.blend_file = ""
 
         self.seq_start = None
@@ -147,6 +147,7 @@ class RRArgParser(object):
 
         self.enable_gpu = False
         self.load_redshift = False
+        
 
         self.error = ""
         self.parse(args)
@@ -304,6 +305,9 @@ class RRArgParser(object):
             if arg == "-rFormat":
                 self.format = value
 
+            if arg == "-rPyModPath":
+                self.PyModPath = value
+
 
 # Errors
 
@@ -418,29 +422,31 @@ def set_output_format(file_ext, file_format='', scene=None):
                 out_format = file_format
             else:
                 log_msg_wrn(f"File format and extension parameters do not match: {file_format}, {file_ext}")
-        except AttributeError:
+        except:
             log_msg_wrn(f"File format parameter was not found: {file_format}")
-
-    if out_format:
-        scene.render.image_settings.file_format = out_format
-    else:
-        if scene.render.image_settings.file_format in viable_formats:
-            log_msg(f"More formats for extension {file_ext}, using current format {scene.render.image_settings.file_format}")
+    try:
+        if out_format:
+            scene.render.image_settings.file_format = out_format
         else:
-            log_msg(f"Changing output format based on extension's default {viable_formats[0]}. Check '-rFormat' parameter (CustomFrameFormat variable in rrControl/rrSubmitter) to do otherwise.")
-            
-            log_msg(f"Available formats for {file_ext}:")
-            for viable_format in viable_formats:
-                log_msg(f"\t{viable_format}")
-            log_msg("")
+            if scene.render.image_settings.file_format in viable_formats:
+                log_msg(f"More formats for extension {file_ext}, using current format {scene.render.image_settings.file_format}")
+            else:
+                log_msg(f"Changing output format based on extension's default {viable_formats[0]}. Check '-rFormat' parameter (CustomFrameFormat variable in rrControl/rrSubmitter) to do otherwise.")
+                
+                log_msg(f"Available formats for {file_ext}:")
+                for viable_format in viable_formats:
+                    log_msg(f"\t{viable_format}")
+                log_msg("")
 
-            scene.render.image_settings.file_format = viable_formats[0]
-    
+                scene.render.image_settings.file_format = viable_formats[0]
+    except:
+        log_msg_wrn(f"File format parameter does not exist, unable to override file format: {out_format}")
+            
     if out_format == 'FFMPEG':
         # Set container based on extension
         try:
             out_container = FFMPEG_CODECS[file_ext]
-        except AttributeError:
+        except:
             log_msg_wrn(f"No {out_format} container found for extension {file_ext}, current container is '{scene.render.ffmpeg.format}'")
         else:
             if scene.render.ffmpeg.format != out_container:
@@ -588,9 +594,17 @@ def adjust_resolution(new_res_x, new_res_y):
 if __name__ == "__main__":
     log_msg(" Royal Render %rrVersion% blender render plugin ".center(100, "_"))
     log_msg(" Blender started ".center(100, "_"))
+    log_msg(" Python version: "+str(sys.version))
 
     args = RRArgParser(*sys.argv)
-
+    
+    if (len(args.PyModPath)>0):
+        import sys
+        log_msg("Append python search path with '" +args.PyModPath+"'" )
+        sys.path.append(args.PyModPath)    
+    import kso_tcp
+    
+    
     log_msg(" About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
 

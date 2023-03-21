@@ -1,3 +1,4 @@
+
 ________________________________________________
 # Houdini To Royal Render
 
@@ -12,7 +13,7 @@ Render Apps/Houdini/Submission/Scripted
 
 
 
-
+Missing features:
 rrSubmitter:
  * Test Stereo rig
  * Takes
