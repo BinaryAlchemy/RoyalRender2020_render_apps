@@ -537,17 +537,38 @@ def multiply_antialias_settings(renderer, factor):
         return
 
     scene = bpy.data.scenes[RENDER_SCENE]
-    
+
+    if renderer == 'Cycles':
+        previous = scene.cycles.filter_width
+        scene.cycles.filter_width *= factor
+
+        log_msg(f"{renderer} Filter Width changed from {previous} to {scene.cycles.filter_width}")
+        return
+
+    # Generic setting for eevee
+
+    previous = scene.render.filter_size
+    scene.render.filter_size *= factor
+
+    log_msg(f"Generic Filter Size changed from {previous} to {scene.render.filter_size}")
+
+
+def multiply_render_samples(renderer, factor):
+    if factor == 1.0:
+        return
+
+    scene = bpy.data.scenes[RENDER_SCENE]
+
     if renderer == "Eevee":
         previous = scene.eevee.taa_render_samples
         scene.eevee.taa_render_samples = round(factor * scene.eevee.taa_render_samples)
-        log_msg("Eevee samples changed from {previous} to {scene.eevee.taa_render_samples}")
+        log_msg(f"{renderer} samples changed from {previous} to {scene.eevee.taa_render_samples}")
     elif renderer == "Cycles":
         previous = scene.cycles.samples
-        scene.cycles.samples = round(factor * scene.cycles.sample)
-        log_msg("Eevee samples changed from {previous} to {scene.cycles.samples}")
+        scene.cycles.samples = round(factor * scene.cycles.samples)
+        log_msg(f"{renderer} samples changed from {previous} to {scene.cycles.samples}")
     else:
-        log_msg_wrn(f"AA override not supported for {renderer}")
+        log_msg_wrn(f"Samples override not supported for {renderer}")
 
 
 def ensure_scene_and_layer():
