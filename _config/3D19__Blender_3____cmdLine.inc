@@ -35,7 +35,7 @@ CommandLine=   "<Exe>"
 	<SceneState -S "<SceneState>">
 	--python-use-system-env -y --
 	<isKSO -rKso -rKSOport <ksoTCPport> >
-	<COCyclesEnableGPU -rGPU>
+	<GPUrequired -rGPU>
     <COLoadRedshift -rLoadRS>
 	-rStart <SeqStart>
 	-rEnd <SeqEnd>
@@ -74,7 +74,6 @@ KSOlog_Quit=rrKSO closed
 
 
 ################################## Submitter Settings ##################################    
-COCyclesEnableGPU= 0~0
 COLoadRedshift= 0~0
 COAntiAliasMultiFloat= 1 ~ 1 ~ 100
 
