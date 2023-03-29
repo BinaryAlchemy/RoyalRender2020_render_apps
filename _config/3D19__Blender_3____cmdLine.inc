@@ -31,7 +31,7 @@ CommandLine=
 CommandLine=   "<Exe>"
     <Cores -t <Cores> ? -t 0>
 	-b
-    -P "<rrLocalRenderScripts>\kso_blender.py"
+    -P "<rrLocalRenderScripts>kso_blender.py"
 	<SceneState -S "<SceneState>">
 	--python-use-system-env -y --
 	<isKSO -rKso -rKSOport <ksoTCPport> >

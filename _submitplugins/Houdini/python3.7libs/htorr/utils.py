@@ -3,6 +3,8 @@
 
 import os
 import sys
+import logging
+logger = logging.getLogger("HtoRR")
 
 try:
     import hou
@@ -11,7 +13,7 @@ except ImportError:
 
 
 def open_save_hip():
-
+    logger.debug("Checking if save is required")
     if not hou.hipFile.hasUnsavedChanges():
         return True
 

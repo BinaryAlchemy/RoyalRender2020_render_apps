@@ -33,7 +33,7 @@ class SubmitterNode(rrNode):
 
         autosave = self._node.evalParm("rr_autosave")
         if autosave:
-            logger.debug("automatically saved changes")
+            logger.debug("* Automatically saved changes")
             hou.hipFile.save()
 
         # warn_unsaved_changes = self._node.evalParm("rr_warn_unsaved_changes")

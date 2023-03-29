@@ -135,6 +135,7 @@ class RRArgParser(object):
         self.renderer = ""
         self.render_filepath = ""
         self.render_fileext = ""
+        self.render_format = ""
         self.overwrite_existing = None
         self.bl_placeholder = None
 
@@ -368,6 +369,7 @@ def render_frame_range(start, end, step, movie=False):
                 kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
 
             log_msg(f"Rendering Frame #{fr} ...")
+            flush_log()
 
             scene.frame_start = fr
             scene.frame_end = fr
@@ -375,6 +377,7 @@ def render_frame_range(start, end, step, movie=False):
     else:
         log_msg(f"Rendering Frames (no frame loop): {start} - {end}")
         set_frame_range(start, end, step)
+        flush_log()
         bpy.ops.render.render(animation=True, write_still=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
 
 
@@ -647,7 +650,7 @@ if __name__ == "__main__":
         enable_addon("redshift")
 
     adjust_resolution(args.res_x, args.res_y)
-    multiply_antialias_settings(args.renderer, args.anti_alias_mult)
+    multiply_render_samples(args.renderer, args.anti_alias_mult)
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)
     set_output_path()
@@ -661,7 +664,8 @@ if __name__ == "__main__":
 
     # ensure output dir
     Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
-
+    flush_log()
+    
     if args.kso_mode:
         try:
             rr_kso_start_server(port=args.kso_port)

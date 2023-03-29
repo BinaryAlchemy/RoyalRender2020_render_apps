@@ -46,8 +46,11 @@ def submit(rops=[], gui=True):
         rops = get_scene_rops()
 
     if not rops:
-        hou.ui.displayMessage("No ROPs to submit", buttons=("OK",))
-        logger.debug("No ROPs to submit")
+        if hou.isUIAvailable():
+            hou.ui.displayMessage("No ROPs to submit", buttons=("OK",))
+            logger.debug("No ROPs to submit")
+        else:
+            logger.warning("No ROPs to submit")
         return
 
     logger.debug("------------ submit: parse_nodes() ------------" )
@@ -56,31 +59,42 @@ def submit(rops=[], gui=True):
     logger.debug("------------ submit: rrparser.ParserHandler() ------------" )
     if rrparser.ParserHandler.get():
         msg = "\n".join(rrparser.ParserHandler.get())
-        out = hou.ui.displayMessage(
-            "HtoRR: Errors occured when parsing ROPs",
-            buttons=("Ignore", "Abort"),
-            default_choice=1,
-            severity=hou.severityType.ImportantMessage,
-            close_choice=1,
-            details=msg,
-            details_label="Following Lines found in Log",
-            details_expanded=True,
-        )
+        if hou.isUIAvailable():
+            out = hou.ui.displayMessage(
+                "HtoRR: Errors occured when parsing ROPs",
+                buttons=("Ignore", "Abort"),
+                default_choice=1,
+                severity=hou.severityType.ImportantMessage,
+                close_choice=1,
+                details=msg,
+                details_label="Following Lines found in Log",
+                details_expanded=True,
+            )
+        else:
+            logger.warning("HtoRR: Errors occured when parsing ROPs: "+msg)
+            return
         if out == 1:
             return
 
     if not submission:
-        hou.ui.displayMessage("No valid ROPs to submit", buttons=("OK",))
-        logger.debug("No valid ROPs to submit")
+        if hou.isUIAvailable():
+            hou.ui.displayMessage("No valid ROPs to submit", buttons=("OK",))
+            logger.debug("No valid ROPs to submit")
+        else:
+            logger.warning("No valid ROPs to submit")
         return
 
     if not submission.jobs:
-        hou.ui.displayMessage("No Jobs to submit", buttons=("OK",))
-        logger.debug("No Jobs to submit")
+        if hou.isUIAvailable():
+            hou.ui.displayMessage("No Jobs to submit", buttons=("OK",))
+            logger.debug("No Jobs to submit")
+        else:
+            logger.warning("No Jobs to submit")
         return
-
-    if not utils.open_save_hip():
-        return
+        
+    if hou.isUIAvailable():
+        if not utils.open_save_hip():
+            return
 
     if gui:
         submitter = rrsubmitter.RrGuiSubmitter()
@@ -90,19 +104,23 @@ def submit(rops=[], gui=True):
         out = submitter.submit(submission)
 
         if out:
-            hou.ui.displayMessage(
-                "Successfully submitted {} Jobs".format(len(out)),
-                buttons=("OK",),
-                details=str(submission),
-            )
-
+            if hou.isUIAvailable():
+                hou.ui.displayMessage(
+                    "Successfully submitted {} Jobs".format(len(out)),
+                    buttons=("OK",),
+                    details=str(submission),
+                )
+            else:
+                logger.info("Successfully submitted {} Jobs".format(len(out)))
         else:
-            hou.ui.displayMessage(
-                "Unable to submit Jobs, see Log",
-                severity=hou.severityType.Error,
-                buttons=("OK",),
-            )
-
+            if hou.isUIAvailable():
+                hou.ui.displayMessage(
+                    "Unable to submit Jobs, see Log",
+                    severity=hou.severityType.Error,
+                    buttons=("OK",),
+                )
+            else:
+                logger.info("Unable to submit Jobs, see Log")
 
 def get_scene_rops():
 
