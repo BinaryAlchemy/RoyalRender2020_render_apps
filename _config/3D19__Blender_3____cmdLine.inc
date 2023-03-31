@@ -47,7 +47,7 @@ CommandLine=   "<Exe>"
 	<AppRenderer -rRenderer <AppRenderer>>
 	<Layer -rLayer "<Layer>">
 	<CustomFrameFormat -rFormat <CustomFrameFormat>>
-	<COAntiAliasMultiFloat -rAA <COAntiAliasMultiFloat>>
+	-rAA <AAsamplesMultiply>
 	<AdditionalCommandlineParam>
     -rPyModPath <rrLocalRenderScripts><EL<PD>>
 
@@ -75,7 +75,6 @@ KSOlog_Quit=rrKSO closed
 
 ################################## Submitter Settings ##################################    
 COLoadRedshift= 0~0
-COAntiAliasMultiFloat= 1 ~ 1 ~ 100
 
 ################################## Render Settings ################################## 
 
