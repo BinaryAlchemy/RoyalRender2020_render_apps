@@ -4,9 +4,9 @@
 #
 # Royal Render Plugin script for VRed
 # Author:  Paolo Acampora
-# Last change: %rrVersion%
+# Last change: v9.0.00
 # Copyright (c)  Holger Schoenberger - Binary Alchemy
-# #win:     rrInstall_Copy: <USERPROFILE>\Documents\Autodesk\VRED-<ExeVersionMajor>.<ExeVersionMinor>\ScriptPlugins\
+# #win:     rrInstall_Copy: <USERPROFILE>\Documents\Autodesk\Automotive\VRED\ScriptPlugins\
 #
 ######################################################################
 
@@ -208,7 +208,7 @@ class rrJob(object):
             self.subE(rootElement, "SubmitterParameter", "PPAssembleTiles=0~1")
 
         jobElement = self.subE(rootElement, "Job", "")
-        self.subE(jobElement, "rrSubmitterPluginVersion", "%rrVersion%")
+        self.subE(jobElement, "rrSubmitterPluginVersion", "v9.0.00")
         self.subE(jobElement, "Camera", self.camera)
         self.subE(jobElement, "Channel", self.channel)
         self.subE(jobElement, "ImageExtension", self.imageFormat)
@@ -346,7 +346,7 @@ def submitCurrentScene(multicam=False, variants=False, stereo=False, console=Fal
     :param console: if True, don't show submission window
     :return: 0 == success, 1 == cancel; If no value is returned, success is assumed
     """
-    print("rrSubmit %rrVersion%")
+    print("rrSubmit v9.0.00")
     jobs = [rrJob()]
     jobs[0].sceneFilename = vrFileIO.getFileIOFilePath()
     jobs[0].versionInfo = vrController.getVredVersion()
