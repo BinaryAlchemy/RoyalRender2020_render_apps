@@ -95,15 +95,17 @@ def submit(rops=[], gui=True):
     if hou.isUIAvailable():
         if not utils.open_save_hip():
             return
-
+    
+    retJobIDs=[]
+    
     if gui:
         submitter = rrsubmitter.RrGuiSubmitter()
         submitter.submit(submission)
     else:
         submitter = rrsubmitter.RrCmdGlobSubmitter()
         out = submitter.submit(submission)
-
         if out:
+            retJobIDs= out
             if hou.isUIAvailable():
                 hou.ui.displayMessage(
                     "Successfully submitted {} Jobs".format(len(out)),
@@ -121,6 +123,8 @@ def submit(rops=[], gui=True):
                 )
             else:
                 logger.info("Unable to submit Jobs, see Log")
+    return retJobIDs
+    
 
 def get_scene_rops():
 

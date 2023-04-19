@@ -22,11 +22,12 @@ HOUDINI_INTERACTIVE_ASSERTS = 0
 
 HOUDINI_TEMP_DIR  =  <TEMP>
 
-[If] <RR_NO_HFS>  [==]
-	HFS = <rrBaseAppPath>
-	HH = <rrBaseAppPath>/houdini
+[If] <rrBaseAppPath> [!=]  
+	[If] <RR_NO_HFS>  [==]
+		HFS = <rrBaseAppPath>
+		HH = <rrBaseAppPath>/houdini
+	[EndIf]	
 [EndIf]	
-
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
