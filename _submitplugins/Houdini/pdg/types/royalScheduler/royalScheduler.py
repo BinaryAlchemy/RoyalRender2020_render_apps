@@ -464,7 +464,7 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         """
         #not used RR
         if name == 'python':
-            return "<Exe><../>python37/python"
+            return "<Exe><../>python" + str(sys.version_info.major) + str(sys.version_info.minor) + "/python"
         elif name == 'hython':
             return "<Exe>" 
 

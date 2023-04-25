@@ -373,6 +373,10 @@ class RenderNode(rrNode):
                 logger.warning(msg)
                 #logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
 
+        #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
+        pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        job.add_custom_option("HPyVer", pythonVer)
+        
         # add sparse parameter
         jobsettings = self.rr_jobsettingsFunc
         if not jobsettings == "":

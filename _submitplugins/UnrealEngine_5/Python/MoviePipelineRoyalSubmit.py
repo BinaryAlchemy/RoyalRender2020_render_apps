@@ -54,7 +54,6 @@ def launch_rr_submitter(tmpfile_name):
 
     if sys.platform.lower().startswith("win"):
         submitCMDs = ('{0}\\win__rrSubmitter.bat'.format(rr_root), tmpfile_name)
-        submitCMDs = (r'E:\programmierung\RoyalRender2020\project\_debug\bin\win64\rrSubmitter.exe', tmpfile_name)
     elif sys.platform.lower() == "darwin":
         submitCMDs = ('{0}/bin/mac64/rrSubmitter.app/Contents/MacOS/rrSubmitter'.format(rr_root), tmpfile_name)
     else:

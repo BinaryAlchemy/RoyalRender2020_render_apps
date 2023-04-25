@@ -124,6 +124,17 @@ def append_prman_params(submit_args):
     return True
 
 
+def append_pyhon_params(submit_args):
+    import os
+    pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+    submit_args.append("-customHPyVer")
+    submit_args.append(pythonVer)
+ 
+    return True
+
+
+
+
 def rrSubmit():
     print ("rrSubmit v8.3.05")
     hou.hipFile.save()
@@ -157,6 +168,7 @@ def rrSubmit():
     append_vray_params(exe_args)
     append_redshift_params(exe_args)
     append_prman_params(exe_args)
+    append_pyhon_params(exe_args)
     
     # finally open
     if sys.version_info.major >= 3:

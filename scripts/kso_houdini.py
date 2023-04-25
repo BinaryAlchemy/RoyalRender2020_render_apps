@@ -1049,6 +1049,8 @@ try:
         applyRendererOptions_VRay()
     elif (arg.renderer=="prman"):
         applyRendererOptions_PRman()
+    elif (arg.renderer=="renderman"):
+        applyRendererOptions_PRman()
     elif (arg.renderer=="opengl"):
         applyRendererOptions_openGl()
     elif (arg.renderer=="geometry"):
