@@ -14,6 +14,14 @@ UE_to_RR_tokens = {
     '{level_name}': '<SceneName>',
     '{project_dir}': '<DataBase>',
     '{sequence_name}': '<Layer>',
+    '{date}': '<date yyyy.MM.dd>',
+    '{year}': '<date yyyy>',
+    '{month}': '<date MM>',
+    '{day}': '<date MM>',
+    '{output_width}': '<ImageWidth>',
+    '{output_width}': '<ImageHeight>',
+    '{output_resolution}': '<ImageHeight>',
+    '{job_author}': '<UserName>',
     '{frame_number}': ''
     }
 
@@ -263,7 +271,20 @@ def submit_ue_jobs(queue):
 
     # copy UE jobs to RR jobs
     for ue_job in ue_jobs:
+        # movie pipeline preset
+        
+        preset = ue_job.get_preset_origin()
+        if not preset:
+            # TODO: warn that job is skipped
+            continue
+
+        preset_path = preset.get_path_name().rsplit('.', 1)[0]
+        if preset_path.startswith('/Game'):
+            preset_path = preset_path[6:]
+
         new_job_rr = copy.deepcopy(base_job_rr)
+        new_job_rr.CustomPresetPath = preset_path
+        new_job_rr.UserName = ue_job.get_editor_property('author')
 
         # scene file
         map_asset_path = ue_job.map.to_tuple()[0].rsplit('.', 1)[0]
@@ -281,19 +302,6 @@ def submit_ue_jobs(queue):
         # sequence file
         seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
         new_job_rr.layer = seq_asset_name
-
-        # movie pipeline preset
-        
-        preset = ue_job.get_preset_origin()
-        if not preset:
-            # TODO: warn that job is skipped
-            continue
-
-        preset_path = preset.get_path_name().rsplit('.', 1)[0]
-        if preset_path.startswith('/Game'):
-            preset_path = preset_path[6:]
-
-        new_job_rr.CustomPresetPath = preset_path
 
         out_settings = ue_job.get_configuration().get_all_settings()
 
@@ -342,7 +350,7 @@ def submit_ue_jobs(queue):
 
             # ImageSequenceOutput class name contains the output format
             img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
-            new_job_rr.imageExtension = img_protocol
+            new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
 
         rr_jobs.append(new_job_rr)
 

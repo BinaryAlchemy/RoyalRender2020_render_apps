@@ -2,7 +2,13 @@
 import unreal
 import MoviePipelineRoyalSubmit
 
+try:
+    settings_class = unreal.MovieRenderPipelineProjectSettings
+except AttributeError:
+    # Module not available on command line renders
+    pass
+else:
+    projectSettings = unreal.get_default_object(settings_class)
 
-projectSettings = unreal.get_default_object(unreal.MovieRenderPipelineProjectSettings)
-if not projectSettings.default_remote_executor:
-    projectSettings.default_remote_executor = MoviePipelineRoyalSubmit.MoviePipelineRoyalSubmit
+    if not projectSettings.default_remote_executor:
+        projectSettings.default_remote_executor = MoviePipelineRoyalSubmit.MoviePipelineRoyalSubmit
