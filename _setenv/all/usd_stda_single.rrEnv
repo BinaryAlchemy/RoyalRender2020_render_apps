@@ -22,11 +22,12 @@ HOUDINI_INTERACTIVE_ASSERTS = 0
 
 HOUDINI_TEMP_DIR  =  <TEMP>
 
-[If] <RR_NO_HFS>  [==]
-	HFS = <rrBaseAppPath>
-	HH = <rrBaseAppPath>/houdini
+[If] <rrBaseAppPath> [!=]  
+	[If] <RR_NO_HFS>  [==]
+#		HFS = <rrBaseAppPath>
+#		HH = <rrBaseAppPath>/houdini
+	[EndIf]	
 [EndIf]	
-
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
@@ -36,9 +37,9 @@ HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>;&
 HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;&  
 PXR_PLUGINPATH_NAME = <PXR_PLUGINPATH_NAME>;&
 
-#[Exists] <RR_ROOT>\render_apps\_submitplugins\Houdini
-#    HOUDINI_PATH  =  <RR_ROOT>\render_apps\_submitplugins\Houdini;<HOUDINI_PATH>
-#[EndIf]
+[Exists] <RR_ROOT>\render_apps\_submitplugins\Houdini
+    HOUDINI_PATH  =  <RR_ROOT>\render_apps\_submitplugins\Houdini;<HOUDINI_PATH>
+[EndIf]
 
 
 PATH= <rrBaseAppPath>\bin;<PATH>
@@ -308,7 +309,13 @@ QT_QPA_PLATFORM_PLUGIN_PATH  =  <rrBaseAppPath>\bin\Qt_plugins\platforms
 [EndIf]
 
 RR_RENDERMAN_VERSION=<RR_RENDERMAN_VERSION>
-
+[If] <rrJobRenderer>  == renderman
+    echo * Rendering with Pixars Renderman
+    RR_RENDERMAN_USED = TRUE
+    [If] <RR_RENDERMAN_VERSION>  [==] 
+        RR_RENDERMAN_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+[EndIf]
 [If] <rrJobRenderer>  [contains] prman
     echo * Rendering with Pixars Renderman
     RR_RENDERMAN_USED = TRUE
@@ -335,10 +342,10 @@ RR_RENDERMAN_VERSION=<RR_RENDERMAN_VERSION>
 RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
 
 [If] <RR_RENDERMAN_USED>  [==] TRUE
-    RR_RENDERMAN_PROSERVER  =  <RR_RENDERMAN_BASE>ProServer-<RR_RENDERMAN_VERSION>
-    RR_RENDERMAN_PROSERVER_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>ProServer-<RR_RENDERMAN_VERSION>
-    RR_RENDERMAN_HOUDINI  =  <RR_RENDERMAN_BASE>ForHoudini-<RR_RENDERMAN_VERSION>
-    RR_RENDERMAN_HOUDINI_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>ForHoudini-<RR_RENDERMAN_VERSION>
+    RR_RENDERMAN_PROSERVER  =  <RR_RENDERMAN_BASE>\RenderManProServer-<RR_RENDERMAN_VERSION>
+    RR_RENDERMAN_PROSERVER_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>\RenderManProServer-<RR_RENDERMAN_VERSION>
+    RR_RENDERMAN_HOUDINI  =  <RR_RENDERMAN_BASE>\RenderManForHoudini-<RR_RENDERMAN_VERSION>
+    RR_RENDERMAN_HOUDINI_LOCAL  =  <RR_RENDERMAN_BASE_LOCAL>\RenderManForHoudini-<RR_RENDERMAN_VERSION>
 [EndIf]
 [If] <RR_RENDERMAN_USED>  [==] TRUE
     echo * Renderman ProServer source path is set to <RR_RENDERMAN_PROSERVER>
@@ -352,8 +359,8 @@ RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
     RFHTREE = <RR_RENDERMAN_HOUDINI_LOCAL>
 [EndIf]
 [If] <RR_RENDERMAN_USED>  [==] TRUE
-    RMAN_PROCEDURALPATH = <RFHTREE>/<ExeVersionFull>/openvdb;<RMAN_PROCEDURALPATH>
-    HOUDINI_PATH=<RFHTREE>/<ExeVersionFull>;<HOUDINI_PATH>
+    RMAN_PROCEDURALPATH = <RFHTREE>/3.9/<ExeVersionFull>/openvdb;<RMAN_PROCEDURALPATH>
+    HOUDINI_PATH=<RFHTREE>/3.9/<ExeVersionFull>;<HOUDINI_PATH>
     PATH=<RMANTREE>\bin;<PATH>
 [EndIf]
 
