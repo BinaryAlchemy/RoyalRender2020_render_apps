@@ -375,6 +375,8 @@ class RenderNode(rrNode):
 
         #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
         pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        job.add_custom_option("HPyVerP", pythonVer)
+        pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
         job.add_custom_option("HPyVer", pythonVer)
         
         # add sparse parameter
