@@ -127,9 +127,13 @@ def append_prman_params(submit_args):
 def append_pyhon_params(submit_args):
     import os
     pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+    submit_args.append("-customHPyVerP")
+    submit_args.append(pythonVer)
+
+    pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
     submit_args.append("-customHPyVer")
     submit_args.append(pythonVer)
- 
+
     return True
 
 
