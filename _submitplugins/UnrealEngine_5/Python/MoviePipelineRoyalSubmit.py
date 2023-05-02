@@ -125,7 +125,8 @@ class rrJob:
         self.CustomProjectName  = ""
         self.CustomSequencePath = ""
         self.CustomPresetPath = ""
-        self.LocalTexturesFile  = ""        
+        self.LocalTexturesFile  = ""
+        self.userName = ""
 
     # from infix.se (Filip Solomonsson)
     def indent(self, elem, level=0):
@@ -195,6 +196,7 @@ class rrJob:
         self.subE(jobElement, "SendAppBit", self.sendAppBit)
         self.subE(jobElement, "PreID", self.preID)
         self.subE(jobElement, "WaitForPreID", self.waitForPreID)
+        self.subE(jobElement, "UserName", self.userName)
         self.subE(jobElement, "CustomProjectName", self.CustomProjectName)
         self.subE(jobElement, "LocalTexturesFile", self.LocalTexturesFile)
         self.subE(jobElement, "CustomSequencePath", self.CustomSequencePath)
@@ -202,6 +204,7 @@ class rrJob:
         for c in range(0,self.maxChannels):
             self.subE(jobElement,"ChannelFilename",self.channelFileName[c])
             self.subE(jobElement,"ChannelExtension",self.channelExtension[c])
+
         return True
 
 
@@ -234,7 +237,7 @@ def get_seq_range(package_name):
     assert seq_range.has_start_value
     assert seq_range.has_end_value
 
-    return seq_range.inclusive_start, seq_range.exclusive_end
+    return seq_range.inclusive_start, seq_range.exclusive_end - 1
 
 
 def clean_up_game_path(game_path):
@@ -275,7 +278,7 @@ def submit_ue_jobs(queue):
         
         preset = ue_job.get_preset_origin()
         if not preset:
-            # TODO: warn that job is skipped
+            unreal.log_warning(f"job skipped: {ue_job.job_name}")
             continue
 
         preset_path = preset.get_path_name().rsplit('.', 1)[0]
@@ -284,7 +287,7 @@ def submit_ue_jobs(queue):
 
         new_job_rr = copy.deepcopy(base_job_rr)
         new_job_rr.CustomPresetPath = preset_path
-        new_job_rr.UserName = ue_job.get_editor_property('author')
+        new_job_rr.userName = ue_job.get_editor_property('author')
 
         # scene file
         map_asset_path = ue_job.map.to_tuple()[0].rsplit('.', 1)[0]
@@ -352,6 +355,7 @@ def submit_ue_jobs(queue):
             img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
             new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
 
+        new_job_rr.isActive = True  # TODO: read enabled flag from unreal
         rr_jobs.append(new_job_rr)
 
     # launch_rr_submitter

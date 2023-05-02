@@ -174,9 +174,10 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
     def on_begin_frame(self):
         # Call super to process async socket messages.
         super(MoviePipelineRoyalExecutor, self).on_begin_frame()        
-        return
+
         if self.activeMoviePipeline:
-            unreal.log("Progress: %f" % unreal.MoviePipelineLibrary.get_completion_percentage(self.activeMoviePipeline))
+            done_percentage = unreal.MoviePipelineLibrary.get_completion_percentage(self.activeMoviePipeline) * 100
+            unreal.log(f"Progress: {done_percentage:.2f} %")
 
     @unreal.ufunction(override=True)
     def is_rendering(self):
