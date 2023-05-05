@@ -22,12 +22,15 @@ HOUDINI_INTERACTIVE_ASSERTS = 0
 
 HOUDINI_TEMP_DIR  =  <TEMP>
 
-[If] <rrBaseAppPath> [!=]  
-	[If] <RR_NO_HFS>  [==]
-		HFS = <rrBaseAppPath>
-		HH = <rrBaseAppPath>/houdini
-	[EndIf]	
-[EndIf]	
+[If] <rrJobRenderapp> [!=]  Houdini
+#we use this rrEnv file for houdini and usd_stdA. This is Houdini only
+    [If] <rrBaseAppPath> [!=]  
+        [If] <RR_NO_HFS>  [==]
+            HFS = <rrBaseAppPath>
+            HH = <rrBaseAppPath>/houdini
+        [EndIf]    
+    [EndIf]    
+[EndIf]    
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
@@ -53,10 +56,31 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 [EndIf]
 [If] <JOB>  [!=]
     [BSlashConvert] JOB  =  <JOB>
-[EndIf]	
+[EndIf]    
 [If] <JOB>  [!=]
     echo * JOB Env variable is set to  "<JOB>"
-[EndIf]	
+[EndIf]    
+
+
+[If] <CustomHPyVerP>  [==]
+    [If] <rrExeVersionMajor>  [<] 19
+        CustomHPyVerP=2.7
+        CustomHPyVer=27
+    [Else]
+        [If] <rrExeVersionMajor>  [<] 20
+            [If] <rrExeVersionMinor>  [<] 5000
+                CustomHPyVerP=3.7
+                CustomHPyVer=37
+            [Else]
+                CustomHPyVerP=3.9
+                CustomHPyVer=39
+            [EndIf]
+        [Else]
+            CustomHPyVerP=3.10
+            CustomHPyVer=310
+        [EndIf]
+    [EndIf]    
+[EndIf]    
 
 
 
@@ -269,25 +293,18 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
     HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
     LD_LIBRARY_PATH  =  <VRAY_APPSDK>\bin;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
     PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
+    PYTHONPATH = <VRAY_APPSDK>\python\python<CustomHPyVer>;<PYTHONPATH>
+    VFH_DSO_PATH = <VFH_HOME>\dso_py<CustomHPyVer>
+
     [If] <rrExeVersionMajor>  [<] 19
-        echo using VRay with python 2.7
-        PYTHONPATH = <VRAY_APPSDK>\python27;<PYTHONPATH>
+        #2 instead of 27
         VFH_DSO_PATH = <VFH_HOME>\dso_py2
     [Else]
         [If] <rrExeVersionMajor>  [<] 20
             [If] <rrExeVersionMinor>  [<] 5000
-                echo using VRay with python 3.7
-                PYTHONPATH = <VRAY_APPSDK>\python37;<PYTHONPATH>
+                #3 instead of 37
                 VFH_DSO_PATH = <VFH_HOME>\dso_py3
-            [Else]
-                echo using VRay with python 3.9
-                PYTHONPATH = <VRAY_APPSDK>\python\python39;<PYTHONPATH>
-                VFH_DSO_PATH = <VFH_HOME>\dso_py39
             [EndIf]
-        [Else]
-                echo using VRay with python 3.10
-                PYTHONPATH = <VRAY_APPSDK>\python\python310;<PYTHONPATH>
-                VFH_DSO_PATH = <VFH_HOME>\dso_py310
         [EndIf]
     [EndIf]
     VFU_PLUGINS=<VFH_DSO_PATH>/usd_plugins/hdVRay/plugins
@@ -359,8 +376,8 @@ RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
     RFHTREE = <RR_RENDERMAN_HOUDINI_LOCAL>
 [EndIf]
 [If] <RR_RENDERMAN_USED>  [==] TRUE
-    RMAN_PROCEDURALPATH = <RFHTREE>/3.9/<ExeVersionFull>/openvdb;<RMAN_PROCEDURALPATH>
-    HOUDINI_PATH=<RFHTREE>/3.9/<ExeVersionFull>;<HOUDINI_PATH>
+    RMAN_PROCEDURALPATH = <RFHTREE>/<CustomHPyVerP>/<ExeVersionFull>/openvdb;<RMAN_PROCEDURALPATH>
+    HOUDINI_PATH=<RFHTREE>/<CustomHPyVerP>/<ExeVersionFull>;<HOUDINI_PATH>
     PATH=<RMANTREE>\bin;<PATH>
 [EndIf]
 
