@@ -15,6 +15,17 @@ try:
 except ImportError:
     logger.info("Module imported outside of hython environment")
 
+def _getRedshiftVersion(self):
+    version = hou.hscript('Redshift_version')[0]
+    version = version.replace("\n", "")
+    version = version.replace("\r", "")        
+    if version.startswith("Unknown"):
+        logger.error(self.path + " Redshift Plugin not available")
+    else:
+        return version
+            
+
+
 RS_RESOVERRIDE = [
     0.1,
     0.2,
@@ -51,13 +62,7 @@ class RedshiftRop(RenderNode):
 
     @property
     def renderer_version(self):
-        version = hou.hscript('Redshift_version')[0]
-        version = version.replace("\n", "")
-        version = version.replace("\r", "")        
-        if version.startswith("Unknown"):
-            logger.error(self.path + " Redshift Plugin not available")
-        else:
-            return version
+        return _getRedshiftVersion()
 
     @property
     def image_size(self):

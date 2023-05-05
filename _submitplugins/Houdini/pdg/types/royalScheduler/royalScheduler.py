@@ -110,6 +110,12 @@ class houdiniTask2rrJobMapper_node():
         self.cmdFlags= self.cmdFlags.strip()
         #self.addEnv("RR_PDG_COMMAND", self.cmdFlags);
         self.addCustomVar("CommandLine", self.cmdFlags)
+
+        pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        self.addCustomVar("CustomHPyVerP", pythonVer)
+        pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
+        self.addCustomVar("CustomHPyVer", pythonVer)
+        
         
         logger.debug("Create Task2rrJobMapper_node: {}: type:{} {} PythonSingle:{}".format(self.hNodeName, self.hjobType, self.hjobTypeDetailed, self.hjobPythonSingle) )
         

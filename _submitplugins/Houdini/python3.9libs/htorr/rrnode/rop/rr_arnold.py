@@ -14,6 +14,16 @@ try:
 except ImportError:
     logger.info("Module imported outside of hython environment")
 
+def _getArnoldVersion(self):
+    try:
+        import arnold
+    except ImportError:
+        msg = 'Failed to import "arnold" python module, \
+               htoa is not available.'
+        logger.error(msg)
+    else:
+        return arnold.AiGetVersionString()
+            
 
 class ArnoldRop(RenderNode):
 
@@ -33,14 +43,7 @@ class ArnoldRop(RenderNode):
 
     @property
     def renderer_version(self):
-        try:
-            import arnold
-        except ImportError:
-            msg = 'Failed to import "arnold" python module, \
-                   htoa is not available.'
-            logger.error(msg)
-        else:
-            return arnold.AiGetVersionString()
+        return _getArnoldVersion()
 
     @property
     def image_size(self):

@@ -6,6 +6,7 @@ import logging
 import re
 import htorr.rrparser
 import os
+import sys
 from htorr.rroutput import Output, ProductOutput
 
 logger = logging.getLogger("HtoRR")
@@ -375,9 +376,9 @@ class RenderNode(rrNode):
 
         #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
         pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
-        job.add_custom_option("HPyVerP", pythonVer)
+        job.add_custom_option("CustomHPyVerP", pythonVer, "custom")
         pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
-        job.add_custom_option("HPyVer", pythonVer)
+        job.add_custom_option("CustomHPyVer", pythonVer, "custom")
         
         # add sparse parameter
         jobsettings = self.rr_jobsettingsFunc
