@@ -230,7 +230,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         self.report({'DEBUG'}, "Create temp Submission File: {0}".format(TempFileName))
 
         fileID.write("<RR_Job_File syntax_version=\"6.0\">\n")
-        fileID.write("<DeleteXML>1</DeleteXML>\n")
+        if not 'DEBUG' in os.environ: 
+            fileID.write("<DeleteXML>1</DeleteXML>\n")
 
         fileID.write("<SubmitterParameter>")
         if self.hasRelativePaths():  # then we cannot use local scene copy
