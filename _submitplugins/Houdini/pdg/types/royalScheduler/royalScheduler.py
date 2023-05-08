@@ -260,6 +260,7 @@ class houdiniTask2rrJobMapper():
                 newJob.layer= self.nodes[i].hNodeName
                 if self.nodes[i].hjobIsServer:
                     renderApp.rendererName="pyServer"  
+                    newJob.layer="PDG Server"
                 elif (self.nodes[i].hjobType==_jobTypePython):
                     renderApp.rendererName="PDGpy"  
                 else:
