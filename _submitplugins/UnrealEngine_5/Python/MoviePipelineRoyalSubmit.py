@@ -1,4 +1,37 @@
-# Copyright Epic Games, Inc. All Rights Reserved.
+# -*- coding: cp1252 -*-
+######################################################################
+#
+# Royal Render Plugin script for Unreal Engine
+# Authors:     Antonio Ruocco, Paolo Acampora
+# Copyright (c)  Holger Schoenberger
+#
+# Last change: %rrVersion%
+# 
+######################################################################
+#
+#
+# Royal Render Executor
+#
+# Submits a job to Royal Render using the Render button from Movie Render Queue,
+# Renders a sequence if loaded through  the commandline
+#
+# REQUIREMENTS:
+#    Requires the "Python Editor Script Plugin" to be enabled in your project.
+#
+# USAGE:
+#   Use the following command line argument to launch this:
+#   UE4Editor-Cmd.exe <path_to_uproject> <map_name> -game
+#                     -MoviePipelineLocalExecutorClass=/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor
+#                     -ExecutorPythonClass=/Engine/PythonTypes.MoviePipelineRoyalExecutor
+#                     -MyLevelSequence=<path_to_level_sequence>
+#                     -MyMoviePreset=<path_to_movie_preset>
+#                     -MyLevelDir=<path_to_map_directory>
+#                     -windowed -resx=1280 -resy=720 -log
+#   ie:
+#   UE4Editor-Cmd.exe "E:\SubwaySequencer\SubwaySequencer.uproject" subwaySequencer_P -game -MoviePipelineLocalExecutorClass=/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor -ExecutorPythonClass=/Engine/PythonTypes.MoviePipelineRoyalExecutor -LevelSequence="/Game/Sequencer/SubwaySequencerMASTER.SubwaySequencerMASTER" -windowed -resx=1280 -resy=720 -log
+#   "UnrealEditor-Cmd.exe" "D:\User\Documents\Unreal Projects\RoyalBlank\RoyalBlank.uproject" Minimal_Default -game -MoviePipelineLocalExecutorClass="/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor" -ExecutorPythonClass="/Engine/PythonTypes.MoviePipelineRoyalExecutor" -MyLevelSequence="MovieLevelSequence" -windowed -resx=1280 -resy=720 -log -MyMoviePreset="Pending_MoviePipelineMasterConfig" -MyLevelDir="StarterContent/Maps"
+#
+
 import unreal
 
 import copy
@@ -374,29 +407,6 @@ def submit_ue_jobs(queue):
         launch_rr_submitter(tmp_file.name)
     else:
         unreal.log_error("Could not write submission file") 
-
-
-# Royal Render Executor
-#
-# Submits a job to Royal Render using the Render button from Movie Render Queue,
-# Renders a sequence if loaded through  the commandline
-#
-# REQUIREMENTS:
-#    Requires the "Python Editor Script Plugin" to be enabled in your project.
-#
-# USAGE:
-#   Use the following command line argument to launch this:
-#   UE4Editor-Cmd.exe <path_to_uproject> <map_name> -game
-#                     -MoviePipelineLocalExecutorClass=/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor
-#                     -ExecutorPythonClass=/Engine/PythonTypes.MoviePipelineRoyalExecutor
-#                     -MyLevelSequence=<path_to_level_sequence>
-#                     -MyMoviePreset=<path_to_movie_preset>
-#                     -MyLevelDir=<path_to_map_directory>
-#                     -windowed -resx=1280 -resy=720 -log
-#   ie:
-#   UE4Editor-Cmd.exe "E:\SubwaySequencer\SubwaySequencer.uproject" subwaySequencer_P -game -MoviePipelineLocalExecutorClass=/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor -ExecutorPythonClass=/Engine/PythonTypes.MoviePipelineRoyalExecutor -LevelSequence="/Game/Sequencer/SubwaySequencerMASTER.SubwaySequencerMASTER" -windowed -resx=1280 -resy=720 -log
-#   "UnrealEditor-Cmd.exe" "D:\User\Documents\Unreal Projects\RoyalBlank\RoyalBlank.uproject" Minimal_Default -game -MoviePipelineLocalExecutorClass="/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor" -ExecutorPythonClass="/Engine/PythonTypes.MoviePipelineRoyalExecutor" -MyLevelSequence="MovieLevelSequence" -windowed -resx=1280 -resy=720 -log -MyMoviePreset="Pending_MoviePipelineMasterConfig" -MyLevelDir="StarterContent/Maps"
-#
 
 
 @unreal.uclass()
