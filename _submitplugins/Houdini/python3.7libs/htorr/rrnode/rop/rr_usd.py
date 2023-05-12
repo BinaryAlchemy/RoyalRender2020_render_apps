@@ -99,7 +99,11 @@ class UsdRop(RenderNode):
 
     @property
     def rr_job_variablesFunc(self):
-        return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
 
 
     @property
@@ -254,7 +258,11 @@ class UsdStandalone(UsdRop):
 
     @property
     def rr_job_variablesFunc(self):
-        return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
 
             
     @property
@@ -412,7 +420,11 @@ class UsdRenderRop(RenderNode):
 
     @property
     def rr_job_variablesFunc(self):
-        return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
 
 
     @property
