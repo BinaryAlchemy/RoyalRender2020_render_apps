@@ -11,7 +11,15 @@ modPath= rrGlobal.rrModPyrrPath()
 #modPath="e:/programmierung/RoyalRenderGit_90/project/_debug/bin/win64"
 sys.path.append(modPath)
 #print("Added module path "+modPath)
-import libpyRR39 as rr
+
+if (sys.version_info.major == 2):
+    import libpyRR2 as rrLib
+elif (sys.version_info.major == 3):
+    if (sys.version_info.minor == 7):
+        import libpyRR37 as rrLib
+    elif (sys.version_info.minor == 9):
+        import libpyRR39 as rrLib
+
 
 jobData_BaseFolder= rrGlobal.rootPath() + "rrJobdata/"
 print("jobData_BaseFolder " + jobData_BaseFolder)
@@ -26,7 +34,7 @@ print("jid is " + str(args.jid))
 
 
 #print("Set up server and login info")
-tcp = rr._rrTCP("")
+tcp = rrLib._rrTCP("")
 tcp.setServer(rrGlobal.rrServer(), 7773)
 
 ### AuthStr is required in case anonymous does not have the right to delete jobs.
