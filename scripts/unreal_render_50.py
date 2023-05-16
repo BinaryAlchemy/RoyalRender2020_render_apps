@@ -1,6 +1,16 @@
-import unreal
-import os
-
+#python
+# -*- coding: cp1252 -*-
+######################################################################
+#
+# Royal Render Render script for Unreal Engine
+# Author:  Antonio Ruocco, Paolo Acampora
+# Last Change: %rrVersion%
+#
+# Copyright (c) Holger Schoenberger - Binary Alchemy
+# 
+######################################################################
+#
+#
 # Royal Render Executor
 #
 # Submits a job to Royal Render using the Render button from Movie Render Queue,
@@ -22,6 +32,9 @@ import os
 #   UE4Editor-Cmd.exe "E:\SubwaySequencer\SubwaySequencer.uproject" subwaySequencer_P -game -MoviePipelineLocalExecutorClass=/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor -ExecutorPythonClass=/Engine/PythonTypes.MoviePipelineRoyalExecutor -LevelSequence="/Game/Sequencer/SubwaySequencerMASTER.SubwaySequencerMASTER" -windowed -resx=1280 -resy=720 -log
 #   "UnrealEditor-Cmd.exe" "D:\User\Documents\Unreal Projects\RoyalBlank\RoyalBlank.uproject" Minimal_Default -game -MoviePipelineLocalExecutorClass="/Script/MovieRenderPipelineCore.MoviePipelinePythonHostExecutor" -ExecutorPythonClass="/Engine/PythonTypes.MoviePipelineRoyalExecutor" -MyLevelSequence="MovieLevelSequence" -windowed -resx=1280 -resy=720 -log -MyMoviePreset="Pending_MoviePipelineMasterConfig" -MyLevelDir="StarterContent/Maps"
 #
+
+import unreal
+import os
 
 
 def all_forward_slashes(filepath):
@@ -134,10 +147,14 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
         
         (cmdTokens, cmdSwitches, cmdParameters) = unreal.SystemLibrary.parse_command_line(unreal.SystemLibrary.get_command_line())
 
-        map_full_path = all_forward_slashes(cmdTokens[0])
-        _, map_relative_path = map_full_path.split('/Content/', 1)
-
-        _, map_file_name = os.path.split(map_relative_path)
+        map_full_path = cmdTokens[0]
+        if map_full_path.startswith('/Game/'):
+            map_relative_path = map_full_path
+        else:
+            map_relative_path = all_forward_slashes(map_full_path).split('/Content/', 1)[-1]
+            map_relative_path = '/Game/' + map_relative_path
+        
+        map_relative_path, map_file_name = os.path.split(map_relative_path)
         map_name, _ = os.path.splitext(map_file_name)
 
         sequence = cmdParameters['rSeq']
@@ -164,7 +181,7 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
         self.img_ext = cmdParameters['rExt']
 
         self.execute_render(
-            map_path=f"/Game/{map_relative_path}/{map_name}.{map_name}",
+            map_path=f"{map_relative_path}/{map_name}.{map_name}",
             seq_path=f"/Game/{sequence}.{seq_name}",
             preset_path=f"{preset}.{preset_name}"
             )

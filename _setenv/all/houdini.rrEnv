@@ -22,8 +22,8 @@ HOUDINI_INTERACTIVE_ASSERTS = 0
 
 HOUDINI_TEMP_DIR  =  <TEMP>
 
-[If] <rrJobRenderapp> [!=]  Houdini
-#we use this rrEnv file for houdini and usd_stdA. This is Houdini only
+#we use this rrEnv file for houdini and usd_stdA. 
+[If] <rrJobRenderapp> [==]  Houdini
     [If] <rrBaseAppPath> [!=]  
         [If] <RR_NO_HFS>  [==]
             HFS = <rrBaseAppPath>
@@ -31,6 +31,8 @@ HOUDINI_TEMP_DIR  =  <TEMP>
         [EndIf]    
     [EndIf]    
 [EndIf]    
+
+
 
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
