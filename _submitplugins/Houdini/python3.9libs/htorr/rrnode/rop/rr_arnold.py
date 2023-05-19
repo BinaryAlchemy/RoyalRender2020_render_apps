@@ -14,13 +14,14 @@ try:
 except ImportError:
     logger.info("Module imported outside of hython environment")
 
-def _getArnoldVersion(self):
+def _getArnoldVersion():
     try:
         import arnold
     except ImportError:
         msg = 'Failed to import "arnold" python module, \
                htoa is not available.'
         logger.error(msg)
+        return ""
     else:
         return arnold.AiGetVersionString()
             
