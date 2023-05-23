@@ -23,7 +23,7 @@ except ImportError:
     logger.info("Module imported outside of hython environment")
 
 
-def _getVRayVersion(self):
+def _getVRayVersion():
     try:
         import vray 
     except ImportError:
