@@ -168,7 +168,10 @@ def rrKSOStartServer(arg):
             else:
                 exec (kso_tcp.rrKSONextCommand)
                 kso_tcp.rrKSONextCommand=""
-    logMessage("rrKSO closed")
+    logMessage("Closing TCP")    
+    server.closeTCP()
+    logMessage("rrKSO closed")                    
+    
 
 def render_KSO(arg):
     global kso_global__Pass
