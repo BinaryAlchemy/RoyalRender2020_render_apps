@@ -177,7 +177,7 @@ REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
             [Exists] <RR_REDSHIFT_BASE>\Plugins\Houdini\<ExeVersionFull>
                 echo .
             [Else]
-                echo * ERROR: Required Redshift folder does not exist: <RR_REDSHIFT_BASE>/redshift4houdini/<ExeVersionFull>
+                echo * ERROR: Required Redshift folder does not exist: <RR_REDSHIFT_BASE>\Plugins\Houdini\<ExeVersionFull>
                 echo * Please dublicate the next older version folder into this one.
             [EndIf]
         [EndIf]
