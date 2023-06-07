@@ -22,18 +22,6 @@ HOUDINI_INTERACTIVE_ASSERTS = 0
 
 HOUDINI_TEMP_DIR  =  <TEMP>
 
-#we use this rrEnv file for houdini and usd_stdA. 
-[If] <rrJobRenderapp> [==]  Houdini
-    [If] <rrBaseAppPath> [!=]  
-        [If] <RR_NO_HFS>  [==]
-            HFS = <rrBaseAppPath>
-            HH = <rrBaseAppPath>/houdini
-        [EndIf]    
-    [EndIf]    
-[EndIf]    
-
-
-
 HOUDINI_PATH  =  <HOUDINI_PATH>;&
 HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>;&
 HOUDINI_SCRIPT_PATH  =  <HOUDINI_SCRIPT_PATH>;&
@@ -86,6 +74,18 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
     HPyVerP=<CustomHPyVerP>
     HPyVer=<CustomHPyVer>  
 [EndIf]    
+
+#we use this rrEnv file for houdini and usd_stdA, therefore this switch
+[If] <rrJobRenderapp> [==]  Houdini
+    [If] <rrBaseAppPath> [!=]  
+        [If] <RR_NO_HFS>  [==]
+            HFS = <rrBaseAppPath>
+            HH = <rrBaseAppPath>/houdini
+            HHP= <rrBaseAppPath>/houdini/python<HPyVerP>libs
+        [EndIf]    
+    [EndIf]    
+[EndIf]    
+
 
 
 

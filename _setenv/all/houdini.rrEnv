@@ -81,7 +81,7 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
         [If] <RR_NO_HFS>  [==]
             HFS = <rrBaseAppPath>
             HH = <rrBaseAppPath>/houdini
-            HHP= <rrBaseAppPath>/houdini/python<HPyVerP>libs"
+            HHP= <rrBaseAppPath>/houdini/python<HPyVerP>libs
         [EndIf]    
     [EndIf]    
 [EndIf]    
