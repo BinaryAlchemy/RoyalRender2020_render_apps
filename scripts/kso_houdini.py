@@ -1065,7 +1065,7 @@ try:
         pass
     elif (arg.renderer=="anyNode"):
         pass
-    elif (arg.renderer=="Comp" || arg.renderer=="comp"):
+    elif (arg.renderer=="Comp" or arg.renderer=="comp"):
         applyRendererOptions_comp()
     else:
         arg.renderer= "mantra"
