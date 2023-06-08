@@ -532,27 +532,6 @@ def set_average_frame_time(frame_time):
             LOCAL_FRAME_LOOP = CURRENT_RENDERER in GPU_RENDERERS
 
 
-def multiply_antialias_settings(renderer, factor):
-    if factor == 1.0:
-        return
-
-    scene = bpy.data.scenes[RENDER_SCENE]
-
-    if renderer == 'Cycles':
-        previous = scene.cycles.filter_width
-        scene.cycles.filter_width *= factor
-
-        log_msg(f"{renderer} Filter Width changed from {previous} to {scene.cycles.filter_width}")
-        return
-
-    # Generic setting for eevee
-
-    previous = scene.render.filter_size
-    scene.render.filter_size *= factor
-
-    log_msg(f"Generic Filter Size changed from {previous} to {scene.render.filter_size}")
-
-
 def multiply_render_samples(renderer, factor):
     if factor == 1.0:
         return
@@ -647,7 +626,7 @@ if __name__ == "__main__":
         enable_addon("redshift")
 
     adjust_resolution(args.res_x, args.res_y)
-    multiply_antialias_settings(args.renderer, args.anti_alias_mult)
+    multiply_render_samples(args.renderer, args.anti_alias_mult)
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)
     set_output_path()
