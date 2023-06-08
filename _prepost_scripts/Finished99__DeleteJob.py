@@ -7,7 +7,7 @@ modPath=rrGlobal.rrModPyrrPath()
 
 sys.path.append(modPath)
 print("added module path "+modPath)
-import libpyRR2 as rr
+import libpyRR39 as rr
 
 
 import argparse

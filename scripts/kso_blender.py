@@ -2,17 +2,15 @@
 #  Last Change: %rrVersion%
 #  Copyright (c)  Holger Schoenberger - Binary Alchemy
 #  Author: Paolo Acampora, Binary Alchemy
-
-
 from collections import OrderedDict
 import datetime
 import os
 import sys
 import time
 from pathlib import Path
-
 import bpy
 import addon_utils
+
 
 
 # Global values used in kso functions
@@ -72,7 +70,7 @@ def enable_gpu_devices(addon_name='cycles'):
     addon_prefs = prefs.addons[addon_name].preferences
 
     # Attempt to set GPU device types if available
-    for compute_device_type in ('CUDA', 'OPENCL', 'NONE'):
+    for compute_device_type in ('CUDA', 'OPENCL', 'OPTIX', 'HIP', 'ONEAPI', 'NONE'):
         try:
             addon_prefs.compute_device_type = compute_device_type
             break
@@ -87,6 +85,8 @@ def enable_gpu_devices(addon_name='cycles'):
         addon_prefs.refresh_devices()
         devices = addon_prefs.devices
         for device in devices:
+            if device.type == 'CPU':
+                continue
             log_msg(f"\tenabling device {device.name}")
             device.use = True
     else:
@@ -97,6 +97,55 @@ def enable_gpu_devices(addon_name='cycles'):
                 dev_entry.use = True
     
     return True
+
+
+def useAllCores():
+    if sys.platform.lower().startswith("win"):
+        log_msg("Enabling Performance cores for Intel 12th+")
+        import ctypes
+        from ctypes import windll, wintypes
+
+
+        class PROCESS_POWER_THROTTLING_STATE(ctypes.Structure):
+            _fields_ = [
+                ('Version',     wintypes.ULONG),
+                ('ControlMask', wintypes.ULONG),
+                ('StateMask',   wintypes.ULONG)
+            ]
+    
+        PROCESS_SET_INFORMATION = 0x0200
+        PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1
+        PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1
+        ProcessPowerThrottling = 4
+
+        GetLastError = windll.kernel32.GetLastError
+
+        SetProcessInformation = windll.kernel32.SetProcessInformation
+        SetProcessInformation.argtypes = (
+            wintypes.HANDLE,                # HANDLE                      hProcess
+            wintypes.DWORD,                 # ProcessInformationClass     ProcessInformationClass
+            wintypes.LPVOID,                # LPVOID                      ProcessInformation
+            wintypes.DWORD,                 # DWORD                       ProcessInformationSize
+        )
+        SetProcessInformation.restype = wintypes.BOOL
+
+        GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
+        GetCurrentProcess.restype = wintypes.HANDLE
+        
+
+
+        PowerThrottling = PROCESS_POWER_THROTTLING_STATE()
+        PowerThrottling.Version = 1
+        PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+        PowerThrottling.StateMask = 0
+
+
+        ret = SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, ctypes.byref(PowerThrottling), ctypes.sizeof(PowerThrottling))
+        if ret == False:
+            log_msg_wrn(f'SetProcessInformation error: {GetLastError()}')
+
+
+
 
 
 def enable_addon(addon_name):
@@ -135,6 +184,7 @@ class RRArgParser(object):
         self.renderer = ""
         self.render_filepath = ""
         self.render_fileext = ""
+        self.render_format = ""
         self.overwrite_existing = None
         self.bl_placeholder = None
 
@@ -368,6 +418,7 @@ def render_frame_range(start, end, step, movie=False):
                 kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
 
             log_msg(f"Rendering Frame #{fr} ...")
+            flush_log()
 
             scene.frame_start = fr
             scene.frame_end = fr
@@ -375,6 +426,7 @@ def render_frame_range(start, end, step, movie=False):
     else:
         log_msg(f"Rendering Frames (no frame loop): {start} - {end}")
         set_frame_range(start, end, step)
+        flush_log()
         bpy.ops.render.render(animation=True, write_still=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
 
 
@@ -603,7 +655,7 @@ if __name__ == "__main__":
         log_msg("Append python search path with '" +args.PyModPath+"'" )
         sys.path.append(args.PyModPath)    
     import kso_tcp
-    
+    useAllCores()
     
     log_msg(" About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
@@ -640,7 +692,8 @@ if __name__ == "__main__":
 
     # ensure output dir
     Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
-
+    flush_log()
+    
     if args.kso_mode:
         try:
             rr_kso_start_server(port=args.kso_port)

@@ -110,6 +110,12 @@ class houdiniTask2rrJobMapper_node():
         self.cmdFlags= self.cmdFlags.strip()
         #self.addEnv("RR_PDG_COMMAND", self.cmdFlags);
         self.addCustomVar("CommandLine", self.cmdFlags)
+
+        pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        self.addCustomVar("CustomHPyVerP", pythonVer)
+        pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
+        self.addCustomVar("CustomHPyVer", pythonVer)
+        
         
         logger.debug("Create Task2rrJobMapper_node: {}: type:{} {} PythonSingle:{}".format(self.hNodeName, self.hjobType, self.hjobTypeDetailed, self.hjobPythonSingle) )
         
@@ -254,6 +260,7 @@ class houdiniTask2rrJobMapper():
                 newJob.layer= self.nodes[i].hNodeName
                 if self.nodes[i].hjobIsServer:
                     renderApp.rendererName="pyServer"  
+                    newJob.layer="PDG Server"
                 elif (self.nodes[i].hjobType==_jobTypePython):
                     renderApp.rendererName="PDGpy"  
                 else:
@@ -464,7 +471,7 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         """
         #not used RR
         if name == 'python':
-            return "<Exe><../>python37/python"
+            return "<Exe><../>python" + str(sys.version_info.major) + str(sys.version_info.minor) + "/python"
         elif name == 'hython':
             return "<Exe>" 
 

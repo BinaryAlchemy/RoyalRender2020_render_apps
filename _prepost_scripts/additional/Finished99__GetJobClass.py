@@ -17,7 +17,7 @@ print("Get the full job class from the rrServer...")
 modPath= rrGlobal.rrModPyrrPath()
 sys.path.append(modPath)
 #print("Added module path "+modPath)
-import libpyRR2 as rr
+import libpyRR39 as rr
 
 
 import argparse

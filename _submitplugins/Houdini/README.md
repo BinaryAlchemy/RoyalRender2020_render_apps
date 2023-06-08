@@ -30,6 +30,7 @@ PDG:
                 What if multiple artists want to submit? => requires different rrClients/MQServers
  * Test more TOP nodes
      - e.g. ffmpeg
+ * PDG setting: Get from json/RPC message
 
 
 

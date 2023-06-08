@@ -12,7 +12,7 @@ try:
 except ImportError:
     logger.info("Module imported outside of hython environment")
 
-FILE_TYPES = [".bgeo.sc", ".ass.gz", ".ifd.sc"]
+FILE_TYPES = [".bgeo.sc", ".ass.gz", ".ifd.sc", ".exr"]
 
 class Output(object):
     """Helper class to convert houdini output parameters into a more suitable representation for Royal Render.
@@ -133,6 +133,10 @@ class ProductOutput(object):
             
             path_no_ext = outf1[:len(outf1)-len(self.extension)]
             if not singleOutput:
+                path_no_ext= path_no_ext.replace("${F5}","11111")
+                path_no_ext= path_no_ext.replace("$F5","11111")
+                path_no_ext= path_no_ext.replace("${F4}","1111")
+                path_no_ext= path_no_ext.replace("$F4","1111")
                 self.padding=0
                 while path_no_ext[len(path_no_ext)-1].isdigit():
                     path_no_ext= path_no_ext[:len(path_no_ext)-1]

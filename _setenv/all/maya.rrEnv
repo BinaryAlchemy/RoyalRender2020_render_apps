@@ -111,7 +111,6 @@ PYTHONPATH  = <PYTHONPATH>
 
 #small bug in RR, this line is required because of the YETI section. RR thinks the var was already used, but it is not if there is no RR_VRAY_NETWORK
 VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
-VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
 
 [If] <RR_VRAY_NETWORK>  [==] 1
     [If] <RR_VRAY_BASE>  [==] 
@@ -128,26 +127,25 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <VRAY_FOR_MAYA<ExeVersionMinRe
     [copy] SyncCreateDir <RR_VRAY_BASE>   =>   <RR_VRAY_BASE_LOCAL>
     MAYA_PLUG_IN_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\plug-ins;<RR_VRAY_BASE_LOCAL>\maya_root\plug-ins;<MAYA_PLUG_IN_PATH>
     MAYA_SCRIPT_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\scripts;<MAYA_SCRIPT_PATH>
+    PYTHONPATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\scripts;<PYTHONPATH>
     MAYA_RENDER_DESC_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin\rendererDesc;<MAYA_RENDER_DESC_PATH>
     MAYA_MODULE_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\modules;<MAYA_MODULE_PATH>
     VRAY_FOR_MAYA<ExeVersionMinReqUS>_MAIN  =  <RR_VRAY_BASE_LOCAL>\maya_vray
-    VRAY_FOR_MAYA<ExeVersionMinReqUS>_MAIN_x64  =  <RR_VRAY_BASE_LOCAL>\maya_vray
     VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
-    VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
     VRAY_PLUGINS  =  <RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
-    VRAY_PLUGINS_x64  =  <RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
     VRAY_OSL_PATH_MAYA<ExeVersionMinReqUS>  =  <RR_VRAY_BASE_LOCAL>\vray\opensl
-    VRAY_OSL_PATH_MAYA<ExeVersionMinReqUS>_x64  =  <RR_VRAY_BASE_LOCAL>\vray\opensl
     VRAY_TOOLS_MAYA<ExeVersionMinReqUS>  =  <RR_VRAY_BASE_LOCAL>\vray\bin
-    VRAY_TOOLS_MAYA<ExeVersionMinReqUS>_x64  =  <RR_VRAY_BASE_LOCAL>\vray\bin
-    PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin\hostbin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<PATH>
+    PXR_PLUGINPATH_NAME=<RR_VRAY_BASE_LOCAL>\maya_vray\usdplugins
+    VRAY_APPSDK_PLUGINS=<RR_VRAY_BASE_LOCAL>\maya_vray\vrayplugins
+    PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<PATH>
+    PATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\bin\hostbin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<PATH>
     LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<RR_VRAY_BASE_LOCAL>\vray\bin;<RR_VRAY_BASE_LOCAL>\maya_root\lib;<RR_VRAY_BASE_LOCAL>\maya_vray\lib;<MAYA_APP_DIR>\lib;<LD_LIBRARY_PATH>
     echo + VRayForMaya any <RR_VRAY_BASE_LOCAL>/maya_vray > <RR_VRAY_BASE_LOCAL>/maya_root/modules/VRayForMaya.module
 [EndIf]
 
 [If] <RR_VRAY_NETWORK>  [==] 1
 #     ###################  Phoenix inside Vray folder  environment variables ###################
-    PHX_FOR_MAYA<ExeVersionMinReqUS>_MAIN_x64  =  <RR_VRAY_BASE>\plug-ins
+    PHX_FOR_MAYA<ExeVersionMinReqUS>_MAIN  =  <RR_VRAY_BASE>\plug-ins
     MAYA_PLUG_IN_PATH  =  <RR_VRAY_BASE_LOCAL>\phoenixfd\plug-ins;<MAYA_PLUG_IN_PATH>;
     MAYA_SCRIPT_PATH  =  <RR_VRAY_BASE_LOCAL>\phoenixfd\scripts;<MAYA_SCRIPT_PATH>;
 [EndIf]
@@ -366,7 +364,7 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
 [EndIf]
 
 # ###################  PhoenixFD environment variables ###################
-PHX_FOR_MAYA<rrExeVersionMinReq>_MAIN_x64  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd
+PHX_FOR_MAYA<rrExeVersionMinReq>_MAIN  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd
 MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-ins;<MAYA_PLUG_IN_PATH>
 
 
@@ -398,7 +396,6 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
 [If] <rrJobRenderer>  [contains] vray
 	[If] <RR_YETI_NETWORK>  [==] 1
 	VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
-	VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64  =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
 	[EndIf]
 [EndIf]
 
@@ -439,7 +436,7 @@ YETI_TMP  =  <TEMP>
 
 [If] <rrJobRenderer>  [contains] vray
 	[If] <RR_GOLAEM_NETWORK>  [==] 1
-        VRAY_PLUGINS_x64 = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_PLUGINS_x64>
+        VRAY_PLUGINS = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_PLUGINS>
         VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64 = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
         VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
         VRAY_FOR_MAYA_SHADERS = <RR_GOLAEM_BASE_LOCAL>\shaders;<VRAY_FOR_MAYA_SHADERS>

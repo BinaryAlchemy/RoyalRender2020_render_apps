@@ -3,6 +3,7 @@
 
 import logging
 import os.path
+import sys
 from htorr.rroutput import Output
 from htorr.rrnode.base import RenderNode
 
@@ -37,7 +38,16 @@ def _getRendermanVersion():
     hVers = hou.applicationVersion()
     houVersionString = str(hVers[0]) + "." + str(hVers[1])
     versionFile = os.path.join(rfh_path, houVersionString, 'etc', 'buildid.txt')
-
+    
+    if not os.path.isfile(versionFile):
+        #renderman 25.0
+        houVersionString = str(hVers[0]) + "." + str(hVers[1])+ "." + str(hVers[2])
+        pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        versionFile = os.path.join(rfh_path, pythonVer, houVersionString, 'etc', 'buildid.txt')
+        
+    if not os.path.isfile(versionFile):
+        logger.warning("Unable to read Renderman version from file " + versionFile)
+        return ""
     try:
         myFile = open(versionFile, 'r')
         fullVersionString = myFile.readline().rstrip()

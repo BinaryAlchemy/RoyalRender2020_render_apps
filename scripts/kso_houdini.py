@@ -387,7 +387,9 @@ def rrKSOStartServer():
                 else:
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
-        logMessage("rrKSO closed")
+        logMessage("Closing TCP")    
+        server.closeTCP()
+        logMessage("rrKSO closed")                    
     except NameError as e:
         logMessage(str(e)+"\n")        
     except Exception as e:
@@ -1049,6 +1051,8 @@ try:
         applyRendererOptions_VRay()
     elif (arg.renderer=="prman"):
         applyRendererOptions_PRman()
+    elif (arg.renderer=="renderman"):
+        applyRendererOptions_PRman()
     elif (arg.renderer=="opengl"):
         applyRendererOptions_openGl()
     elif (arg.renderer=="geometry"):
@@ -1061,7 +1065,7 @@ try:
         pass
     elif (arg.renderer=="anyNode"):
         pass
-    elif (arg.renderer=="Comp"):
+    elif (arg.renderer=="Comp" or arg.renderer=="comp"):
         applyRendererOptions_comp()
     else:
         arg.renderer= "mantra"

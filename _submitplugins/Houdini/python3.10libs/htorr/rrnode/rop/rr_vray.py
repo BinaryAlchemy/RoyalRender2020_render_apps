@@ -23,6 +23,16 @@ except ImportError:
     logger.info("Module imported outside of hython environment")
 
 
+def _getVRayVersion():
+    try:
+        import vray 
+    except ImportError:
+        return ""
+
+    versionStr = vray.getVRayVersionDetails()
+    vray_ver = versionStr.split()[0]   
+    return vray_ver
+            
 
 class VrayRop(RenderNode):
 
@@ -42,14 +52,7 @@ class VrayRop(RenderNode):
 
     @property
     def renderer_version(self):
-        try:
-            import vray 
-        except ImportError:
-            return ""
-
-        versionStr = vray.getVRayVersionDetails()
-        vray_ver = versionStr.split()[0]   
-        return vray_ver
+        return _getVRayVersion()
 
     @property
     def image_size(self):

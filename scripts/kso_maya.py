@@ -361,7 +361,9 @@ def rrKSOStartServer(arg):
                 else:
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
-        logMessage("rrKSO closed")
+        logMessage("Closing TCP")    
+        server.closeTCP()
+        logMessage("rrKSO closed")                    
     except Exception as e:
         logMessageError(str(e))
 
@@ -404,7 +406,7 @@ def execute_scriptfile(arg):
         if sys.version_info.major == 2:
             execfile(arg.customScriptFile)
         else:
-            exec(open("./filename").read())
+            exec(open(arg.customScriptFile).read())
     except Exception as e:
         logMessageError(str(e))        
 
@@ -1165,6 +1167,7 @@ def rrStart(argAll):
         if argValid(arg.RenderImagePlanes) and not arg.RenderImagePlanes:
             disableAllImageplanes()
 
+        
         if (_rrGL_mayaVersion>2016 or (_rrGL_mayaVersion==2016 and _rrGL_mayaVersionMinor>=50)):
             prefNewSystemEnabled= cmds.optionVar( q='renderSetupEnable' )
             globalVarSet=maya.mel.eval('global int $renderSetupEnableCurrentSession; $tempVar=$renderSetupEnableCurrentSession;')
@@ -1175,7 +1178,7 @@ def rrStart(argAll):
             #logMessage("Legacy layer count: "+str(renderLayerCount))
             #logMessage("New Render Setup preference enabled: "+str(prefNewSystemEnabled))
             #logMessage("New Render Setup enabled: "+str(globalVarSet))
-            if (renderSetupCount>0):
+            if (renderSetupCount>0 or (_rrGL_mayaVersion>2022)): # ">2022":I assume nobody is using legacy layers any more
                 if (prefNewSystemEnabled!=1):
                     logMessageError("The new Render Setup layer system has been disabled via the Maya prefs! Unable to render scene file!")
                     return

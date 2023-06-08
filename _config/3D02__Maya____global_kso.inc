@@ -16,7 +16,6 @@ UIStyle= 1~dark
 
 
 CODisableImagePlanes= 1~0
-CONoPerFrameLoop= 1 ~ 0
 
 
 ################################## Client Settings ################################## 

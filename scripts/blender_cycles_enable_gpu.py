@@ -22,7 +22,7 @@ def enable_gpu_devices():
     cycles_prefs = prefs.addons['cycles'].preferences
 
     # Attempt to set GPU device types if available
-    for compute_device_type in ('CUDA', 'OPENCL', 'NONE'):
+    for compute_device_type in ('CUDA', 'OPENCL', 'OPTIX', 'HIP', 'ONEAPI', 'NONE'):
         try:
             cycles_prefs.compute_device_type = compute_device_type
             break
@@ -37,6 +37,8 @@ def enable_gpu_devices():
         cycles_prefs.refresh_devices()
         devices = cycles_prefs.devices
         for device in devices:
+            if device.type == 'CPU':
+                continue
             print("\tenabling device", device.name)
             device.use = True
     else:

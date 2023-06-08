@@ -37,3 +37,4 @@ Generated_lx_mk64
 Generated_Win
 GeneratedFiles
 *.rhi
+__pycache__

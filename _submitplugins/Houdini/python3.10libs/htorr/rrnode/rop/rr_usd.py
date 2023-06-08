@@ -5,7 +5,7 @@ import logging
 import os.path
 from htorr.rroutput import Output, ProductOutput
 from htorr.rrnode.base import RenderNode
-
+import traceback
 
 logger = logging.getLogger("HtoRR")
 
@@ -22,6 +22,19 @@ def printList_Debug(title, liste):
    
 
 
+def addRenderman_Renderer(renderer):
+    renderer = renderer.lower()
+    if renderer == ("HdPrman").lower():
+        return "PrmanRenderer="
+    elif renderer == ("HdPrmanXpu").lower():
+        return "PrmanRenderer=Xpu"
+    elif renderer == ("HdPrmanXpuCpu").lower():
+        return "PrmanRenderer=XpuCpu"
+    elif renderer == ("HdPrmanXpuGpu").lower():
+        return "PrmanRenderer=XpuGpu"
+    return ""
+
+
 class UsdRop(RenderNode):
     """ USD ROP to write USD Files"""
 
@@ -33,7 +46,31 @@ class UsdRop(RenderNode):
 
     @property
     def renderer_version(self):
-        return
+        try:
+            renderer_parm = self._node.parm("renderer")
+            renderer = renderer_parm.eval() 
+            renderer = renderer.lower()
+            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
+                return ""
+            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
+                import htorr.rrnode.rop.rr_arnold as rr_arnold
+                return rr_arnold._getArnoldVersion()
+            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_renderman as rr_renderman
+                return  rr_renderman._getRendermanVersion()
+            elif renderer == "rs" or renderer == "redshift":
+                import htorr.rrnode.rop.rr_redshift as rr_redshift
+                return rr_redshift._getRedshiftVersion()
+            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_vray as rr_vray
+                return rr_vray._getVRayVersion()
+            else:
+                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
+        except:
+            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
+        return ""    
 
     @property
     def renderer(self):
@@ -46,7 +83,9 @@ class UsdRop(RenderNode):
                 return "createUSD_karma"
             elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
                 return "createUSD_arnold"
-            elif renderer == "prman" or renderer == "renderman":
+            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
                 return "createUSD_prman"
             elif renderer == "rs" or renderer == "redshift":
                 return "createUSD_redshift"
@@ -57,6 +96,15 @@ class UsdRop(RenderNode):
         except:
             logger.debug("{}: No renderer set, using Karma ".format(self._node.path()))        
         return "createUSD_karma"
+
+    @property
+    def rr_job_variablesFunc(self):
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
+
 
     @property
     def single_output(self):
@@ -148,7 +196,7 @@ class UsdStandalone(UsdRop):
                     return "Arnold-singlefile"
                 else: 
                     return "Arnold"
-            #all other renderer are using husk, so continue function
+            #all other renderer are using husk.exe, so continue function
         except:
             logger.debug("{}: No renderer set, using husk for Karma ".format(self._node.path()))                
         if (self.sceneIsSingleFile):
@@ -166,7 +214,9 @@ class UsdStandalone(UsdRop):
                 return ""
             elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
                 return "HtoA"
-            elif renderer == "prman" or renderer == "renderman":
+            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
                 return "prman"
             elif renderer == "rs" or renderer == "redshift":
                 return "redshift"
@@ -178,6 +228,43 @@ class UsdStandalone(UsdRop):
             logger.debug("{}: No renderer set, using Karma ".format(self._node.path()))        
         return ""    
     
+    @property
+    def renderer_version(self):
+        try:
+            renderer_parm = self._node.parm("renderer")
+            renderer = renderer_parm.eval() 
+            renderer = renderer.lower()
+            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
+                return ""
+            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
+                import htorr.rrnode.rop.rr_arnold as rr_arnold
+                return rr_arnold._getArnoldVersion()
+            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_renderman as rr_renderman
+                return  rr_renderman._getRendermanVersion()
+            elif renderer == "rs" or renderer == "redshift":
+                import htorr.rrnode.rop.rr_redshift as rr_redshift
+                return rr_redshift._getRedshiftVersion()
+            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_vray as rr_vray
+                return rr_vray._getVRayVersion()
+            else:
+                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
+        except:
+            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
+        return ""    
+
+    @property
+    def rr_job_variablesFunc(self):
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
+
+            
     @property
     def rr_jobsettingsFunc(self):
         jobParams=""
@@ -271,11 +358,6 @@ class UsdStandalone(UsdRop):
         return False
             
         
-    @property
-    def renderer_version(self):
-        return        
-
-        
         
 
 class UsdRenderRop(RenderNode):
@@ -289,27 +371,125 @@ class UsdRenderRop(RenderNode):
         return "outputimage"
 
     @property
-    def renderer_version(self):
-        return
-
-    @property
     def renderer(self):
         renderer_parm = self._node.parm("renderer")
         renderer = renderer_parm.eval()
+        renderer = renderer.lower()
 
-        if (renderer == "HdArnoldRendererPlugin") or (renderer == "hdarnoldrendererplugin"):
+        if (renderer == ("HdArnoldRendererPlugin").lower()):
             return "usd_arnold"
-        elif renderer == "BRAY_HdKarma":
+        elif renderer == ("BRAY_HdKarma").lower():
             return "usd_karma"
-        elif renderer == "HdVRayRendererPlugin":
+        elif renderer == ("HdVRayRendererPlugin").lower():
             return "usd_vray"
+        elif renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+              or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+              or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
+            return "usd_prman"
         else:
             logger.warning("{}: Unknown USD Renderer '{}' ".format(self._node.path(), renderer))
         return "usd_karma"
 
     @property
+    def renderer_version(self):
+        try:
+            renderer_parm = self._node.parm("renderer")
+            renderer = renderer_parm.eval() 
+            renderer = renderer.lower()
+            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
+                return ""
+            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
+                import htorr.rrnode.rop.rr_arnold as rr_arnold
+                return rr_arnold._getArnoldVersion()
+            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
+                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_renderman as rr_renderman
+                return  rr_renderman._getRendermanVersion()
+            elif renderer == "rs" or renderer == "redshift":
+                import htorr.rrnode.rop.rr_redshift as rr_redshift
+                return rr_redshift._getRedshiftVersion()
+            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
+                import htorr.rrnode.rop.rr_vray as rr_vray
+                return rr_vray._getVRayVersion()
+            else:
+                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
+        except:
+            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
+        return ""    
+
+    @property
+    def rr_job_variablesFunc(self):
+        try:
+            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+        except:
+            pass
+        return ""
+
+
+    @property
     def single_output(self):
         return False
+        
+    @property
+    def aovs(self):
+        allproducts = self.renderproductList
+        aovs = []
+        for i in range(0, len(allproducts)-1): # -1 as the last one is used as main output name
+            productout = ProductOutput(allproducts[i]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+            aovs.append( (os.path.join(productout.dir,productout.name), productout.extension) )    
+        return aovs 
+        
+    @property
+    def renderproductList(self):
+        stage= None
+        import loputils
+        lop = self._node.evalParm('loppath')
+        logger.debug("renderproductList: lop is {}".format(lop))
+        noStage=True
+        if lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            if lop:
+                stage = lop.stage() 
+                noStage=False
+            else:
+                logger.error("{}: loppath does not exist: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        if (noStage):
+            input = self._node.input(0)
+            if input:
+                stage = input.stage()
+        
+        if (stage== None):
+            logger.debug("{}: no stage found! ".format(self._node.path()))     
+            return []
+
+        allproducts = []
+        products = stage.GetPrimAtPath("/Render/Products")
+        if not products:
+            logger.debug("{}: no render products found! ".format(self._node.path()))     
+            return []
+        productchildren = products.GetAllChildren()
+        for c in productchildren:
+            name = c.GetName()
+            attribs = c.GetAttributes()
+            product = {}
+            product["name"] = name
+            isValidImage=False
+            for a in attribs:
+                if a.GetName().find("productName") > -1:
+                    #logger.debug("renderproductList: productOutname: {}".format(a.Get()))
+                    product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
+                    isValidImage= product["productOutname"].find("checkpoint")<0 
+                    product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
+                    product["productOutnameB"] = a.Get(999999) 
+                    product["attrib"] = a
+                if a.GetName().find("resolution") > -1:
+                    product["resX"] = a.Get()[0]
+                    product["resY"] = a.Get()[1]
+            if (isValidImage):
+                allproducts.append(product)
+        printList_Debug("renderproductList", allproducts)
+        return allproducts        
 
 class UsdRenderRop_LOP(UsdRenderRop):
     """ USD stage/LOP ROP to render """

@@ -1,0 +1,9 @@
+######################################################################
+#
+# Royal Render Plugin installer for Unreal Engine 
+# Last change: %rrVersion%
+# #win:     rrInstall_Env: UE_PYTHONPATH, Directory\UnrealEngine_5\Python
+# #linux:   rrInstall_Env: UE_PYTHONPATH, Directory/UnrealEngine_5/Python
+# #mac:     rrInstall_Env: UE_PYTHONPATH, Directory/UnrealEngine_5/Python
+# 
+######################################################################
