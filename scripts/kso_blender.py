@@ -149,12 +149,14 @@ def useAllCores():
 
 
 def enable_addon(addon_name):
-    log_msg_wrn(f"*** Loading {addon_name.title()} addon... ***")
+    log_msg(f"*** Loading {addon_name.title()} addon... ***")
+    flush_log()
     
     try:
         addon_utils.enable(addon_name)
     except ModuleNotFoundError:
         log_msg_wrn(f"Failed to enable addon: {addon_name}")
+        flush_log()
 
 
 # Parsing
@@ -247,6 +249,7 @@ class RRArgParser(object):
 
             if arg == "-rLoadRS":
                 self.load_redshift = True
+                continue
 
             # Keyword/Value Flags
 
@@ -657,11 +660,16 @@ if __name__ == "__main__":
     import kso_tcp
     useAllCores()
     
+    if args.load_redshift:
+        enable_addon("redshift")
+
     log_msg(" About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
+    flush_log()
 
     open_blend_file(args.blend_file)
     log_msg(" blend file opened ".center(100, "_"))
+    flush_log()
 
     ensure_scene_and_layer()
 
@@ -673,9 +681,6 @@ if __name__ == "__main__":
             if settings.device != 'GPU':
                 log_msg(f"Switching Cycles render device from '{settings.device}' to 'GPU'")
             settings.device = 'GPU'
-    
-    if args.load_redshift:
-        enable_addon("redshift")
 
     adjust_resolution(args.res_x, args.res_y)
     multiply_render_samples(args.renderer, args.anti_alias_mult)
