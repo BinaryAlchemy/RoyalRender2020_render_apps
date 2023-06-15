@@ -19,6 +19,7 @@ RealTimeAbortLine= CL_MEM_OBJECT_ALLOCATION_FAILURE
 RealTimeAbortLine= Output file locked or path not available for writing. Skipping frame
 RealTimeAbortLine= Rendering aborted due to license failure
 RealTimeAbortLine= The render will not start
+RealTimeAbortLine= Engine 'REDSHIFT' not available for scene
 
 
 ::include(<ConfigFileName>__inhouse.inc)
