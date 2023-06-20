@@ -370,9 +370,12 @@ class RenderNode(rrNode):
             fcount = (self.frange[1] - self.frange[0]) / self.frange[2]
             if (f1 == f2) and (fcount > 1) and ((self.cached_renderproductCount is None) or (self.cached_renderproductCount == 0)):
                 #self.cached_renderproductCount condition has to be set in case frame range was not set before renderproduct node.
-                msg = "'{}': Output name missing frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output, self.frange[0], self.frange[1])
+                msg = "'{}': Output name missing frame number: '{}' for frame range {}-{}".format(self._node.path(), self._node.parm(self.output_parm).unexpandedString(), self.frange[0], self.frange[1])
                 logger.warning(msg)
                 #logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
+
+        msg = "'{}': Output name frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
+        logger.debug(msg)
 
         #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
         pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
@@ -646,8 +649,11 @@ class RenderNode(rrNode):
             self.cached_renderproductCount= len(self.cached_renderproductList)         
         if (self.cached_renderproductCount>0):
             return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameA"]
-       
-        return self._node.parm(self.output_parm).evalAtFrame(1)
+        
+        fName= self._node.parm(self.output_parm).evalAtFrame(1)
+        #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+        fName= hou.text.expandStringAtFrame(fName, 1)
+        return fName
         
     @property
     def output_evalAtFrameB(self):
@@ -659,7 +665,11 @@ class RenderNode(rrNode):
             self.cached_renderproductCount= len(self.cached_renderproductList)         
         if (self.cached_renderproductCount>0):
             return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameB"]        
-        return self._node.parm(self.output_parm).evalAtFrame(2)
+        
+        fName= self._node.parm(self.output_parm).evalAtFrame(2)
+        #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+        fName= hou.text.expandStringAtFrame(fName, 2)
+        return fName
 
     @property
     def outdir(self):
