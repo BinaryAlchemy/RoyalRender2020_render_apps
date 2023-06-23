@@ -27,6 +27,9 @@ class Output(object):
         try:
             outf1 = parm.evalAtFrame(1)
             outf2 = parm.evalAtFrame(2)
+            #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+            outf1= hou.text.expandStringAtFrame(outf1, 1)
+            outf2= hou.text.expandStringAtFrame(outf2, 1)
         except:
             logger.warning("No image output set.")
             self.dir=""
@@ -41,7 +44,7 @@ class Output(object):
         if outf2 != outf1:
             self.static = False
             exp = 0
-            while(len(parm.evalAtFrame(math.pow(10,exp))) == len(outf1)):
+            while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
                 exp += 1
 
             self.padding = exp
