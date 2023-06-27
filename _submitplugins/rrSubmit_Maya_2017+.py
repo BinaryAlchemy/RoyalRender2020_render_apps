@@ -2008,7 +2008,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             exePath=self.RR_ROOT+"/bin/mac64/rrStartLocal"
             cmdFlags="rrSubmitter  "+self.TempFileName
         else:
-            exePath=self.RR_ROOT+"lx__rrSubmitter.sh"
+            exePath=self.RR_ROOT+"/lx__rrSubmitter.sh"
             cmdFlags=self.TempFileName
         #print ("Executing: '"+exePath+"'  "+cmdFlags)
         if not os.path.isfile(exePath):
