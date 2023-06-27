@@ -1,5 +1,5 @@
 
-setenv NukeExe "/usr/local/Nuke9.0/Nuke9.0"
+export NukeExe=/usr/local/Nuke13.0/Nuke13.0
 
 echo Nuke is installed in: $NukeExe
 
