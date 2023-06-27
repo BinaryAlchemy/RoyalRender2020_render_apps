@@ -140,6 +140,8 @@ class ProductOutput(object):
                 path_no_ext= path_no_ext.replace("$F5","11111")
                 path_no_ext= path_no_ext.replace("${F4}","1111")
                 path_no_ext= path_no_ext.replace("$F4","1111")
+                path_no_ext= path_no_ext.replace("${F3}","111")
+                path_no_ext= path_no_ext.replace("$F3","111")
                 self.padding=0
                 while path_no_ext[len(path_no_ext)-1].isdigit():
                     path_no_ext= path_no_ext[:len(path_no_ext)-1]

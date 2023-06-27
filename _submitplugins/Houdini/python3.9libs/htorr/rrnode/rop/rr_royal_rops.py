@@ -199,8 +199,15 @@ class rrGenericRop(RenderNode):
 
     @property
     def scene(self):
-        parm = self._node.parm("scenefile")
-        parmValue = parm.eval()     
+        parm = self._node.parm("inputfile")
+        parmValue = parm.unexpandedString()     
+        parmValue= parmValue.replace("${F5}","<FN5>")
+        parmValue= parmValue.replace("$F5","<FN5>")
+        parmValue= parmValue.replace("${F4}","<FN4>")
+        parmValue= parmValue.replace("$F4","<FN4>")
+        parmValue= parmValue.replace("${F3}","<FN3>")
+        parmValue= parmValue.replace("$F3","<FN3>")
+        parmValue= hou.text.expandString(parmValue)
         return parmValue
         
     @property
@@ -286,3 +293,117 @@ class rrGenericRop(RenderNode):
         if self._node.evalParm("output_single"):
             return True
         return False
+        
+        
+        
+        
+        
+
+class rrDenoiseRop(RenderNode):
+
+    name = "rrdenoise"
+
+    @property
+    def scene(self):
+        parm = self._node.parm("inputfile")
+        parmValue = parm.unexpandedString()     
+        parmValue= parmValue.replace("${F5}","<FN5>")
+        parmValue= parmValue.replace("$F5","<FN5>")
+        parmValue= parmValue.replace("${F4}","<FN4>")
+        parmValue= parmValue.replace("$F4","<FN4>")
+        parmValue= parmValue.replace("${F3}","<FN3>")
+        parmValue= parmValue.replace("$F3","<FN3>")
+        parmValue= hou.text.expandString(parmValue)
+        return parmValue
+        
+    @property
+    def renderer(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.eval() 
+        if (parmValue=="rman"):
+            return "Denoise"
+        elif (parmValue=="arnold"):
+            return "DeNoice"
+        elif (parmValue=="hou_nvidia"):
+            return "NVidia_GPU"
+        return "Intel_CPU"
+        
+    @property
+    def software(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.eval() 
+        if (parmValue=="rman"):
+            return "RenderMan"
+        elif (parmValue=="arnold"):
+            return "Arnold"
+        return "iDeNoise"
+        
+    @property
+    def software_version(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.eval() 
+        if (parmValue=="rman"):
+            import htorr.rrnode.rop.rr_renderman as rr_renderman
+            return  rr_renderman._getRendermanVersion()
+        elif (parmValue=="arnold"):
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        return hou.applicationVersionString()
+        
+    @property       
+    def output_parm(self):
+        return  "outputfile"
+        
+    
+    @property
+    def single_output(self):
+        return False        
+
+    @property
+    def rr_job_variablesFunc(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.evalAsString() 
+        if (parmValue=="rman"):
+            return ""
+        elif (parmValue=="arnold"):
+            return ""
+            
+        addFlags=""
+        normal = self._node.parm("hou_normal").evalAsString()
+        albedo = self._node.parm("hou_albedo").evalAsString()
+        aov = self._node.parm("hou_aov").evalAsString()
+        if (normal and len(normal)>0):
+            addFlags= addFlags + "NormalName=" + normal + ";"
+        if (albedo and len(albedo)>0):
+            addFlags= addFlags + "AlbedoName=" + albedo + ";"
+        if (aov and len(aov)>0):
+            addFlags= addFlags + "AOVNames=" + aov + ";"
+        return addFlags
+        
+        
+        
+        
+    @property
+    def rr_jobsettingsFunc(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.evalAsString() 
+        if (parmValue=="rman"):
+            if (self._node.parm("rman_mode").evalAsString()=="single"):
+                options='"COSingle=0~1" '
+            else:
+                options='"COSingle=0~0" '
+            if (self._node.parm("rman_flow").eval()):
+                options= options + '"COFlow=0~1" ' 
+            else:
+                options= options + '"COFlow=0~0" ' 
+            a= self._node.parm("rman_asymmetry").eval()
+            options= options + '"COFloatAsymmetry=0~1~{}" '.format(int(a*100))
+            return options
+        elif (parmValue=="arnold"):
+            nh= self._node.parm("a_neighborhood").eval()
+            r= self._node.parm("a_radius").eval()
+            v= self._node.parm("a_variance").eval()
+            options='"CONeighborhood=0~1~{}" "COSearchRadius=0~1~{}" "COFloatVariance=0~1~{}" '.format(nh, r, int(v*100))
+            return options
+           
+        return ""
