@@ -29,7 +29,7 @@ class Output(object):
             outf2 = parm.evalAtFrame(2)
             #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
             outf1= hou.text.expandStringAtFrame(outf1, 1)
-            outf2= hou.text.expandStringAtFrame(outf2, 1)
+            outf2= hou.text.expandStringAtFrame(outf2, 2)
         except:
             logger.warning("No image output set.")
             self.dir=""
