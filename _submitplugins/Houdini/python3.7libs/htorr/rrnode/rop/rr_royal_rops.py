@@ -12,6 +12,20 @@ try:
 except ImportError:
     logger.info("Module imported outside of hython environment")
 
+        
+def getFilename_convertFrameNr(parm):
+    fr1= parm.evalAtFrame(1)
+    fr9= parm.evalAtFrame(9999999)
+    #There are Python expressions that return $F4 even after eval()
+    fr1= hou.text.expandStringAtFrame(fr1, 1)
+    fr9= hou.text.expandStringAtFrame(fr9, 9999999)
+    padding=len(fr1)-len(fr9)+7
+    posFr= fr9.find("9999999")
+    posFrEnd=posFr+7
+    newName= "<FN" + str(padding) + ">"
+    newName=fr9[:posFr] + newName + fr9[posFrEnd:]
+    return newName
+        
 
 class rrPythonRop(rrNode):
 
@@ -199,15 +213,8 @@ class rrGenericRop(RenderNode):
 
     @property
     def scene(self):
-        parm = self._node.parm("inputfile")
-        parmValue = parm.unexpandedString()     
-        parmValue= parmValue.replace("${F5}","<FN5>")
-        parmValue= parmValue.replace("$F5","<FN5>")
-        parmValue= parmValue.replace("${F4}","<FN4>")
-        parmValue= parmValue.replace("$F4","<FN4>")
-        parmValue= parmValue.replace("${F3}","<FN3>")
-        parmValue= parmValue.replace("$F3","<FN3>")
-        parmValue= hou.text.expandString(parmValue)
+        parm = self._node.parm("scenefile")
+        parmValue = getFilename_convertFrameNr(parm)
         return parmValue
         
     @property
@@ -293,10 +300,7 @@ class rrGenericRop(RenderNode):
         if self._node.evalParm("output_single"):
             return True
         return False
-        
-        
-        
-        
+
         
 
 class rrDenoiseRop(RenderNode):
@@ -306,14 +310,7 @@ class rrDenoiseRop(RenderNode):
     @property
     def scene(self):
         parm = self._node.parm("inputfile")
-        parmValue = parm.unexpandedString()     
-        parmValue= parmValue.replace("${F5}","<FN5>")
-        parmValue= parmValue.replace("$F5","<FN5>")
-        parmValue= parmValue.replace("${F4}","<FN4>")
-        parmValue= parmValue.replace("$F4","<FN4>")
-        parmValue= parmValue.replace("${F3}","<FN3>")
-        parmValue= parmValue.replace("$F3","<FN3>")
-        parmValue= hou.text.expandString(parmValue)
+        parmValue = getFilename_convertFrameNr(parm)
         return parmValue
         
     @property

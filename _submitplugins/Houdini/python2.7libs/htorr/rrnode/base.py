@@ -370,7 +370,7 @@ class RenderNode(rrNode):
             fcount = (self.frange[1] - self.frange[0]) / self.frange[2]
             if (f1 == f2) and (fcount > 1) and ((self.cached_renderproductCount is None) or (self.cached_renderproductCount == 0)):
                 #self.cached_renderproductCount condition has to be set in case frame range was not set before renderproduct node.
-                msg = "'{}': Output name missing frame number: '{}' for frame range {}-{}".format(self._node.path(), self._node.parm(self.output_parm).unexpandedString(), self.frange[0], self.frange[1])
+                msg = "'{}': Output name missing frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
                 logger.warning(msg)
                 #logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
 
