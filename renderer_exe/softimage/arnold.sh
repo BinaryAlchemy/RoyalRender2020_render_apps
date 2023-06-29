@@ -1,18 +1,6 @@
 
-setenv WGPaths "$1"
-setenv ArnoldExe  "kick not found"
-
-foreach x (`echo $WGPaths | tr ";" " "`)  
-   setenv testPath "${x}/Addons/SItoA/Application/Plugins/bin/linux/x64/kick"
-   if -f "$testPath" then
-   setenv ArnoldExe "$testPath"
-   endif
-   setenv testPath "${x}/Addons/SItoA/Application/bin/linux/x64/kick"
-   if -f "$testPath" then
-   setenv ArnoldExe "$testPath"
-   endif
-end
-
+export WGPaths=$1
+export "ArnoldExe=${x}/Addons/SItoA/Application/Plugins/bin/linux/x64/kick"
 
 echo Arnold is installed in: $ArnoldExe
 

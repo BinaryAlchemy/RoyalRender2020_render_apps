@@ -1,5 +1,5 @@
 
-setenv NukeExe "/Applications/Nuke9.0/Nuke9.0.app/Contents/MacOS/Nuke9.0"
+export NukeExe=/Applications/Nuke13.0/Nuke13.0.app/Contents/MacOS/Nuke13.0
 
 echo Nuke is installed in: $NukeExe
 
