@@ -37,6 +37,10 @@ import unreal
 import os
 
 
+# Store the executor globally so that Python can get the callbacks from it.
+SUBSYSTEM_EXECUTOR = None
+
+
 def all_forward_slashes(filepath):
     return os.path.normpath(filepath).replace('\\', '/')
 
@@ -206,3 +210,122 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
         self.activeMoviePipeline = None
         self._is_rendering = False
         self.on_executor_finished_impl()
+
+
+class RenderArgs:
+    def __init__(self, cmdParameters):
+        self.img_width = int(cmdParameters['rW'])
+        self.img_height = int(cmdParameters['rH'])
+        self.seq_start = int(cmdParameters['rStart'])
+        self.seq_end = int(cmdParameters['rEnd'])
+        self.img_name = cmdParameters['rOutName']
+        self.img_folder = cmdParameters['rOutFolder']
+        self.img_ext = cmdParameters['rExt']
+        self.img_padding = int(cmdParameters['rPad'])
+    
+        self._cmdParameters = cmdParameters
+
+        self.map_game_path = self.get_map_game_path()
+        self.sequence_game_path = self.get_sequence_game_path()
+        self.preset_path = self.get_preset_path()
+        
+        self._cmdParameters = None
+
+    def get_map_game_path(self):
+        map_full_path = self._cmdParameters['rMap']
+        if map_full_path.startswith('/Game/'):
+            map_relative_path = map_full_path
+        else:
+            map_relative_path = all_forward_slashes(map_full_path).split('/Content/', 1)[-1]
+            map_relative_path = '/Game/' + map_relative_path
+        
+        map_relative_path, map_file_name = os.path.split(map_relative_path)
+        map_name, _ = os.path.splitext(map_file_name)
+
+        return f"{map_relative_path}/{map_name}.{map_name}"
+
+    def get_sequence_game_path(self):
+        sequence_relative_path = self._cmdParameters['rSeq']
+        _, seq_name = os.path.split(sequence_relative_path)
+        return f"/Game/{sequence_relative_path}.{seq_name}"    
+
+    def get_preset_path(self):
+        preset = self._cmdParameters['MoviePipelineConfig']
+        _, preset_name = os.path.split(preset)
+        return f"{preset}.{preset_name}"
+
+
+def on_queue_finished_callback(executor, success):
+    unreal.log("Render completed. Success status: " + str(success))
+    unreal.SystemLibrary.quit_editor()
+
+
+def on_individual_job_finished_callback(params):
+    unreal.log("single job completed")
+
+
+def on_individual_shot_finished_callback(params):
+    unreal.log("job shot completed")
+
+def on_executor_error(is_fatal, error_text):
+    unreal.log(f"Got {'non' if not is_fatal else ''} error: {error_text}")
+
+class RenderCommander(RenderArgs):
+    def __init__(self):
+        cmdTokens, cmdSwitches, cmdParameters = unreal.SystemLibrary.parse_command_line(unreal.SystemLibrary.get_command_line())
+        super().__init__(cmdParameters)
+
+        self.preset = unreal.load_asset(self.preset_path)
+        if not self.preset:
+            raise Exception(f"Preset Not Found: {self.preset_path}")
+        
+    def create_out_setting(self):
+        try:
+            output_setting = next(setting for setting in self.preset.get_all_settings() if isinstance(setting, unreal.MoviePipelineOutputSetting))
+        except StopIteration:
+            output_setting = self.preset.find_or_add_setting_by_class(unreal.MoviePipelineOutputSetting)
+
+        output_setting.output_resolution = unreal.IntPoint(self.img_width, self.img_height)
+
+        output_setting.file_name_format = self.img_name + "{frame_number}"
+        output_setting.output_directory.path = self.img_folder
+        output_setting.zero_pad_frame_numbers = self.img_padding
+    
+    def render_new_queue(self):
+        # We are going to spawn a light into the world at the (0,0,0) point. If you have more than
+        # one job in the queue, we will change the color of the light after each job to show how to
+        # make variations of your render if desired.
+        subsystem = unreal.get_editor_subsystem(unreal.MoviePipelineQueueSubsystem)
+        pipelineQueue = subsystem.get_queue()
+
+        job = pipelineQueue.allocate_new_job(unreal.MoviePipelineExecutorJob)
+        job.job_name = 'RENDER_JOB'
+        job.map = unreal.SoftObjectPath(self.map_game_path)
+        job.sequence = unreal.SoftObjectPath(self.sequence_game_path)
+        
+        self.create_out_setting()
+
+        img_class = get_img_ext_class(self.img_ext)
+        if img_class:
+            self.preset.find_or_add_setting_by_class(img_class)
+
+        set_custom_seq_range(self.preset, self.seq_start, self.seq_end)
+
+        # Make sure all settings are filled
+        self.preset.initialize_transient_settings()
+        job.set_preset_origin(self.preset)
+
+        global SUBSYSTEM_EXECUTOR
+        SUBSYSTEM_EXECUTOR = unreal.MoviePipelinePIEExecutor(subsystem)
+
+        SUBSYSTEM_EXECUTOR.on_executor_finished_delegate.add_callable_unique(on_queue_finished_callback)
+        SUBSYSTEM_EXECUTOR.on_individual_job_work_finished_delegate.add_callable_unique(on_individual_job_finished_callback) # Only available on PIE Executor
+        SUBSYSTEM_EXECUTOR.on_individual_shot_work_finished_delegate.add_callable_unique(on_individual_shot_finished_callback) # Only available on PIE executor
+        
+        # Have the Queue Subsystem run the actual render - this 'locks' the UI while a render is in progress and suppresses the
+        # Sequencer 'Auto Bind to PIE' feature which would cause duplicate objects.
+        subsystem.render_queue_with_executor_instance(SUBSYSTEM_EXECUTOR)
+
+
+if __name__ == "__main__":
+    RenderCommander().render_new_queue()

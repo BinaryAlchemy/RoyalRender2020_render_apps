@@ -46,6 +46,7 @@ from xml.etree.ElementTree import ElementTree, Element, SubElement
 UE_to_RR_tokens = {
     '{level_name}': '<SceneName>',
     '{project_dir}': '<DataBase>',
+    '{camera_name}': '<Camera>',
     '{sequence_name}': '<Layer>',
     '{date}': '<date yyyy.MM.dd>',
     '{year}': '<date yyyy>',
@@ -160,6 +161,9 @@ class rrJob:
         self.CustomPresetPath = ""
         self.LocalTexturesFile  = ""
         self.userName = ""
+        self.shotName = ""
+        self.seqName = ""
+        self.versionName = ""
 
     # from infix.se (Filip Solomonsson)
     def indent(self, elem, level=0):
@@ -230,6 +234,9 @@ class rrJob:
         self.subE(jobElement, "PreID", self.preID)
         self.subE(jobElement, "WaitForPreID", self.waitForPreID)
         self.subE(jobElement, "UserName", self.userName)
+        self.subE(jobElement, "CustomSeQName", self.seqName)
+        self.subE(jobElement, "CustomSHotName", self.shotName)
+        self.subE(jobElement, "CustomVersionName", self.versionName)
         self.subE(jobElement, "CustomProjectName", self.CustomProjectName)
         self.subE(jobElement, "LocalTexturesFile", self.LocalTexturesFile)
         self.subE(jobElement, "CustomSequencePath", self.CustomSequencePath)
@@ -280,6 +287,69 @@ def clean_up_game_path(game_path):
     return game_path
 
 
+def get_shot_tracks(ue_job):
+    seq_asset_path = ue_job.sequence.to_tuple()[0]
+    package_path_seq = seq_asset_path.rsplit('.', 1)[0]
+
+    asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
+    asset = asset_data.get_asset()
+
+    return asset.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+
+
+def copy_output_settings(setting, ue_job, new_job_rr):
+    # MoviePipelineOutputSetting contains Output path and range
+    output_dir = setting.output_directory.path
+    output_file = str(setting.file_name_format)
+    
+    zero_pad = setting.zero_pad_frame_numbers
+    new_job_rr.imageFramePadding = zero_pad
+
+    for UE_token, RR_token in UE_to_RR_tokens.items():
+        output_file = output_file.replace(UE_token, RR_token)
+        output_dir = output_dir.replace(UE_token, RR_token)
+
+    # output path
+    new_job_rr.imageFileName = output_file
+    new_job_rr.imageDir = output_dir 
+
+    # output resolution
+    output_res = setting.output_resolution
+    new_job_rr.imageWidth = output_res.x
+    new_job_rr.imageHeight = output_res.y
+
+    # output range
+    if setting.use_custom_playback_range:
+        custom_start_frame = setting.custom_start_frame
+        new_job_rr.seqStart = custom_start_frame
+
+        new_job_rr.seqEnd = setting.custom_end_frame - 1
+    else: 
+        asset_path_seq = ue_job.sequence.to_tuple()[0]
+        package_path_seq = asset_path_seq.rsplit('.', 1)[0]
+        seq_start_frame, seq_end_frame = get_seq_range(package_path_seq)
+
+        new_job_rr.seqStart = seq_start_frame
+        new_job_rr.seqEnd = seq_end_frame
+
+
+def get_file_params(ue_job):
+    file_params = unreal.MoviePipelineFilenameResolveParams()
+    file_params.job = ue_job
+
+    try:
+        first_shot = ue_job.shot_info[1]
+    except IndexError:
+        pass
+    else:
+        file_params.shot_override = first_shot
+    
+    file_params.initialization_version = unreal.MoviePipelineLibrary().resolve_version_number(file_params)
+    file_params.shot_override = None
+    
+    return file_params
+
+
 def submit_ue_jobs(queue):
     system_lib = unreal.SystemLibrary()
 
@@ -311,7 +381,7 @@ def submit_ue_jobs(queue):
         
         preset = ue_job.get_preset_origin()
         if not preset:
-            unreal.log_warning(f"job skipped: {ue_job.job_name}")
+            unreal.log_warning(f"job skipped because of missing settings: {ue_job.job_name}")
             continue
 
         preset_path = preset.get_path_name().rsplit('.', 1)[0]
@@ -341,45 +411,11 @@ def submit_ue_jobs(queue):
 
         out_settings = ue_job.get_configuration().get_all_settings()
 
-        # ALL SETTINGS contain output, format, and other setting classes        
+        # ALL SETTINGS contain output, format, and other setting classes
         for setting in out_settings:
             if isinstance(setting, unreal.MoviePipelineOutputSetting):
-                # MoviePipelineOutputSetting contains Output path and range
-                output_dir = setting.output_directory.path
-                output_file = str(setting.file_name_format)
-                
-                zero_pad = setting.zero_pad_frame_numbers
-                new_job_rr.imageFramePadding = zero_pad
+                copy_output_settings(setting, ue_job, new_job_rr)
 
-                for UE_token, RR_token in UE_to_RR_tokens.items():
-                    output_file = output_file.replace(UE_token, RR_token)
-                    
-                    output_dir = output_dir.replace(UE_token, RR_token)
-
-                # output path
-                new_job_rr.imageFileName = output_file
-                new_job_rr.imageDir = output_dir 
-
-                # output resolution
-                output_res = setting.output_resolution
-                new_job_rr.imageWidth = output_res.x
-                new_job_rr.imageHeight = output_res.y
-
-                # output range
-                if setting.use_custom_playback_range:
-                    custom_start_frame = setting.custom_start_frame
-                    new_job_rr.seqStart = custom_start_frame
-
-                    custom_end_frame = setting.custom_end_frame
-                    new_job_rr.seqEnd = custom_end_frame    
-                else: 
-                    asset_path_seq = ue_job.sequence.to_tuple()[0]
-                    package_path_seq = asset_path_seq.rsplit('.', 1)[0]
-                    seq_start_frame, seq_end_frame = get_seq_range(package_path_seq)
-
-                    new_job_rr.seqStart = seq_start_frame
-                    new_job_rr.seqEnd = seq_end_frame
-                    
             class_name = setting.get_class().get_name()
             if 'ImageSequenceOutput' not in class_name:
                 continue
@@ -387,10 +423,60 @@ def submit_ue_jobs(queue):
             # ImageSequenceOutput class name contains the output format
             img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
             new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
+        
+        shot_tracks = get_shot_tracks(ue_job)
+        if len(shot_tracks) > 1:
+            unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
 
-        new_job_rr.isActive = True  # TODO: read enabled flag from unreal
-        rr_jobs.append(new_job_rr)
+        shot_sections = shot_tracks[0].get_sections() if shot_tracks else [None] * len(ue_job.shot_info)
+        file_params = get_file_params(ue_job)
 
+        new_job_rr.seqName = seq_asset_name
+        movie_lib = unreal.MoviePipelineLibrary()
+        for info, section in zip(ue_job.shot_info, shot_sections):
+
+            if section:
+                shot_start = section.get_start_frame()
+                shot_end = section.get_end_frame() - 1
+
+                # TODO: should only pick shots between custom frame range if set
+                if shot_start > new_job_rr.seqEnd:
+                    continue
+
+                if shot_end < new_job_rr.seqStart:
+                    continue
+
+                shot_start = max(new_job_rr.seqStart, shot_start)
+                shot_end = min(new_job_rr.seqEnd, shot_end)
+            else:
+                shot_start = new_job_rr.seqStart
+                shot_end = new_job_rr.seqEnd
+
+            shot_job = copy.deepcopy(new_job_rr)
+            shot_job.seqStart = shot_start
+            shot_job.seqEnd = shot_end
+
+            file_params.shot_override = info
+            shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
+            shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
+
+            shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
+            shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
+
+            shot_job.camera = file_args.filename_arguments['camera_name']
+            shot_job.shotName = file_args.filename_arguments['shot_name']
+            shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
+
+            shot_job.isActive = info.enabled
+            rr_jobs.append(shot_job)
+
+    if not rr_jobs:
+        dialog = unreal.EditorDialog()
+        dialog.show_message("No jobs found",
+                            "No job found for submission. Please, make sure all job settings were saved: unreal ignores unsaved settings",
+                            unreal.AppMsgType.OK)
+        return
+        
     # launch_rr_submitter
 
     tmp_file = tempfile.NamedTemporaryFile(mode='w+b',
