@@ -21,8 +21,8 @@ CommandLine=
 	<OSSetEnv CUDA_VISIBLE_DEVICES ; <GpuListC>>
 
 CommandLine=
- echo crash file in 
- <rrLocalTemp><SceneFileName>.crash.txt
+	echo crash file in 
+	<rrLocalTemp><SceneFileName>.crash.txt
 
 CommandLine=
 	<ResetExitCode> 
@@ -37,6 +37,8 @@ CommandLine=   "<Exe>"
 	<isKSO -rKso -rKSOport <ksoTCPport> >
 	<GPUrequired -rGPU>
     <COLoadRedshift -rLoadRS>
+    <COGPU_Add_CPU -rGPU_CPU>
+    <COGPU_Use_Optix -rGPU_Optix>
 	-rStart <SeqStart>
 	-rEnd <SeqEnd>
 	-rStep <SeqStep>

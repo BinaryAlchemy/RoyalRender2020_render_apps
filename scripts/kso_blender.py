@@ -59,7 +59,7 @@ def log_msg_err(msg):
 
 # Startup Utilities
 
-def enable_gpu_devices(addon_name='cycles'):
+def enable_gpu_devices(addon_name='cycles', use_CPU=False, use_optix=False):
     v_major, v_minor, _ = bpy.app.version
 
     if v_major > 2 or v_minor > 79:
@@ -68,32 +68,69 @@ def enable_gpu_devices(addon_name='cycles'):
         prefs = bpy.context.user_preferences
 
     addon_prefs = prefs.addons[addon_name].preferences
-
-    # Attempt to set GPU device types if available
-    for compute_device_type in ('CUDA', 'OPENCL', 'OPTIX', 'HIP', 'ONEAPI', 'NONE'):
+    addon_prefs.refresh_devices()
+    available_devices= {}
+    
+    
+    log_msg(f"[GPU] Device mode was set to: {addon_prefs.compute_device_type}")
+    
+    log_msg(f"[GPU] List of all modes and devices:")
+    # Get a list of all device types that are available (in fact all are available, but some do not offer GPU devices to select. E.g. CUDA on AMD computer)
+    for compute_device_type in ('CUDA', 'OPENCL', 'OPTIX', 'HIP', 'ONEAPI', 'METAL', 'NONE'):
         try:
+            #testing if it is available in this Blender version:
             addon_prefs.compute_device_type = compute_device_type
-            break
+            available_devices[compute_device_type]=0
+            
+            if v_major > 2:
+                devices = addon_prefs.get_devices_for_type(compute_device_type)
+                if len(devices)>0:
+                    log_msg(f"[GPU]    {compute_device_type}")
+                for device in devices:
+                    log_msg(f"[GPU]      device available: {device.type} - {device.name}")
+                    available_devices[compute_device_type]= available_devices[compute_device_type] + 1
+            else:
+                #TODO: Code missing for Blender 2. For now we add all. Which results to CUDA
+                available_devices[compute_device_type]=1
         except TypeError:
-            log_msg_wrn("Failed to enable gpu")
-            return False
-
-    # Enable all CPU and GPU devices
-    log_msg(f"GPU set to {addon_prefs.compute_device_type}")
+            #log_msg(f"[GPU]    {compute_device_type} is not available in this Blender version ")
+            pass
+            
+    #set device mode
+    if (use_optix):
+        addon_prefs.compute_device_type = 'OPTIX'
+    elif (available_devices.keys()==0):
+        addon_prefs.compute_device_type = 'NONE'
+    else:
+        for compute_device_type in available_devices.keys():
+            if available_devices[compute_device_type]==0:
+                continue
+            try:
+                addon_prefs.compute_device_type = compute_device_type
+                break
+            except TypeError:
+                log_msg_wrn("[GPU] Failed to enable gpu "+str(compute_device_type))
+                return False
+    log_msg(f"[GPU] Device mode is now: {addon_prefs.compute_device_type}")
 
     if v_major > 2:
+        gpu_count=0
         addon_prefs.refresh_devices()
-        devices = addon_prefs.devices
+        devices = addon_prefs.get_devices_for_type(addon_prefs.compute_device_type)
         for device in devices:
-            if device.type == 'CPU':
-                continue
-            log_msg(f"\tenabling device {device.name}")
+            if (device.type == 'CPU'):
+                if not use_CPU:
+                    continue
+            else:
+                log_msg(f"[GPU]     Enabling device {gpu_count} {device.name}")
+                gpu_count= gpu_count+1
             device.use = True
+        log_msg(f"[GPU]     GPU Count: {gpu_count}")
     else:
         devices = addon_prefs.get_devices(bpy.context)
         for device in devices:
             for dev_entry in device:
-                log_msg(f"\tenabling device {dev_entry.name}")
+                log_msg(f"[GPU]     Enabling device {device.type} - {device.name}")
                 dev_entry.use = True
     
     return True
@@ -113,11 +150,6 @@ def useAllCores():
                 ('StateMask',   wintypes.ULONG)
             ]
     
-        PROCESS_SET_INFORMATION = 0x0200
-        PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1
-        PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1
-        ProcessPowerThrottling = 4
-
         GetLastError = windll.kernel32.GetLastError
 
         SetProcessInformation = windll.kernel32.SetProcessInformation
@@ -131,16 +163,18 @@ def useAllCores():
 
         GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
         GetCurrentProcess.restype = wintypes.HANDLE
-        
 
 
+        PROCESS_POWER_THROTTLING_CURRENT_VERSION    = 1
+        PROCESS_POWER_THROTTLING_EXECUTION_RR_SPEED = 0x1
+        ProcessPowerrThrottling_rID = 4
         PowerThrottling = PROCESS_POWER_THROTTLING_STATE()
-        PowerThrottling.Version = 1
-        PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+        PowerThrottling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION
+        PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_RR_SPEED
         PowerThrottling.StateMask = 0
 
 
-        ret = SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, ctypes.byref(PowerThrottling), ctypes.sizeof(PowerThrottling))
+        ret = SetProcessInformation(GetCurrentProcess(), ProcessPowerrThrottling_rID, ctypes.byref(PowerThrottling), ctypes.sizeof(PowerThrottling))
         if ret == False:
             log_msg_wrn(f'SetProcessInformation error: {GetLastError()}')
 
@@ -199,6 +233,8 @@ class RRArgParser(object):
 
         self.enable_gpu = False
         self.load_redshift = False
+        self.enable_gpu_cpu = False
+        self.enable_gpu_optix = False
         
 
         self.error = ""
@@ -245,6 +281,14 @@ class RRArgParser(object):
 
             if arg == "-rGPU":
                 self.enable_gpu = True
+                continue
+
+            if arg == "-rGPU_CPU":
+                self.enable_gpu_cpu = True
+                continue
+
+            if arg == "-rGPU_Optix":
+                self.enable_gpu_optix = True
                 continue
 
             if arg == "-rLoadRS":
@@ -448,6 +492,8 @@ def set_output_format(file_ext, file_format='', scene=None):
 
     log_msg(f"Scene file format is set to {scene.render.image_settings.file_format}")
 
+    if (file_ext==""):
+        return
     viable_formats = []
     for k, v in OUT_FORMATS.items():
         if file_ext in v:
@@ -674,7 +720,7 @@ if __name__ == "__main__":
     ensure_scene_and_layer()
 
     if args.enable_gpu:
-        enable_gpu_devices()
+        enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix )
 
         if args.renderer == "Cycles":
             settings = bpy.data.scenes[RENDER_SCENE].cycles
