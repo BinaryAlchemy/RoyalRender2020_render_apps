@@ -103,7 +103,7 @@ def timerInit():
 def timerBreak(timerBefore, where):
     timerAfter= datetime.datetime.now()
     timerAfter= timerAfter-timerBefore
-    writeDebug("   "+where+": "+str(timerAfter)+"  h:m:s.ms")
+    writeInfo("   "+where+": "+str(timerAfter)+"  h:m:s.ms")
     return datetime.datetime.now()
 
 
@@ -472,10 +472,13 @@ class JobFileExport(object):
     @staticmethod
     def _sub_e(parent, tag, text):
         sub = SubElement(parent, tag)
-        if type(text) == unicode:
-            sub.text = text.encode('utf8')
+        if sys.version_info.major == 2:
+            if type(text) == unicode:
+                sub.text = text
+            else:
+                sub.text = str(text).decode("utf-8")
         else:
-            sub.text = str(text).decode("utf8")
+            sub.text = str(text)
         return sub
 
     def addSubmitterParameter(self, parameter_name, parameter_value):
@@ -608,8 +611,8 @@ def getOSString():
 
 
 def getRR_Root():
-    if os.environ.has_key('RR_ROOT'):
-        return os.environ['RR_ROOT']
+    if ('RR_ROOT' in os.environ):
+        return os.environ['RR_ROOT'].strip("\r")
 
     platform = sys.platform.lower()
 
