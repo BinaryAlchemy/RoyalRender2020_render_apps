@@ -389,11 +389,6 @@ class rrDenoiseRop(RenderNode):
                 options='"COCrossFrame=0~0" '
             else:
                 options='"COCrossFrame=0~1" '
-            if (self._node.parm("rman_filter").evalAsString()=="volume"):
-                options='"COVolumeFilter=0~1" '
-            else:
-                options='"COVolumeFilter=0~0" '
-
             if (self._node.parm("rman_flow").eval()):
                 options= options + '"COFlow=0~1" ' 
             else:
