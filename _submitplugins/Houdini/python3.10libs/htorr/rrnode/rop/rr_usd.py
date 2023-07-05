@@ -310,7 +310,9 @@ class UsdStandalone(UsdRop):
     @property
     def rr_job_variablesFunc(self):
         try:
-            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            renderer= detectRenderEngine(self._node.parm("renderer"))
+            if renderer==_NAME_Renderman:
+                return addRenderman_Renderer(self._node.parm("renderer").eval() )
         except:
             pass
         return ""
@@ -330,10 +332,19 @@ class UsdStandalone(UsdRop):
         allproducts = self.renderproductList
         if (len(allproducts)==1):
             jobParams= jobParams +  'COSingleRenderProduct=1~1;'
-            
+
+        try:
+            ren = renderer_parm.eval() 
+        except:
+            pass
+        else:
+            if (ren != None):
+                ren = ren.lower()
+                if "xpugpu" in ren:
+                    jobParams= jobParams + 'GPUrequired=0~1; '
+                    
         return jobParams
 
-    
     @property
     def output_parm(self):
         try:
@@ -471,10 +482,27 @@ class UsdRenderRop(RenderNode):
     @property
     def rr_job_variablesFunc(self):
         try:
-            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            renderer= detectRenderEngine(self._node.parm("renderer"))
+            if renderer==_NAME_Renderman:
+                return addRenderman_Renderer(self._node.parm("renderer").eval() )
         except:
             pass
         return ""
+
+    @property
+    def rr_jobsettingsFunc(self):
+        jobParams=""
+        try:
+            ren = renderer_parm.eval() 
+        except:
+            pass
+        else:
+            if (ren != None):
+                ren = ren.lower()
+                if "xpugpu" in ren:
+                    jobParams= jobParams + 'GPUrequired=0~1; '
+                
+        return jobParams
 
 
     @property

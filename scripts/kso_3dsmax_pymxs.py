@@ -1296,11 +1296,12 @@ def render_main():
     logMessage("                                        ")
     logMessage("                                        ")
     logMessage("                                        ")
-    if arg.MaxBatchMode: # not required for 3dsmaxcmd as quitMax is called kso_3dsmax.ms instead.
+    if arg.MaxBatchMode: 
+        #3dsmaxcmd: not required as quitMax is called in kso_3dsmax.ms
         #3dsmaxbatch requires to call exitcode:0, otherwise it returns an error code 130 because of an 3dsmax error message during start  
 
-        #logMessage("calling rt.quitMax(exitCode=0, quiet=True)")
-        #rt.quitMax(exitCode=0, quiet=True)  #this command does not seem to work, the exitcode is still -130
+        logMessage("calling rt.quitMax(exitCode=0, quiet=True)")
+        rt.quitMax(exitCode=0, quiet=True)  #this command does not seem to work, the exitcode is still -130
         
         #Workaround using a .ms maxscript file as a wrapper for this python script to call "quitMAX quiet:true exitCode:0" afterwards does not create an exception, but does not work either
         pass
