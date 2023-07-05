@@ -231,10 +231,15 @@ class RenderArgs:
         
         self._cmdParameters = None
 
+        unreal.log("Initialized job arguments:")
+        unreal.log(f"\tpreset: {self.preset_path}")
+        unreal.log(f"\tmap: {self.map_game_path}")
+        unreal.log(f"\tsequence: {self.sequence_game_path}")
+
     def get_map_game_path(self):
         map_full_path = self._cmdParameters['rMap']
         if map_full_path.startswith('/Game/'):
-            map_relative_path = map_full_path
+            map_relative_path = all_forward_slashes(map_full_path)
         else:
             map_relative_path = all_forward_slashes(map_full_path).split('/Content/', 1)[-1]
             map_relative_path = '/Game/' + map_relative_path
@@ -247,12 +252,12 @@ class RenderArgs:
     def get_sequence_game_path(self):
         sequence_relative_path = self._cmdParameters['rSeq']
         _, seq_name = os.path.split(sequence_relative_path)
-        return f"/Game/{sequence_relative_path}.{seq_name}"    
+        return all_forward_slashes(f"/Game/{sequence_relative_path}.{seq_name}")
 
     def get_preset_path(self):
         preset = self._cmdParameters['MoviePipelineConfig']
         _, preset_name = os.path.split(preset)
-        return f"{preset}.{preset_name}"
+        return all_forward_slashes(f"{preset}.{preset_name}")
 
 
 def on_queue_finished_callback(executor, success):
@@ -287,9 +292,15 @@ class RenderCommander(RenderArgs):
 
         output_setting.output_resolution = unreal.IntPoint(self.img_width, self.img_height)
 
-        output_setting.file_name_format = self.img_name + "{frame_number}"
+        if output_setting.file_name_format.endswith(".wav"):
+            output_setting.file_name_format = self.img_name[:-4]
+        else:
+            output_setting.file_name_format = self.img_name + "{frame_number}"
+
         output_setting.output_directory.path = self.img_folder
         output_setting.zero_pad_frame_numbers = self.img_padding
+
+        return output_setting
     
     def render_new_queue(self):
         # We are going to spawn a light into the world at the (0,0,0) point. If you have more than
@@ -303,7 +314,7 @@ class RenderCommander(RenderArgs):
         job.map = unreal.SoftObjectPath(self.map_game_path)
         job.sequence = unreal.SoftObjectPath(self.sequence_game_path)
         
-        self.create_out_setting()
+        output_setting =  self.create_out_setting()
 
         img_class = get_img_ext_class(self.img_ext)
         if img_class:
@@ -324,8 +335,10 @@ class RenderCommander(RenderArgs):
         
         # Have the Queue Subsystem run the actual render - this 'locks' the UI while a render is in progress and suppresses the
         # Sequencer 'Auto Bind to PIE' feature which would cause duplicate objects.
+        unreal.log(f"About to render range {output_setting.custom_start_frame}, {output_setting.custom_start_frame} (last frame excluded)")
         subsystem.render_queue_with_executor_instance(SUBSYSTEM_EXECUTOR)
 
 
 if __name__ == "__main__":
+    unreal.log("RR render module %rrVersion%")
     RenderCommander().render_new_queue()

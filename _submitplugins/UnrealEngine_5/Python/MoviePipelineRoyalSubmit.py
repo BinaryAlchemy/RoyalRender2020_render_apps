@@ -56,7 +56,6 @@ UE_to_RR_tokens = {
     '{output_width}': '<ImageHeight>',
     '{output_resolution}': '<ImageHeight>',
     '{job_author}': '<UserName>',
-    '{frame_number}': ''
     }
 
 
@@ -309,6 +308,8 @@ def copy_output_settings(setting, ue_job, new_job_rr):
         output_file = output_file.replace(UE_token, RR_token)
         output_dir = output_dir.replace(UE_token, RR_token)
 
+    output_file = output_file.replace('{frame_number}', '#'*new_job_rr.imageFramePadding)
+
     # output path
     new_job_rr.imageFileName = output_file
     new_job_rr.imageDir = output_dir 
@@ -377,8 +378,8 @@ def submit_ue_jobs(queue):
 
     # copy UE jobs to RR jobs
     for ue_job in ue_jobs:
-        # movie pipeline preset
         
+        # the settings column is the job's movie pipeline preset
         preset = ue_job.get_preset_origin()
         if not preset:
             unreal.log_warning(f"job skipped because of missing settings: {ue_job.job_name}")
@@ -409,7 +410,9 @@ def submit_ue_jobs(queue):
         seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
         new_job_rr.layer = seq_asset_name
 
-        out_settings = ue_job.get_configuration().get_all_settings()
+        split_shot_jobs = True  # TODO: check console variables
+
+        out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
 
         # ALL SETTINGS contain output, format, and other setting classes
         for setting in out_settings:
@@ -417,6 +420,13 @@ def submit_ue_jobs(queue):
                 copy_output_settings(setting, ue_job, new_job_rr)
 
             class_name = setting.get_class().get_name()
+
+            if class_name == 'MoviePipelineWaveOutput':
+                new_job_rr.imageSingleOutput = True
+                new_job_rr.imageExtension = ".wav"
+                split_shot_jobs = False
+                continue
+
             if 'ImageSequenceOutput' not in class_name:
                 continue
 
@@ -428,13 +438,30 @@ def submit_ue_jobs(queue):
         if len(shot_tracks) > 1:
             unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
 
-        shot_sections = shot_tracks[0].get_sections() if shot_tracks else [None] * len(ue_job.shot_info)
+        if split_shot_jobs:
+            shot_sections = shot_tracks[0].get_sections() if shot_tracks else [None] * len(ue_job.shot_info)
+        else:
+            shot_sections = [None]
+
         file_params = get_file_params(ue_job)
 
         new_job_rr.seqName = seq_asset_name
         movie_lib = unreal.MoviePipelineLibrary()
-        for info, section in zip(ue_job.shot_info, shot_sections):
 
+        if len(shot_sections) > 1:
+            master_job = copy.deepcopy(new_job_rr)
+            master_job.isActive = False
+            master_job.shotName = "NoShot"
+
+            master_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(master_job.imageFileName, file_params)
+            master_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(master_job.imageDir, file_params)
+
+            master_job.imageFileName = master_job.imageFileName.replace(".{ext}", "")
+            master_job.imageDir = master_job.imageDir.replace(".{ext}", "")
+
+            rr_jobs.append(master_job)
+        
+        for info, section in zip(ue_job.shot_info, shot_sections):
             if section:
                 shot_start = section.get_start_frame()
                 shot_end = section.get_end_frame() - 1
@@ -456,15 +483,21 @@ def submit_ue_jobs(queue):
             shot_job.seqStart = shot_start
             shot_job.seqEnd = shot_end
 
-            file_params.shot_override = info
+            if split_shot_jobs:
+                file_params.shot_override = info
+            else:
+                file_params.shot_override = None
+
             shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
             shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
 
             shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
             shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
 
-            shot_job.camera = file_args.filename_arguments['camera_name']
-            shot_job.shotName = file_args.filename_arguments['shot_name']
+            if file_params.shot_override:
+                shot_job.camera = file_args.filename_arguments['camera_name']
+                shot_job.shotName = file_args.filename_arguments['shot_name']
+
             shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
 
             shot_job.isActive = info.enabled
