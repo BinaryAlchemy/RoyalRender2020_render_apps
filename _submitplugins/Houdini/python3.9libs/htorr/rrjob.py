@@ -68,6 +68,8 @@ RR_PARMS = {
 RR_OPTIONS = {
     "seq_divide_min": ["SeqDivMIN", "tuple"],
     "seq_divide_max": ["SeqDivMax", "tuple"],
+    "seq_divide_min_comp": ["SeqDivMINComp", "tuple"],
+    "seq_divide_max_comp": ["SeqDivMaxComp", "tuple"],
     "required_memory": ["RequiredMemory", "tuple"],
     "allow_local_scene_copy": ["AllowLocalSceneCopy", "tuple"],
     "default_client_group": ["DefaultClientGroup", "tuple"],

@@ -98,7 +98,7 @@ def addRenderman_Renderer(renderer):
             return "PrmanRenderer=XpuGpu"
         return "PrmanRenderer=Xpu"
 
-    return "PrmanRenderer="
+    return ""
 
 
 class UsdRop(RenderNode):
@@ -160,7 +160,9 @@ class UsdRop(RenderNode):
     @property
     def rr_job_variablesFunc(self):
         try:
-            return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            renderer= detectRenderEngine(self._node.parm("renderer"))
+            if renderer==_NAME_Renderman:
+                return addRenderman_Renderer(self._node.parm("renderer").eval() )
         except:
             pass
         return ""

@@ -112,6 +112,14 @@ class SubmitterNode(rrNode):
             submission.option("seq_divide_max").set([1, seq_divide_max])
             # submission.add_option("SeqDivMIN", "1~{}".format(seq_divide_min))
             # submission.add_option("SeqDivMax", "1~{}".format(seq_divide_max))
+            
+        if not self._node.parm("rr_seq_devide2x").isDisabled():
+
+            seq_divide_min = int(self._node.evalParm("rr_seq_devide2x"))
+            seq_divide_max = int(self._node.evalParm("rr_seq_devide2y"))
+
+            submission.option("seq_divide_min_comp").set([1, seq_divide_min])
+            submission.option("seq_divide_max_comp").set([1, seq_divide_max])
 
         if self._node.evalParm("rr_required_memory_enabled"):
             required_memory = int(self._node.evalParm("rr_required_memory"))

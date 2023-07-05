@@ -428,9 +428,10 @@ class RenderNode(rrNode):
                         varvalue = var[equalSign+1:]
                         varname= varname.strip()
                         varvalue= varvalue.strip()
-                        customvarname = "Custom{}".format(varname)
-                        logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
-                        job.add_custom_option(customvarname, varvalue, "custom")
+                        if len(varvalue)>0:
+                            customvarname = "Custom{}".format(varname)
+                            logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                            job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables")
                 
