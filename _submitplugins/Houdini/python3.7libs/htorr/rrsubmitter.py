@@ -152,7 +152,7 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
         command = (self.get_rr_rrStartLocal_path()
                    + " -sameTerminal rrSubmitterconsole  \"" + subm_file_path
                    + "\"" )
-
+        logger.debug("Submit cmd: {}".format(command))   
         rr_env=os.environ.copy()
         if 'QT_PLUGIN_PATH' in rr_env:
             del rr_env['QT_PLUGIN_PATH']
@@ -221,6 +221,7 @@ class RrGuiSubmitter(RrCmdSubmitter):
         command = (self.get_rr_rrStartLocal_path()
                    + " rrSubmitter \"" + subm_file_path
                    + "\"")
+        logger.debug("Submit cmd: {}".format(command))   
         if (not os.path.exists(self.get_rr_rrStartLocal_path())):
             logger.warning("RR executable does not exist:\n" + self.get_rr_rrStartLocal_path())
         else:

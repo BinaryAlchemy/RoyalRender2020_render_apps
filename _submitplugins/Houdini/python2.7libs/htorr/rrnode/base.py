@@ -388,12 +388,16 @@ class RenderNode(rrNode):
         if not jobsettings == "":
             try:
                 for setting in jobsettings.split(";"):
-                    settingname = setting.split("=")[0]
-                    settingvalues = setting.split("=")[-1]
-                    values = settingvalues.split("~")
-                    logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
-                    job.add_custom_option(settingname, values)
-                    logger.debug("Submitoptions Func: {}".format(job.options))
+                    equalSign= setting.find("=")
+                    if (equalSign>0):                
+                        settingname = setting[:equalSign]
+                        settingvalues = setting[equalSign+1:]
+                        settingname= varname.strip()
+                        settingvalues= varvalue.strip()
+                        values = settingvalues.split("~")
+                        logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
+                        job.add_custom_option(settingname, values)
+                        logger.debug("Submitoptions Func: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettingsFunc")
                 
@@ -401,12 +405,16 @@ class RenderNode(rrNode):
         if not jobsettings == "":
             try:
                 for setting in jobsettings.split(";"):
-                    settingname = setting.split("=")[0]
-                    settingvalues = setting.split("=")[-1]
-                    values = settingvalues.split("~")
-                    logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
-                    job.add_custom_option(settingname, values)
-                    logger.debug("Submitoptions: {}".format(job.options))
+                    equalSign= setting.find("=")
+                    if (equalSign>0):
+                        settingname = setting[:equalSign]
+                        settingvalues = setting[equalSign+1:]
+                        settingname= varname.strip()
+                        settingvalues= varvalue.strip()
+                        values = settingvalues.split("~")
+                        logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
+                        job.add_custom_option(settingname, values)
+                        logger.debug("Submitoptions: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettings")
 

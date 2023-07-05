@@ -2,6 +2,7 @@
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
 from htorr.rrnode.base import RenderNode, rrNode
+from htorr.rroutput import Output, ProductOutput
 import logging
 
 
@@ -101,7 +102,7 @@ class rrPythonRop(rrNode):
             parm = self._node.parm("additionalParams")
             parmValue = parm.eval() 
             if len(parmValue)>0:
-                return '"AdditionalCommandlineParam=0~1~{}"'.format(parmValue)
+                return 'AdditionalCommandlineParam=0~1~{};'.format(parmValue)
         except:
             pass
         return ""
@@ -351,7 +352,38 @@ class rrDenoiseRop(RenderNode):
     def output_parm(self):
         return  "outputfile"
         
-    
+    @property
+    def outname(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.eval() 
+        if (parmValue=="rman"):
+            rrout = Output(self._node.parm("inputfile"), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+            return rrout.name
+        return super(rrDenoiseRop, self).outname
+
+    @property
+    def outext(self):
+        parm = self._node.parm("denoiser")
+        parmValue = parm.eval() 
+        if (parmValue=="rman"):
+            rrout = Output(self._node.parm("inputfile"), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+            return rrout.extension
+        return super(rrDenoiseRop, self).outext
+
+    @property
+    def outpadding(self):
+        """Property for the output padding count
+        If applicable override output_parm
+        """
+        if (self.cached_renderproductCount is None):
+            self.cached_renderproductList= self.renderproductList
+            self.cached_renderproductCount= len(self.cached_renderproductList)         
+        if (self.cached_renderproductCount>0):
+            productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+            return productout.padding         
+        rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+        return rrout.padding
+        
     @property
     def single_output(self):
         return False        
@@ -369,12 +401,24 @@ class rrDenoiseRop(RenderNode):
         normal = self._node.parm("hou_normal").evalAsString()
         albedo = self._node.parm("hou_albedo").evalAsString()
         aov = self._node.parm("hou_aov").evalAsString()
+        motion = self._node.parm("hou_motion").evalAsString()
         if (normal and len(normal)>0):
             addFlags= addFlags + "NormalName=" + normal + ";"
         if (albedo and len(albedo)>0):
             addFlags= addFlags + "AlbedoName=" + albedo + ";"
+        if (motion and len(motion)>0):
+            addFlags= addFlags + "MotionName=" + aov + ";"
         if (aov and len(aov)>0):
             addFlags= addFlags + "AOVNames=" + aov + ";"
+
+        opt=""
+        if (parmValue=="hou_intel"):
+            opt = self._node.parm("hou_option_oidn").evalAsString()
+        else:
+            opt = self._node.parm("hou_option_optix").evalAsString()
+        if (opt and len(opt)>0):
+            addFlags= addFlags + "Options=" + opt + ";"
+
         return addFlags
         
         
@@ -382,25 +426,32 @@ class rrDenoiseRop(RenderNode):
         
     @property
     def rr_jobsettingsFunc(self):
+        options=""
         parm = self._node.parm("denoiser")
         parmValue = parm.evalAsString() 
         if (parmValue=="rman"):
             if (self._node.parm("rman_mode").evalAsString()=="single"):
-                options='"COCrossFrame=0~0" '
+                options='COCrossFrame=1~0; '
             else:
-                options='"COCrossFrame=0~1" '
+                options='COCrossFrame=1~1; '
             if (self._node.parm("rman_flow").eval()):
-                options= options + '"COFlow=0~1" ' 
+                options= options + 'COFlow=1~1;' 
             else:
-                options= options + '"COFlow=0~0" ' 
+                options= options + 'COFlow=1~0; ' 
             a= self._node.parm("rman_asymmetry").eval()
-            options= options + '"COFloatAsymmetry=0~1~{}" '.format(int(a*100))
+            options= options + 'COAsymmetryFloat=1~1~{}; '.format(int(a*100))
             return options
         elif (parmValue=="arnold"):
             nh= self._node.parm("a_neighborhood").eval()
             r= self._node.parm("a_radius").eval()
             v= self._node.parm("a_variance").eval()
-            options='"CONeighborhood=0~1~{}" "COSearchRadius=0~1~{}" "COFloatVariance=0~1~{}" '.format(nh, r, int(v*100))
+            options= options + 'CONeighborhood=1~1~{}; COSearchRadius=1~1~{}; COVarianceFloat=1~1~{}; '.format(nh, r, int(v*100))
             return options
-           
-        return ""
+            
+        #Houdini Intel and Optix
+        if (self._node.parm("hou_prevFrame").eval()):
+            options= options + 'COPrevFrame=1~1; MaxClientsAtATime=0~1; ' 
+        else:
+            options= options + 'COPrevFrame=1~0; ' 
+            
+        return options

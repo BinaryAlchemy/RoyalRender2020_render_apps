@@ -137,47 +137,33 @@ def enable_gpu_devices(addon_name='cycles', use_CPU=False, use_optix=False):
 
 
 def useAllCores():
-    if sys.platform.lower().startswith("win"):
-        log_msg("Enabling Performance cores for Intel 12th+")
-        import ctypes
-        from ctypes import windll, wintypes
-
-
-        class PROCESS_POWER_THROTTLING_STATE(ctypes.Structure):
-            _fields_ = [
-                ('Version',     wintypes.ULONG),
-                ('ControlMask', wintypes.ULONG),
-                ('StateMask',   wintypes.ULONG)
-            ]
+    if not sys.platform.lower().startswith("win"):
+        return
+    log_msg("Enabling Performance cores for Intel 12th+")
+    import ctypes
     
-        GetLastError = windll.kernel32.GetLastError
+    try:
+        dllFileName=""
+        if "rrBin" in os.environ:
+            dllFileName=os.environ["rrBin"]
+        elif "RR_ROOT" in os.environ:
+            dllFileName=os.environ["RR_ROOT"]
+            dllFileName= dllFileName + "\\bin\\win64\\"
+        else:
+            log_msg("ERROR: Unable to find rrBin or RR_ROOT")
+            return
+        dllFileName= dllFileName+ "rrExternal.dll"
+        
+        lib = ctypes.CDLL(dllFileName)
 
-        SetProcessInformation = windll.kernel32.SetProcessInformation
-        SetProcessInformation.argtypes = (
-            wintypes.HANDLE,                # HANDLE                      hProcess
-            wintypes.DWORD,                 # ProcessInformationClass     ProcessInformationClass
-            wintypes.LPVOID,                # LPVOID                      ProcessInformation
-            wintypes.DWORD,                 # DWORD                       ProcessInformationSize
-        )
-        SetProcessInformation.restype = wintypes.BOOL
+        # Your function signature: int example_func(int, float)
+        lib.winApi_useAllCores.restype = ctypes.c_bool
+        lib.winApi_useAllCores()
 
-        GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
-        GetCurrentProcess.restype = wintypes.HANDLE
-
-
-        PROCESS_POWER_THROTTLING_CURRENT_VERSION    = 1
-        PROCESS_POWER_THROTTLING_EXECUTION_RR_SPEED = 0x1
-        ProcessPowerrThrottling_rID = 4
-        PowerThrottling = PROCESS_POWER_THROTTLING_STATE()
-        PowerThrottling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION
-        PowerThrottling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_RR_SPEED
-        PowerThrottling.StateMask = 0
-
-
-        ret = SetProcessInformation(GetCurrentProcess(), ProcessPowerrThrottling_rID, ctypes.byref(PowerThrottling), ctypes.sizeof(PowerThrottling))
-        if ret == False:
-            log_msg_wrn(f'SetProcessInformation error: {GetLastError()}')
-
+    except Exception as e:
+        log_msg_wrn(e)
+        import traceback
+        log_msg_wrn(traceback.format_exc())  # log and quit
 
 
 

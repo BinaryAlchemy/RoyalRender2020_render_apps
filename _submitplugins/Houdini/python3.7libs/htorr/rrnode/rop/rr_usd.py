@@ -20,19 +20,85 @@ def printList_Debug(title, liste):
         msg= msg + "\n" + str(it )
     logger.debug(msg)
    
+_NAME_Karma= "Karma"
+_NAME_Arnold= "Arnold"
+_NAME_Arnold_husk= "Arnold-Husk"
+_NAME_Renderman= "Renderman"
+_NAME_Redshift= "Redshift"
+_NAME_VRay= "VRay"
 
+
+def detectRenderEngine(renderer_parm):
+    try:
+        ren = renderer_parm.eval() 
+    except:
+        logger.debug("No renderer set or unable to read: {}".format(traceback.format_exc()))       
+        return _NAME_Karma
+        
+    if (ren == None):
+        logger.debug("No renderer set, using Karma ")  
+        return _NAME_Karma
+        
+    ren = ren.lower()
+    if (len(ren)==0) or ren == ("Karma").lower() or ren == ("BRAY_HdKarma").lower():
+        return _NAME_Karma
+        
+    if (ren == ("Arnold").lower()):
+        return _NAME_Arnold
+    if (ren == ("HtoA").lower()):
+        return _NAME_Arnold
+    if (ren == ("HdArnoldRendererPlugin").lower()):
+        return _NAME_Arnold
+        
+    if (ren == ("Arnold-Husk").lower()):
+        return _NAME_Arnold_husk
+        
+    if (ren == ("prman").lower()):
+        return _NAME_Renderman
+    if (ren == ("renderman").lower()):
+        return _NAME_Renderman
+    if (ren == ("HdPrmanLoaderRendererPlugin").lower()):
+        return _NAME_Renderman
+    if (ren == ("prman-xpu").lower()):
+        return _NAME_Renderman
+    if (ren == ("prman-xpuCpu").lower()):
+        return _NAME_Renderman
+    if (ren == ("prman-xpuGpu").lower()):
+        return _NAME_Renderman
+    if (ren == ("HdPrmanXpuLoaderRendererPlugin").lower()):
+        return _NAME_Renderman
+    if (ren == ("HdPrmanXpuCpuLoaderRendererPlugin").lower()):
+        return _NAME_Renderman
+    if (ren == ("HdPrmanXpuGpuLoaderRendererPlugin").lower()):
+        return _NAME_Renderman
+        
+    if (ren == ("rs").lower()):
+        return _NAME_Redshift
+    if (ren == ("Redshift").lower()):
+        return _NAME_Redshift
+    if (ren == ("HdRedshiftRendererPlugin").lower()):
+        return _NAME_Redshift
+        
+    if (ren == ("vray").lower()):
+        return _NAME_VRay
+    if (ren == ("v-ray").lower()):
+        return _NAME_VRay
+    if (ren == ("HdVRayRendererPlugin").lower()):
+        return _NAME_VRay
+
+    logger.warning("Unknown Renderer '{}'. Using Karma. ".format(ren))
+    return _NAME_Karma
 
 def addRenderman_Renderer(renderer):
     renderer = renderer.lower()
-    if renderer == ("HdPrman").lower():
-        return "PrmanRenderer="
-    elif renderer == ("HdPrmanXpu").lower():
+    if ("xpu" in renderer):
+        if ("xpucpu" in renderer):
+            return "PrmanRenderer=XpuCpu"
+        if ("xpugpu" in renderer):
+            return "PrmanRenderer=XpuGpu"
         return "PrmanRenderer=Xpu"
-    elif renderer == ("HdPrmanXpuCpu").lower():
-        return "PrmanRenderer=XpuCpu"
-    elif renderer == ("HdPrmanXpuGpu").lower():
-        return "PrmanRenderer=XpuGpu"
-    return ""
+
+    return "PrmanRenderer="
 
 
 class UsdRop(RenderNode):
@@ -46,56 +112,50 @@ class UsdRop(RenderNode):
 
     @property
     def renderer_version(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
-                return ""
-            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                import htorr.rrnode.rop.rr_arnold as rr_arnold
-                return rr_arnold._getArnoldVersion()
-            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_renderman as rr_renderman
-                return  rr_renderman._getRendermanVersion()
-            elif renderer == "rs" or renderer == "redshift":
-                import htorr.rrnode.rop.rr_redshift as rr_redshift
-                return rr_redshift._getRedshiftVersion()
-            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_vray as rr_vray
-                return rr_vray._getVRayVersion()
-            else:
-                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
-        except:
-            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
+            return ""
+
+        elif renderer==_NAME_Arnold:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+
+        elif renderer==_NAME_Arnold_husk:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        
+        elif renderer==_NAME_Renderman:
+            import htorr.rrnode.rop.rr_renderman as rr_renderman
+            return  rr_renderman._getRendermanVersion()
+        
+        elif renderer==_NAME_Redshift:
+            import htorr.rrnode.rop.rr_redshift as rr_redshift
+            return rr_redshift._getRedshiftVersion()
+        
+        elif renderer==_NAME_VRay:
+            import htorr.rrnode.rop.rr_vray as rr_vray
+            return rr_vray._getVRayVersion()
+            
         return ""    
 
     @property
     def renderer(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            
-            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
-                return "createUSD_karma"
-            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                return "createUSD_arnold"
-            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
-                return "createUSD_prman"
-            elif renderer == "rs" or renderer == "redshift":
-                return "createUSD_redshift"
-            elif renderer == "v-ray" or renderer == "vray" or renderer == ("HdVRayRendererPlugin").lower():
-                return "createUSD_vray"
-            else:
-                logger.warning("{}: Unknown USD Renderer '{}' ".format(self._node.path(), renderer))
-        except:
-            logger.debug("{}: No renderer set, using Karma ".format(self._node.path()))        
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
+            return "createUSD_karma"
+        elif renderer==_NAME_Arnold:
+            return "createUSD_arnold"
+        elif renderer==_NAME_Arnold_husk:
+            return "createUSD_arnold"
+        elif renderer==_NAME_Renderman:
+            return "createUSD_prman"
+        elif renderer==_NAME_Redshift:
+            return "createUSD_redshift"
+        elif renderer==_NAME_VRay:
+            return "createUSD_vray"
+        
         return "createUSD_karma"
+
 
     @property
     def rr_job_variablesFunc(self):
@@ -187,18 +247,14 @@ class UsdStandalone(UsdRop):
 
     @property
     def software(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            if renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                if (self.sceneIsSingleFile):
-                    return "Arnold-singlefile"
-                else: 
-                    return "Arnold"
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Arnold:
+            if (self.sceneIsSingleFile):
+                return "Arnold-singlefile"
+            else: 
+                return "Arnold"
             #all other renderer are using husk.exe, so continue function
-        except:
-            logger.debug("{}: No renderer set, using husk for Karma ".format(self._node.path()))                
+            
         if (self.sceneIsSingleFile):
             return "USD_StdA_single"
         else:
@@ -206,55 +262,48 @@ class UsdStandalone(UsdRop):
         
     @property
     def renderer(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
-                return ""
-            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                return "HtoA"
-            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
-                return "prman"
-            elif renderer == "rs" or renderer == "redshift":
-                return "redshift"
-            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
-                return "VRay"
-            else:
-                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
-        except:
-            logger.debug("{}: No renderer set, using Karma ".format(self._node.path()))        
-        return ""    
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
+            return ""
+        elif renderer==_NAME_Arnold:
+            return "HtoA"
+        elif renderer==_NAME_Arnold_husk:
+            return "HtoA"
+        elif renderer==_NAME_Renderman:
+            return "prman"
+        elif renderer==_NAME_Redshift:
+            return "redshift"
+        elif renderer==_NAME_VRay:
+            return "VRay"
+        return ""
     
     @property
     def renderer_version(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
-                return ""
-            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                import htorr.rrnode.rop.rr_arnold as rr_arnold
-                return rr_arnold._getArnoldVersion()
-            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_renderman as rr_renderman
-                return  rr_renderman._getRendermanVersion()
-            elif renderer == "rs" or renderer == "redshift":
-                import htorr.rrnode.rop.rr_redshift as rr_redshift
-                return rr_redshift._getRedshiftVersion()
-            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_vray as rr_vray
-                return rr_vray._getVRayVersion()
-            else:
-                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
-        except:
-            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
-        return ""    
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
+            return ""
+            
+        elif renderer==_NAME_Arnold:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        
+        elif renderer==_NAME_Arnold_husk:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        
+        elif renderer==_NAME_Renderman:
+            import htorr.rrnode.rop.rr_renderman as rr_renderman
+            return  rr_renderman._getRendermanVersion()
+        
+        elif renderer==_NAME_Redshift:
+            import htorr.rrnode.rop.rr_redshift as rr_redshift
+            return rr_redshift._getRedshiftVersion()
+        
+        elif renderer==_NAME_VRay:
+            import htorr.rrnode.rop.rr_vray as rr_vray
+            return rr_vray._getVRayVersion()
+        
+        return ""
 
     @property
     def rr_job_variablesFunc(self):
@@ -272,13 +321,13 @@ class UsdStandalone(UsdRop):
             parm = self._node.parm("rendersettings")
             parmValue = parm.eval() 
             if len(parmValue)>0:
-                jobParams= jobParams+ ' "AdditionalCommandlineParam=0~1~ -s {}"'.format(parmValue)
+                jobParams= jobParams+ 'AdditionalCommandlineParam=0~1~ -s {};'.format(parmValue)
         except:
             logger.debug("{}: no rendersettings set ".format(self._node.path()))              
         
         allproducts = self.renderproductList
         if (len(allproducts)==1):
-            jobParams= jobParams +  ' "COSingleRenderProduct=1~1"'
+            jobParams= jobParams +  'COSingleRenderProduct=1~1;'
             
         return jobParams
 
@@ -372,51 +421,50 @@ class UsdRenderRop(RenderNode):
 
     @property
     def renderer(self):
-        renderer_parm = self._node.parm("renderer")
-        renderer = renderer_parm.eval()
-        renderer = renderer.lower()
-
-        if (renderer == ("HdArnoldRendererPlugin").lower()):
-            return "usd_arnold"
-        elif renderer == ("BRAY_HdKarma").lower():
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
             return "usd_karma"
-        elif renderer == ("HdVRayRendererPlugin").lower():
-            return "usd_vray"
-        elif renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-              or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-              or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
+        elif renderer==_NAME_Arnold:
+            return "usd_arnold"
+        elif renderer==_NAME_Arnold_husk:
+            return "usd_arnold"
+        elif renderer==_NAME_Renderman:
             return "usd_prman"
-        else:
-            logger.warning("{}: Unknown USD Renderer '{}' ".format(self._node.path(), renderer))
+        elif renderer==_NAME_Redshift:
+            return "usd_redshift"
+        elif renderer==_NAME_VRay:
+            return "usd_vray"
+
         return "usd_karma"
 
     @property
     def renderer_version(self):
-        try:
-            renderer_parm = self._node.parm("renderer")
-            renderer = renderer_parm.eval() 
-            renderer = renderer.lower()
-            if (len(renderer)==0) or renderer == "karma" or renderer == ("BRAY_HdKarma").lower():
-                return ""
-            elif renderer == "arnold" or renderer == "htoa" or renderer == ("hdarnoldrendererplugin").lower():
-                import htorr.rrnode.rop.rr_arnold as rr_arnold
-                return rr_arnold._getArnoldVersion()
-            elif renderer == "prman" or renderer == "renderman" or renderer == ("HdPrmanLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuLoaderRendererPlugin").lower() or renderer == ("HdPrmanXpuCpuLoaderRendererPlugin").lower() \
-                  or renderer == ("HdPrmanXpuGpuLoaderRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_renderman as rr_renderman
-                return  rr_renderman._getRendermanVersion()
-            elif renderer == "rs" or renderer == "redshift":
-                import htorr.rrnode.rop.rr_redshift as rr_redshift
-                return rr_redshift._getRedshiftVersion()
-            elif renderer == "vray" or renderer == "v-ray" or renderer == ("HdVRayRendererPlugin").lower():
-                import htorr.rrnode.rop.rr_vray as rr_vray
-                return rr_vray._getVRayVersion()
-            else:
-                logger.warning("{}: Unknown Renderer '{}' ".format(self._node.path(), renderer))
-        except:
-            logger.debug("{}: No renderer set or unable to read version: {}".format(self._node.path(),traceback.format_exc()))        
-        return ""    
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Karma:
+            return ""
+            
+        elif renderer==_NAME_Arnold:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        
+        elif renderer==_NAME_Arnold_husk:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+        
+        elif renderer==_NAME_Renderman:
+            import htorr.rrnode.rop.rr_renderman as rr_renderman
+            return  rr_renderman._getRendermanVersion()
+        
+        elif renderer==_NAME_Redshift:
+            import htorr.rrnode.rop.rr_redshift as rr_redshift
+            return rr_redshift._getRedshiftVersion()
+        
+        elif renderer==_NAME_VRay:
+            import htorr.rrnode.rop.rr_vray as rr_vray
+            return rr_vray._getVRayVersion()
+        
+        return ""
+
 
     @property
     def rr_job_variablesFunc(self):

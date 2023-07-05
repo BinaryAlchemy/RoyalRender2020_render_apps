@@ -280,9 +280,14 @@ class houdiniTask2rrJobMapper():
                 envList= ""
                 for iv in range(len(self.nodes[i].envListVar)):
                     envList= envList + self.nodes[i].envListVar[iv] + "=" + self.nodes[i].envListValue[iv] + "~~~"
+                envList= envList+  scheduler.jobEnvList
                 newJob.customDataAppend_Str("rrEnvList", envList )
                 for iv in range(len(self.nodes[i].customListVar)):
                     newJob.customDataAppend_Str(self.nodes[i].customListVar[iv], self.nodes[i].customListValue[iv] )
+                for iv in range(len(scheduler.jobVarName)):
+                    newJob.customDataAppend_Str(scheduler.jobVarName[iv], scheduler.jobVarValue[iv] )                    
+                newJob.customDataAppend_Str("SubmitterParameter", scheduler.jobSettings )
+                    
                 #logger.debug("Add Job: {}   {} start:{} end:{}\n{}".format( newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd, envList))
                 #logger.debug("Add Job: {}  {}   {} start:{} end:{}".format(newJob.sceneName , newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd))
                 logger.debug("Add Job:  {}   {} start:{} end:{}".format(newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd))
@@ -396,6 +401,11 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         self.jobsCreated = False
         self.exportXML= False
         self.useCallBackServer = True
+        self.jobSettings=""
+        self.jobVarName=[]
+        self.jobVarValue=[]
+        self.jobEnvList=""
+        
 
 
     @classmethod
@@ -427,8 +437,38 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         elif (submitterVerbose=="debugjobs"):
             rrCmds.setVerboseLevel(13)
         self.exportXML = self['rr_exportAsXML'].evaluateInt() > 0
-
-
+        
+        self.jobSettings=""
+        L_jobSettings= self["job_settings"].evaluateString()
+        for setting in L_jobSettings.split(";"):
+            self.jobSettings=self.jobSettings+ ' "' + setting + '" '
+        
+        self.jobVarName=[]
+        self.jobVarValue=[]
+        L_jobVariables= self["job_variables"].evaluateString()
+        for var in L_jobVariables.split(";"):
+            equalSign= var.find("=")
+            if (equalSign>0):
+                varname = var[:equalSign]
+                varvalue = var[equalSign+1:]
+                varname= varname.strip()
+                varvalue= varvalue.strip()
+                varname = "Custom{}".format(varname)
+                self.jobVarName.append(varname)
+                self.jobVarValue.append(varvalue)
+       
+        self.jobEnvList=""
+        L_Env= self["env_vars"].evaluateString()
+        for var in L_Env.split(";"):
+            equalSign= var.find("=")
+            if (equalSign>0):
+                varname = var[:equalSign]
+                varvalue = var[equalSign+1:]
+                varname= varname.strip()
+                varvalue= varvalue.strip()
+                self.jobEnvList= self.jobEnvList + "{}={}~~~".format(varname, varvalue)
+                
+                
     @classmethod
     def templateBody(cls):
         return json.dumps({
