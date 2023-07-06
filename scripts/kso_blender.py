@@ -126,6 +126,9 @@ def enable_gpu_devices(addon_name='cycles', use_CPU=False, use_optix=False):
                 gpu_count= gpu_count+1
             device.use = True
         log_msg(f"[GPU]     GPU Count: {gpu_count}")
+        if (gpu_count==0):
+            log_msg_err(f"[GPU]     No GPU, Aborting render")
+            return False        
     else:
         devices = addon_prefs.get_devices(bpy.context)
         for device in devices:
@@ -139,7 +142,7 @@ def enable_gpu_devices(addon_name='cycles', use_CPU=False, use_optix=False):
 def useAllCores():
     if not sys.platform.lower().startswith("win"):
         return
-    log_msg("Enabling Performance cores for Intel 12th+")
+    log_msg("Enabling Performance cores for Intel 12th+...")
     import ctypes
     
     try:
@@ -158,7 +161,11 @@ def useAllCores():
 
         # Your function signature: int example_func(int, float)
         lib.winApi_useAllCores.restype = ctypes.c_bool
-        lib.winApi_useAllCores()
+        result= lib.winApi_useAllCores()
+        if result:
+            log_msg("Success!")
+        else:
+            log_msg_wrn("Failed!")
 
     except Exception as e:
         log_msg_wrn(e)
@@ -706,7 +713,8 @@ if __name__ == "__main__":
     ensure_scene_and_layer()
 
     if args.enable_gpu:
-        enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix )
+        if not enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix ):
+            return
 
         if args.renderer == "Cycles":
             settings = bpy.data.scenes[RENDER_SCENE].cycles
