@@ -25,6 +25,8 @@ RENDER_LAYER = ""
 RENDER_PADDING = 4
 RENDER_PATH = ""
 
+global wasError_Close
+wasError_Close=False
 
 # Logging
 
@@ -53,7 +55,8 @@ def log_msg_wrn(msg):
 def log_msg_err(msg):
     log_message_base("ERR", str(msg)+"\n\n")
     log_message_base("ERR", "Error reported, aborting render script")
-
+    global wasError_Close
+    wasError_Close=True
     bpy.ops.wm.quit_blender()
 
 
@@ -713,8 +716,7 @@ if __name__ == "__main__":
     ensure_scene_and_layer()
 
     if args.enable_gpu:
-        if not enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix ):
-            return
+        enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix )
 
         if args.renderer == "Cycles":
             settings = bpy.data.scenes[RENDER_SCENE].cycles
@@ -738,18 +740,18 @@ if __name__ == "__main__":
     # ensure output dir
     Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
     flush_log()
-    
-    if args.kso_mode:
-        try:
-            rr_kso_start_server(port=args.kso_port)
-        except Exception as e:
-            log_msg_err(str(e))
-        
-        log_msg("KSO Session Ended, Exiting")
-    else:
-        try:
-            render_frame_range(args.seq_start, args.seq_end, args.seq_step)
-        except Exception as e:
-            log_msg_err(str(e))
-        
-        log_msg("Task Frames Rendered, Exiting")
+    if not wasError_Close:
+        if args.kso_mode:
+            try:
+                rr_kso_start_server(port=args.kso_port)
+            except Exception as e:
+                log_msg_err(str(e))
+            
+            log_msg("KSO Session Ended, Exiting")
+        else:
+            try:
+                render_frame_range(args.seq_start, args.seq_end, args.seq_step)
+            except Exception as e:
+                log_msg_err(str(e))
+            
+            log_msg("Task Frames Rendered, Exiting")
