@@ -331,7 +331,9 @@ class UsdStandalone(UsdRop):
         
         allproducts = self.renderproductList
         if (len(allproducts)==1):
-            jobParams= jobParams +  'COSingleRenderProduct=1~1;'
+            jobParams= jobParams +  'COSingleRenderProduct=1~1; '
+        else:
+            jobParams= jobParams +  'AllowLocalRenderOut=0~0; '
 
         try:
             ren = renderer_parm.eval() 

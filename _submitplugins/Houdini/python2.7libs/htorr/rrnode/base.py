@@ -8,6 +8,7 @@ import htorr.rrparser
 import os
 import sys
 from htorr.rroutput import Output, ProductOutput
+import traceback
 
 logger = logging.getLogger("HtoRR")
 
@@ -392,14 +393,14 @@ class RenderNode(rrNode):
                     if (equalSign>0):                
                         settingname = setting[:equalSign]
                         settingvalues = setting[equalSign+1:]
-                        settingname= varname.strip()
-                        settingvalues= varvalue.strip()
+                        settingname= settingname.strip()
+                        settingvalues= settingvalues.strip()
                         values = settingvalues.split("~")
                         logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
                         job.add_custom_option(settingname, values)
                         logger.debug("Submitoptions Func: {}".format(job.options))
             except:
-                logger.info("wrong fromat: rr_jobsettingsFunc")
+                logger.info("wrong fromat: rr_jobsettingsFunc\n"+jobsettings+"\n"+traceback.format_exc())
                 
         jobsettings = self.rr_jobsettings
         if not jobsettings == "":
@@ -409,14 +410,14 @@ class RenderNode(rrNode):
                     if (equalSign>0):
                         settingname = setting[:equalSign]
                         settingvalues = setting[equalSign+1:]
-                        settingname= varname.strip()
-                        settingvalues= varvalue.strip()
+                        settingname= settingname.strip()
+                        settingvalues= settingvalues.strip()
                         values = settingvalues.split("~")
                         logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
                         job.add_custom_option(settingname, values)
                         logger.debug("Submitoptions: {}".format(job.options))
             except:
-                logger.info("wrong fromat: rr_jobsettings")
+                logger.info("wrong fromat: rr_jobsettings\n"+traceback.format_exc())
 
         jobvariables = self.rr_job_variablesFunc
         if not jobvariables == "":
@@ -433,7 +434,7 @@ class RenderNode(rrNode):
                             logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                             job.add_custom_option(customvarname, varvalue, "custom")
             except:
-                logger.info("wrong format: rr_job_variables")
+                logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())
                 
         jobvariables = self.rr_job_variables
         if not jobvariables == "":
@@ -449,7 +450,7 @@ class RenderNode(rrNode):
                         logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                         job.add_custom_option(customvarname, varvalue, "custom")
             except:
-                logger.info("wrong format: rr_job_variables")
+                logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())
 
         envvariables = self.rr_env_variables
         if not envvariables == "":
@@ -464,7 +465,7 @@ class RenderNode(rrNode):
                         logger.debug("Found custom env variable: '{}' Value: '{}'".format(varname, varvalue) )
                         job.add_custom_option(varname, varvalue, "env")
             except:
-                logger.info("wrong format: rr_env_variables")
+                logger.info("wrong format: rr_env_variables\n"+traceback.format_exc())
 
         return job
     """

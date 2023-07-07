@@ -72,6 +72,7 @@ RR_OPTIONS = {
     "seq_divide_max_comp": ["SeqDivMaxComp", "tuple"],
     "required_memory": ["RequiredMemory", "tuple"],
     "allow_local_scene_copy": ["AllowLocalSceneCopy", "tuple"],
+    "waitFrameByFrame": ["NoFramebyFrameLoop", "tuple"],
     "default_client_group": ["DefaultClientGroup", "tuple"],
     "gpu_required": ["GPUrequired", "tuple"],
     "distribution": ["Distribution", "compound"],
