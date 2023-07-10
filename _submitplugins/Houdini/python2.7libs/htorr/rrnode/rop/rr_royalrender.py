@@ -19,6 +19,11 @@ class SubmitterNode(rrNode):
     name = "rrSubmitter"
 
     def childclass_parse(self, parseData):
+        cook_tree = self._node.evalParm("cook_parent")
+        if cook_tree:
+            logger.debug("********* Cooking...")
+            hou.ui.triggerUpdate() 
+            
         preSubmitCmd = self._node.evalParm("rr_presubmit_command")
         if (preSubmitCmd!=None and (len(preSubmitCmd)>0) ):
             try:
@@ -149,6 +154,10 @@ class SubmitterNode(rrNode):
             submission.option("allow_local_scene_copy").set([0, lsc])
             # submission.add_option(
             #            "AllowLocalSceneCopy", "0~{}".format(lsc))
+
+        if self._node.evalParm("rr_framebyframe_enabled"):
+            lsc = 1 if self._node.evalParm("rr_framebyframe") else 0
+            submission.option("waitFrameByFrame").set([0, lsc])
 
         if (self._node.parm("rr_assignment").eval() == 2) and self._node.parm(
             "rr_client_groups"
