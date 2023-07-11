@@ -37,6 +37,8 @@ findFrameNoPost= <ImageExtensionSlash>
 
 RemoveFromLog= Contains ~ | Synchronizing object |
 RemoveFromLog= Contains ~ | Updating Images |
+RemoveFromLog= Contains ~ | Building OptiX acceleration structure |
+RemoveFromLog= Contains ~ | Building BVH |
 
 
 RenderAppWindow_WIN= Error ~ Unable to locate valid BLENDER_APP_DIR ~ 1 ~ Button ~ OK 
