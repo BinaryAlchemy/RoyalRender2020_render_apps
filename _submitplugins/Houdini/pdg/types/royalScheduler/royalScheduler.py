@@ -282,11 +282,13 @@ class houdiniTask2rrJobMapper():
                     envList= envList + self.nodes[i].envListVar[iv] + "=" + self.nodes[i].envListValue[iv] + "~~~"
                 envList= envList+  scheduler.jobEnvList
                 newJob.customDataAppend_Str("rrEnvList", envList )
-                for iv in range(len(self.nodes[i].customListVar)):
-                    newJob.customDataAppend_Str(self.nodes[i].customListVar[iv], self.nodes[i].customListValue[iv] )
+                logger.debug("Add Job:  envList  {} ".format(envList))
                 for iv in range(len(scheduler.jobVarName)):
                     newJob.customDataAppend_Str(scheduler.jobVarName[iv], scheduler.jobVarValue[iv] )                    
-                newJob.customDataAppend_Str("SubmitterParameter", scheduler.jobSettings )
+                for iv in range(len(self.nodes[i].customListVar)):
+                    newJob.customDataAppend_Str(self.nodes[i].customListVar[iv], self.nodes[i].customListValue[iv] )
+                newJob.customDataAppend_Str("rrSubmitterParameter", scheduler.jobSettings )
+                logger.debug("Add Job:  scheduler.jobSettings  {} ".format(scheduler.jobSettings))
                     
                 #logger.debug("Add Job: {}   {} start:{} end:{}\n{}".format( newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd, envList))
                 #logger.debug("Add Job: {}  {}   {} start:{} end:{}".format(newJob.sceneName , newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd))
@@ -749,6 +751,19 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         newJob.imageDir= os.path.dirname(hou.hipFile.path())
         newJob.seqStart=1
         newJob.seqEnd=1
+        pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        newJob.customDataAppend_Str("CustomHPyVerP", pythonVer )
+        pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
+        newJob.customDataAppend_Str("CustomHPyVer", pythonVer )
+        
+        envList= ""
+        envList= envList+  self.jobEnvList
+        newJob.customDataAppend_Str("rrEnvList", envList )
+        for iv in range(len(self.jobVarName)):
+            newJob.customDataAppend_Str(self.jobVarName[iv], self.jobVarValue[iv] )                    
+        newJob.customDataAppend_Str("rrSubmitterParameter", self.jobSettings )
+                
+        
         rrCmds.addJob(newJob)
         if (self.exportXML):
             xmlFilename= rrCmds.getXmlTempFile("rrSubmitHoudini")
