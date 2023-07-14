@@ -432,7 +432,6 @@ def submit_ue_jobs(queue):
                 cvars = setting.console_variables
                 try:
                     split_shot_jobs = not bool(cvars['RR_NO_SPLIT'])
-                    print(f"RR_NO_SPLIT set to {cvars['RR_NO_SPLIT']}, split_shot_jobs set to {str(split_shot_jobs)}")
                 except KeyError:
                     pass
                 try:
