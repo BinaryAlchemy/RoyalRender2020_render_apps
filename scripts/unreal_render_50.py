@@ -4,7 +4,7 @@
 #
 # Royal Render Render script for Unreal Engine
 # Author:  Antonio Ruocco, Paolo Acampora
-# Last Change: %rrVersion%
+# Last Change: d9.0.06Unreal
 #
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # 
@@ -61,6 +61,63 @@ def set_custom_seq_range(configuration, start, end):
     raise Exception("Settings Not Found")
 
 
+def get_shot_tracks(ue_job):
+    seq_asset_path = ue_job.sequence.to_tuple()[0]
+    package_path_seq = seq_asset_path.rsplit('.', 1)[0]
+
+    asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
+    asset = asset_data.get_asset()
+
+    return asset.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+
+
+def seq_range_matches(job, start, end):
+    asset_path_seq = job.sequence.to_tuple()[0]
+    package_name = asset_path_seq.rsplit('.', 1)[0]
+
+    asset_data = unreal.EditorAssetLibrary.find_asset_data(package_name)
+    seq_range = asset_data.get_asset().get_playback_range()
+
+    if seq_range.inclusive_start != start:
+        return False
+    
+    return seq_range.exclusive_end - 1 == end
+
+
+def disable_out_of_range_shots(job, start, end):
+    num_shots = len(job.shot_info)
+    if num_shots < 2:
+        return
+
+    shot_tracks = get_shot_tracks(job)
+    if not shot_tracks:
+        unreal.log_warning(f"Render job has {num_shots} shots but no shot track")
+        return
+
+    if len(shot_tracks) > 1:
+        unreal.log_warning(f"Render job has {len(shot_tracks)} shot tracks, only the first is taken into account")
+
+    shot_sections = shot_tracks[0].get_sections()
+    if len(shot_sections) != num_shots:
+        unreal.log_warning(f"Render job has {num_shots} shots but {len(shot_sections)} sections. Shots preceding {start} won't be disabled")
+
+    matching_shot = None
+    for info, section in zip(job.shot_info, shot_sections):
+        shot_start = section.get_start_frame()
+        shot_end = section.get_end_frame()
+
+        if shot_end <= start:
+            info.enabled = False
+        if shot_start > end:
+            info.enabled = False
+
+        if shot_start == start and shot_end == end:
+            unreal.log(f"shot {info.outer_name} matches job's start, end, no custom range required")
+            matching_shot = info
+    
+    return matching_shot
+ 
+
 def get_img_ext_class(img_ext):
     img_ext = img_ext.lower().strip(".")
 
@@ -90,7 +147,8 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
     _is_rendering = False
 
     seq_start = 0
-    seq_end = 10
+    seq_end = 0
+    seq_offset = 0
 
     img_width = 0
     img_height = 0
@@ -120,7 +178,7 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
         if self.img_width and self.img_height:
             outputSetting.output_resolution = unreal.IntPoint(self.img_width, self.img_height)
 
-        outputSetting.file_name_format = self.img_name + "{frame_number}"
+        outputSetting.file_name_format = self.img_name + ("{frame_number_shot}" if self.seq_offset else "{frame_number}")
         outputSetting.output_directory.path = self.out_dir
         outputSetting.zero_pad_frame_numbers = self.img_pad
         
@@ -172,6 +230,7 @@ class MoviePipelineRoyalExecutor(unreal.MoviePipelinePythonHostExecutor):
 
         self.seq_start = int(cmdParameters['rStart'])
         self.seq_end = int(cmdParameters['rEnd'])
+        self.seq_offset = int(cmdParameters['rOffset'])
         self.out_dir = cmdParameters['rOutFolder']
 
         self.img_pad = int(cmdParameters['rPad'])
@@ -218,6 +277,7 @@ class RenderArgs:
         self.img_height = int(cmdParameters['rH'])
         self.seq_start = int(cmdParameters['rStart'])
         self.seq_end = int(cmdParameters['rEnd'])
+        self.seq_offset = int(cmdParameters['rOffset'])
         self.img_name = cmdParameters['rOutName']
         self.img_folder = cmdParameters['rOutFolder']
         self.img_ext = cmdParameters['rExt']
@@ -295,7 +355,7 @@ class RenderCommander(RenderArgs):
         if output_setting.file_name_format.endswith(".wav"):
             output_setting.file_name_format = self.img_name[:-4]
         else:
-            output_setting.file_name_format = self.img_name + "{frame_number}"
+            output_setting.file_name_format = self.img_name + ("{frame_number_shot}" if self.seq_offset else "{frame_number}")
 
         output_setting.output_directory.path = self.img_folder
         output_setting.zero_pad_frame_numbers = self.img_padding
@@ -320,7 +380,18 @@ class RenderCommander(RenderArgs):
         if img_class:
             self.preset.find_or_add_setting_by_class(img_class)
 
-        set_custom_seq_range(self.preset, self.seq_start, self.seq_end)
+        seq_matches = seq_range_matches(job, self.seq_start, self.seq_end)
+        if seq_matches:
+            # TODO: make sure there's only one active shot
+            unreal.log("job's sequence matches render start/end, no frame range or shot disabling required")
+        else:
+            matching_shot = disable_out_of_range_shots(job, self.seq_start, self.seq_end)
+        if matching_shot:
+            unreal.log(f"About to render shot {matching_shot.outer_name}")
+        else:
+            unreal.log_warning(f"no shot matching job's start/end ({self.seq_start}/{self.seq_end}), a custom sequence range will be used")
+            set_custom_seq_range(self.preset, self.seq_start, self.seq_end)
+            unreal.log(f"About to render range {output_setting.custom_start_frame}, {output_setting.custom_end_frame} (last frame excluded)")
 
         # Make sure all settings are filled
         self.preset.initialize_transient_settings()
@@ -335,7 +406,6 @@ class RenderCommander(RenderArgs):
         
         # Have the Queue Subsystem run the actual render - this 'locks' the UI while a render is in progress and suppresses the
         # Sequencer 'Auto Bind to PIE' feature which would cause duplicate objects.
-        unreal.log(f"About to render range {output_setting.custom_start_frame}, {output_setting.custom_start_frame} (last frame excluded)")
         subsystem.render_queue_with_executor_instance(SUBSYSTEM_EXECUTOR)
 
 

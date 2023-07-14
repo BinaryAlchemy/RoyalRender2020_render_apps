@@ -86,19 +86,30 @@ def get_rr_Root():
     unreal.log_error("Royal Render Directory not found")
 
 
-def launch_rr_submitter(tmpfile_name):
+def launch_rr_submitter(tmpfile_name, show_ui=True):
     rr_root = get_rr_Root()
 
     if not rr_root:
         unreal.log_error("Royal Render Directory not found")
         return
 
-    if sys.platform.lower().startswith("win"):
-        submitCMDs = ('{0}\\win__rrSubmitter.bat'.format(rr_root), tmpfile_name)
-    elif sys.platform.lower() == "darwin":
-        submitCMDs = ('{0}/bin/mac64/rrSubmitter.app/Contents/MacOS/rrSubmitter'.format(rr_root), tmpfile_name)
+    if show_ui:
+        submitter = "rrSubmitter"
     else:
-        submitCMDs = ('{0}/lx__rrSubmitter.sh'.format(rr_root), tmpfile_name)
+        submitter = "rrSubmitterconsole"
+
+    if sys.platform.lower().startswith("win"):
+        if show_ui:
+            submitCMDs = (f'{rr_root}\\win__{submitter}.bat', tmpfile_name)
+        else:
+            submitCMDs = (f'{rr_root}\\bin\\win64\{submitter}.exe', tmpfile_name)
+    elif sys.platform.lower() == "darwin":
+        submitCMDs = (f'{rr_root}/bin/mac64/{submitter}.app/Contents/MacOS/{submitter}', tmpfile_name)
+    else:
+        if show_ui:
+            submitCMDs = (f'{rr_root}/lx__{submitter}.sh', tmpfile_name)
+        else:
+            submitCMDs = (f'{rr_root}/bin/lx64/{submitter}', tmpfile_name)
 
     try:
         if not os.path.isfile(submitCMDs[0]):
@@ -129,8 +140,8 @@ class rrJob:
         self.RequiredLicenses = ""
         self.sceneName = ""
         self.sceneDatabaseDir = ""
-        self.seqStart = 17
-        self.seqEnd = 45
+        self.seqStart = 0
+        self.seqEnd = 1
         self.seqStep = 1
         self.seqFileOffset = 0
         self.seqFrameSet = ""
@@ -410,14 +421,30 @@ def submit_ue_jobs(queue):
         seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
         new_job_rr.layer = seq_asset_name
 
-        split_shot_jobs = True  # TODO: check console variables
+        split_shot_jobs = True
+        submission_ui = True
 
         out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
 
         # ALL SETTINGS contain output, format, and other setting classes
         for setting in out_settings:
+            if isinstance(setting, unreal.MoviePipelineConsoleVariableSetting):
+                cvars = setting.console_variables
+                try:
+                    split_shot_jobs = not bool(cvars['RR_NO_SPLIT'])
+                    print(f"RR_NO_SPLIT set to {cvars['RR_NO_SPLIT']}, split_shot_jobs set to {str(split_shot_jobs)}")
+                except KeyError:
+                    pass
+                try:
+                    submission_ui = not bool(cvars['RR_NO_UI'])
+                except KeyError:
+                    pass
+
+                continue
+
             if isinstance(setting, unreal.MoviePipelineOutputSetting):
                 copy_output_settings(setting, ue_job, new_job_rr)
+                continue
 
             class_name = setting.get_class().get_name()
 
@@ -466,7 +493,6 @@ def submit_ue_jobs(queue):
                 shot_start = section.get_start_frame()
                 shot_end = section.get_end_frame() - 1
 
-                # TODO: should only pick shots between custom frame range if set
                 if shot_start > new_job_rr.seqEnd:
                     continue
 
@@ -479,6 +505,8 @@ def submit_ue_jobs(queue):
                 shot_start = new_job_rr.seqStart
                 shot_end = new_job_rr.seqEnd
 
+            # TODO: per shot preset override
+
             shot_job = copy.deepcopy(new_job_rr)
             shot_job.seqStart = shot_start
             shot_job.seqEnd = shot_end
@@ -487,6 +515,11 @@ def submit_ue_jobs(queue):
                 file_params.shot_override = info
             else:
                 file_params.shot_override = None
+
+            if '{frame_number_shot}' in shot_job.imageFileName:
+                section_start = section.get_sequence().get_playback_start()
+                shot_job.seqFileOffset = section_start - shot_start
+                shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
 
             shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
             shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
@@ -523,7 +556,7 @@ def submit_ue_jobs(queue):
         rr_job.writeToXMLJob(xmlObj)
 
     if base_job_rr.writeToXMLEnd(tmp_file, xmlObj):
-        launch_rr_submitter(tmp_file.name)
+        launch_rr_submitter(tmp_file.name, show_ui=submission_ui)
     else:
         unreal.log_error("Could not write submission file") 
 
