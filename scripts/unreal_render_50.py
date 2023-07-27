@@ -4,7 +4,7 @@
 #
 # Royal Render Render script for Unreal Engine
 # Author:  Antonio Ruocco, Paolo Acampora
-# Last Change: %rrVersion%
+# Last Change: d9.0.06Unreal
 #
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # 
@@ -84,6 +84,19 @@ def seq_range_matches(job, start, end):
     return seq_range.exclusive_end - 1 == end
 
 
+def get_shot_sequences(ue_job):
+    shot_tracks = get_shot_tracks(ue_job)
+
+    if not shot_tracks:
+        for info in ue_job.shot_info:
+            yield info, None
+    else:
+        shot_sections = shot_tracks[0].get_sections()
+        
+        for info in ue_job.shot_info:
+            yield info, next((sec for sec in shot_sections if sec.get_shot_display_name() == info.outer_name), None)
+
+
 def disable_out_of_range_shots(job, start, end):
     num_shots = len(job.shot_info)
     if num_shots < 2:
@@ -102,13 +115,18 @@ def disable_out_of_range_shots(job, start, end):
         unreal.log_warning(f"Render job has {num_shots} shots but {len(shot_sections)} sections. Shots preceding {start} won't be disabled")
 
     matching_shot = None
-    for info, section in zip(job.shot_info, shot_sections):
+    for info, section in get_shot_sequences(job):
+        if not section:
+            continue
+
         shot_start = section.get_start_frame()
         shot_end = section.get_end_frame()
 
         if shot_end <= start:
             info.enabled = False
+            unreal.log(f"shot {info.outer_name} ends before first frame {start}, disabled")
         if shot_start > end:
+            unreal.log(f"shot {info.outer_name} starts after last frame {end}, disabled")
             info.enabled = False
 
         if shot_start == start and shot_end == end:
@@ -356,6 +374,7 @@ class RenderCommander(RenderArgs):
             output_setting.file_name_format = self.img_name[:-4]
         else:
             output_setting.file_name_format = self.img_name + ("{frame_number_shot}" if self.seq_offset else "{frame_number}")
+        unreal.log(f"Rendering with filename: {output_setting.file_name_format}")
 
         output_setting.output_directory.path = self.img_folder
         output_setting.zero_pad_frame_numbers = self.img_padding

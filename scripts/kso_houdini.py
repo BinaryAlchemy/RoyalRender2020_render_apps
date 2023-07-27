@@ -39,14 +39,27 @@ def flushLog():
     sys.stdout.flush()        
     sys.stderr.flush()    
 
-def logMessageError(msg, doRaise):
+def logMessageError(msg, doRaise, printTraceback):
     msg= str(msg).replace("\\n","\n")
     logMessageGen("ERR", str(msg)+"\n")
-    import traceback
-    logMessageGen("ERR",traceback.format_exc()+"\n")    
+    if printTraceback:
+        import traceback
+        logMessageGen("ERR","-------------------------------- Traceback --------------------------------:\n"+traceback.format_exc()+"---------------------------------------------------------------------------\n")    
+    
+    if 'rrJobVersion' in os.environ:    
+        houVersion= hou.applicationVersionString()
+        submitVersion= os.environ['rrJobVersion']
+        if not houVersion.startswith(submitVersion):
+            if len(houVersion)>len(submitVersion):
+                submitVersion= submitVersion + "0"
+            logMessageGen("ERR","\n"
+                                "**********************************************************************************************\n"
+                                "* Current Houdini version {} does not match Houdini version at RR submission {}! *\n"
+                                "**********************************************************************************************\n".format(houVersion, submitVersion ))  
+        
     flushLog()
     if doRaise:
-        raise NameError("\nError reported, aborting render script\n")
+        raise NameError("\n\nError reported, aborting render script\n")
 
 
 def argValid(argValue):
@@ -70,13 +83,13 @@ def switchTake(takeName):
 def switchWedge(arg):
     wedgeSplit= arg.wedge.split('*')
     if (len(wedgeSplit)!=2):
-        logMessageError("Unable to split wedge setting "+arg.wedge+" into node and index", True)
+        logMessageError("Unable to split wedge setting "+arg.wedge+" into node and index", True, True)
         return
     wedgeIndex= int(wedgeSplit[1])
     wedgeRop = hou.node( wedgeSplit[0] )
     arg.wedgeRop= wedgeRop
     if wedgeRop == None:
-        logMessageError("Wedge node \"" + wedgeSplit[0] + "\" does not exist", True )
+        logMessageError("Wedge node \"" + wedgeSplit[0] + "\" does not exist", True, True )
         return
     logMessageSET("wedge "+wedgeSplit[0] +" to index "+str(wedgeIndex))
     wedgeRop.parm('random').set(0)
@@ -333,7 +346,7 @@ def renderFrames(FrStart,FrEnd,FrStep):
                 renderFrames_sub(fr,localFrEnd,localFrStep,imgRes)
 
     except Exception as e:
-        logMessageError(str(e), True)
+        logMessageError(str(e), True, True)
 
     
 
@@ -370,10 +383,10 @@ def rrKSOStartServer():
                 server.handle_request()
                 time.sleep(1) # handle_request() seem to return before handle() completed execution
             except Exception as e:
-                logMessageError(e, True)
+                logMessageError(e, True, True)
                 server.continueLoop= False
                 import traceback
-                logMessageError(traceback.format_exc(), True)
+                logMessageError(traceback.format_exc(), True, True)
             logMessage("                                                            ")
             logMessage("                                                            ")
             logMessage("rrKSO NextCommand ______________________________________________________________________________________________")
@@ -387,13 +400,11 @@ def rrKSOStartServer():
                 else:
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
-        logMessage("Closing TCP")    
-        server.closeTCP()
-        logMessage("rrKSO closed")                    
+        logMessage("rrKSO closed")
     except NameError as e:
         logMessage(str(e)+"\n")        
     except Exception as e:
-        logMessageError(str(e), True)
+        logMessageError(str(e), True, True)
 
 
 def render_KSO():
@@ -901,8 +912,7 @@ def executeAnyNode():
     elif arg.rop.parm("execute"):
         arg.rop.parm("execute").pressButton()
     else:
-        logMessageError("ERROR: Unable to render node '%s'."
-            "  No execute or render method available." % arg.rop.name(), True)
+        logMessageError("ERROR: Unable to render node '%s'. No execute or render method available." % arg.rop.name(), True, True)
 
     nrofFrames = ((frame_range[1] - frame_range[0]) / frame_range[2]) + 1
     nrofFrames = int (nrofFrames)
@@ -916,12 +926,12 @@ def executeAnyNode():
 def simulationSlicer():
     global arg
     if (not argValid(arg.slicerNode)):
-        logMessageError("No slicer control node set!", True)
+        logMessageError("No slicer control node set!", True, True)
     if (not argValid(arg.slicerClient)):
         if (not argValid(arg.rrParentJob)):
-            logMessageError("No slicerClient and no RR parent job set!", True)
+            logMessageError("No slicerClient and no RR parent job set!", True, True)
         #TODO: get client name from rrServer by jobID
-        logMessageError("This script version does not yet support to get tracker client automatically!", True)
+        logMessageError("This script version does not yet support to get tracker client automatically!", True, True)
         
     if (not argValid(arg.slicerPort)):
         arg.slicerPort= 8000
@@ -956,6 +966,10 @@ def simulationSlicer():
 try:
     logMessage("Script %rrVersion%" )
     logMessage("Python version: "+str(sys.version))
+    logMessage("Houdini version: "+str( hou.applicationVersionString()))
+    if 'rrJobVersion' in os.environ:
+        logMessage("Houdini version at submission: "+os.environ['rrJobVersion'])
+
     flushLog()
     timeStart=datetime.datetime.now()
     global arg
@@ -1004,11 +1018,11 @@ try:
     try:
         hou.hipFile.load( arg.sceneFile, True, arg.ignoreLoadIssues )
     except hou.LoadWarning as e:
-        logMessageError( "Error loading scene: Load Warning\n"+str(e), (not arg.ignoreLoadIssues))
+        logMessageError( "Error loading scene: Load Warning:\n---------------------------------------------------------------------------------------\n"+str(e)+ "\n---------------------------------------------------------------------------------------", (not arg.ignoreLoadIssues), False)
     except hou.OperationFailed as e:
-        logMessageError( "Error loading scene: 'hou.hipFile.load' operation failed \n"+str(e), (not arg.ignoreLoadIssues))
+        logMessageError( "Error loading scene: 'hou.hipFile.load' operation failed \n"+str(e), (not arg.ignoreLoadIssues), True)
     except Exception as e:
-        logMessageError( "Error loading scene: \n"+str(e), True)
+        logMessageError( "Error loading scene: \n"+str(e), True, True)
         
     tmpJob = hou.getenv("JOB")
     logMessage("$JOB is set to " + str(tmpJob))
@@ -1034,7 +1048,7 @@ try:
         unlock_assets(arg.rop)
     
     if arg.rop is None:
-        logMessageError("Node \"" + arg.ropName + "\" does not exist" , True)
+        logMessageError("Node \"" + arg.ropName + "\" does not exist" , True, True)
     else:
         logMessage("Rendering rop:   name:"+arg.rop.name()+"   node type:"+arg.rop.type().name())
                 
@@ -1065,7 +1079,7 @@ try:
         pass
     elif (arg.renderer=="anyNode"):
         pass
-    elif (arg.renderer=="Comp" or arg.renderer=="comp"):
+    elif (arg.renderer=="Comp"):
         applyRendererOptions_comp()
     else:
         arg.renderer= "mantra"
@@ -1107,4 +1121,4 @@ try:
 except NameError as e:
     logMessage("Warning: "+str(e)+"\n")      
 except Exception as e:
-    logMessageError( str(e)+"\n", True)
+    logMessageError( str(e)+"\n", True, True)
