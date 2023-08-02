@@ -40,35 +40,43 @@ class Output(object):
         
         logger.debug("Output for frame 1 is {} (I)".format(str(outf1)))
         logger.debug("Output for frame 2 is {} (I)".format(str(outf2)))
+        try:
+            if outf2 != outf1:
+                self.static = False
+                exp = 0
+                while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
+                    exp += 1
 
-        if outf2 != outf1:
-            self.static = False
-            exp = 0
-            while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
-                exp += 1
+                self.padding = exp
+                index_frame_end = [i for i in range(len(outf1)) if outf1[i]!=outf2[i]][0]
+                index_frame_start = index_frame_end - self.padding
 
-            self.padding = exp
-            index_frame_end = [i for i in range(len(outf1)) if outf1[i]!=outf2[i]][0]
-            index_frame_start = index_frame_end - self.padding
-
-            path_no_ext = outf1[:index_frame_start+1]
-            self.extension = outf1[index_frame_end+1:]
-        else:
-            if singleOutput:
-                self.extension=""
-                path_no_ext=outf1
+                path_no_ext = outf1[:index_frame_start+1]
+                self.extension = outf1[index_frame_end+1:]
             else:
-                for f in FILE_TYPES:
-                    if outf1.endswith(f):
-                        self.extension = f
-            
-                if not self.extension:
-                    splittedPoint=parm.eval().rsplit(".",1)
-                    if len(splittedPoint)>1:
-                        self.extension = "." + splittedPoint[-1]
+                if singleOutput:
+                    self.extension=""
+                    path_no_ext=outf1
+                else:
+                    for f in FILE_TYPES:
+                        if outf1.endswith(f):
+                            self.extension = f
                 
-                path_no_ext = outf1[:len(outf1)-len(self.extension)]
-        
+                    if not self.extension:
+                        splittedPoint=parm.eval().rsplit(".",1)
+                        if len(splittedPoint)>1:
+                            self.extension = "." + splittedPoint[-1]
+                    
+                    path_no_ext = outf1[:len(outf1)-len(self.extension)]
+        except:
+            logger.warning("Error splitting output!")
+            logger.warning("Output for frame 1 is {} (I)".format(str(outf1)))
+            logger.warning("Output for frame 2 is {} (I)".format(str(outf2)))
+            logger.warning(str(traceback.format_exc()))
+            self.dir=""
+            self.name=""
+            return
+            
         self.dir, self.name = os.path.split(path_no_ext)
 
 class ProductOutput(object):

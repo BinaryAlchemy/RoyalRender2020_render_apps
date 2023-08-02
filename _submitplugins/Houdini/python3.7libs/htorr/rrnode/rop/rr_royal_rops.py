@@ -20,6 +20,8 @@ def getFilename_convertFrameNr(parm):
     #There are Python expressions that return $F4 even after eval()
     fr1= hou.text.expandStringAtFrame(fr1, 1)
     fr9= hou.text.expandStringAtFrame(fr9, 9999999)
+    if (fr1==fr9):
+        return fr1
     padding=len(fr1)-len(fr9)+7
     posFr= fr9.find("9999999")
     posFrEnd=posFr+7

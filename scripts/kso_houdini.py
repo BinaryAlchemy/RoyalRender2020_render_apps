@@ -249,15 +249,25 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
             arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
         
     elif (arg.rop.isNetwork()):
-        logMessage("Output node is a network node of type '"+str(arg.rop.type()) + "', searching for children ROP nodes to render...")
+        foundNode=False
         rop_children= arg.rop.children()
+        logMessage("Output node '"+arg.ropName+"' is a network node of type '"+str(arg.rop.type().name()) + "', searching in " + str(len(rop_children)) + " children for ROP nodes to render...")
         for child in rop_children:
+            logMessage("Found  node '"+str(child.name()) + "' of type '"+str(child.type().name())+"' '"+str(type(child))+"'")
             if (type(child)==hou.RopNode):
+                foundNode=True
                 logMessage("Rendering ROP node '"+str(child.name()) + "' of type '"+str(child.type().name())+"'")
                 if (argValid(arg.verbose) and arg.verbose):
                     child.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
                 else:
                     child.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
+        if not foundNode:
+            logMessage("No Child ROP found, trying to render node  '"+arg.ropName+"' itself.")
+            if (argValid(arg.verbose) and arg.verbose):
+                arg.rop.render(frame_range=frameRange, res=imgRes, verbose=True, output_progress=True, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
+            else:
+                arg.rop.render(frame_range=frameRange, res=imgRes, method=hou.renderMethod.FrameByFrame, ignore_inputs=rrIgnoreInputs)
+
     else:
         logMessage("Warning: Unknown node type '"+str(type(arg.rop))+"', trying to render anyway")
         if (argValid(arg.verbose) and arg.verbose):
