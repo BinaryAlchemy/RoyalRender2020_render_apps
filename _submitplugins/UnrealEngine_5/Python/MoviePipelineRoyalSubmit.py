@@ -290,6 +290,24 @@ def get_seq_range(package_name):
     return seq_range.inclusive_start, seq_range.exclusive_end - 1
 
 
+def get_section_start_frame_offset(section):
+    sequence = section.get_sequence()
+    if not sequence:
+        return 0
+
+    tick_res = sequence.get_tick_resolution()
+    disp_rate = sequence.get_display_rate()
+
+    disp_rate.numerator *= tick_res.denominator
+    disp_rate.denominator *= tick_res.numerator
+
+    params = section.get_editor_property("parameters")
+    frame_offset = params.start_frame_offset.value
+
+    return int(frame_offset * disp_rate.numerator / disp_rate.denominator)
+
+
+
 def clean_up_game_path(game_path):
     if game_path.startswith("/Game/"):
         game_path = game_path[6:]
@@ -297,14 +315,48 @@ def clean_up_game_path(game_path):
     return game_path
 
 
-def get_shot_tracks(ue_job):
+def get_job_sequence(ue_job):
     seq_asset_path = ue_job.sequence.to_tuple()[0]
     package_path_seq = seq_asset_path.rsplit('.', 1)[0]
 
     asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
     asset = asset_data.get_asset()
 
-    return asset.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+    return asset
+
+
+def get_shot_tracks(ue_job):
+    sequence = get_job_sequence(ue_job)
+    return sequence.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+
+
+def get_shot_sequences(ue_job):
+    shot_tracks = get_shot_tracks(ue_job)
+
+    if not shot_tracks:
+        for info in ue_job.shot_info:
+            yield info, None
+    else:
+        shot_sections = shot_tracks[0].get_sections()
+        
+        for info in ue_job.shot_info:
+            yield info, next((sec for sec in shot_sections if sec.get_shot_display_name() == info.outer_name), None)
+
+
+def get_track_range(track):
+    sections = track.get_sections()
+    if not sections:
+        return 0, 0
+
+    section = sections.pop()
+    start = section.get_start_frame()
+    end = section.get_end_frame()
+
+    for section in sections:
+        start = min(start, section.get_start_frame())
+        end = min(end, section.get_end_frame())
+    
+    return start, end
 
 
 def copy_output_settings(setting, ue_job, new_job_rr):
@@ -460,21 +512,22 @@ def submit_ue_jobs(queue):
             img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
             new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
         
-        shot_tracks = get_shot_tracks(ue_job)
+        job_sequence = get_job_sequence(ue_job)
+        shot_tracks = job_sequence.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
         if len(shot_tracks) > 1:
             unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
 
         if split_shot_jobs:
-            shot_sections = shot_tracks[0].get_sections() if shot_tracks else [None] * len(ue_job.shot_info)
+            shot_sections = shot_tracks[0].get_sections() if shot_tracks else [] * len(ue_job.shot_info)
         else:
-            shot_sections = [None]
+            shot_sections = []
 
         file_params = get_file_params(ue_job)
 
         new_job_rr.seqName = seq_asset_name
         movie_lib = unreal.MoviePipelineLibrary()
 
-        if len(shot_sections) > 1:
+        if shot_sections:
             master_job = copy.deepcopy(new_job_rr)
             master_job.isActive = False
             master_job.shotName = "NoShot"
@@ -487,7 +540,8 @@ def submit_ue_jobs(queue):
 
             rr_jobs.append(master_job)
         
-        for info, section in zip(ue_job.shot_info, shot_sections):
+        movie_utils = unreal.MovieSceneSectionExtensions()
+        for info, section in get_shot_sequences(ue_job):
             if section:
                 shot_start = section.get_start_frame()
                 shot_end = section.get_end_frame() - 1
@@ -498,8 +552,18 @@ def submit_ue_jobs(queue):
                 if shot_end < new_job_rr.seqStart:
                     continue
 
-                shot_start = max(new_job_rr.seqStart, shot_start)
-                shot_end = min(new_job_rr.seqEnd, shot_end)
+                sequence = section.get_sequence()
+                camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                if camera_track:
+                    cam_start, cam_end = get_track_range(camera_track)
+                    cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
+                    cam_end = movie_utils.get_parent_sequence_frame(section, cam_end, job_sequence) - 1
+
+                    shot_start = max(new_job_rr.seqStart, shot_start, cam_start)
+                    shot_end = min(new_job_rr.seqEnd, shot_end, cam_end)
+                else:
+                    shot_start = max(new_job_rr.seqStart, shot_start)
+                    shot_end = min(new_job_rr.seqEnd, shot_end)
             else:
                 shot_start = new_job_rr.seqStart
                 shot_end = new_job_rr.seqEnd
@@ -516,8 +580,10 @@ def submit_ue_jobs(queue):
                 file_params.shot_override = None
 
             if '{frame_number_shot}' in shot_job.imageFileName:
-                section_start = section.get_sequence().get_playback_start()
-                shot_job.seqFileOffset = section_start - shot_start
+                if section:
+                    shot_job.seqFileOffset = -movie_utils.get_parent_sequence_frame(section, 0, job_sequence)
+                else:
+                    unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
                 shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
 
             shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)

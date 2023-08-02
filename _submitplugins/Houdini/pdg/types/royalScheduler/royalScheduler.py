@@ -89,10 +89,10 @@ class houdiniTask2rrJobMapper_node():
         itemName= itemName + "<PDG_ITEM_ID>"
         self.addEnv("PDG_ITEM_NAME", itemName);
         self.addEnv("PDG_RESULT_SERVER", scheduler.workItemResultServerAddr() );
-        self.addEnv("PDG_SHARED_TEMP", scheduler.tempDir(False));
-        self.addEnv("PDG_TEMP", scheduler.tempDir(False) );
-        self.addEnv("PDG_SCRIPTDIR", scheduler.scriptDir(False));
-        self.addEnv("PDG_DIR", scheduler.workingDir(False));
+        self.addEnv("[BSlashConvert] PDG_SHARED_TEMP", scheduler.tempDir(False));
+        self.addEnv("[BSlashConvert] PDG_TEMP", scheduler.tempDir(False) );
+        self.addEnv("[BSlashConvert] PDG_SCRIPTDIR", scheduler.scriptDir(False));
+        self.addEnv("[BSlashConvert] PDG_DIR", scheduler.workingDir(False));
         self.baseDir = scheduler.workingDir(False)
 
         self.addEnv("PDG_ITEM_LABEL", itemName);
@@ -106,7 +106,7 @@ class houdiniTask2rrJobMapper_node():
         self.cmdFlags= self.cmdFlags.replace("__PDG_PYTHON__", "")
         self.cmdFlags= self.cmdFlags.replace("__PDG_HYTHON__", "")
         self.cmdFlags= self.cmdFlags.replace("\"\"", "")
-        self.cmdFlags= self.cmdFlags.replace("__PDG_SCRIPTDIR__", "<OSEnv PDG_SCRIPTDIR>")
+        self.cmdFlags= self.cmdFlags.replace("__PDG_SCRIPTDIR__", "<OSEnv <PD/PDG_SCRIPTDIR>>")
         self.cmdFlags= self.cmdFlags.strip()
         #self.addEnv("RR_PDG_COMMAND", self.cmdFlags);
         self.addCustomVar("CommandLine", self.cmdFlags)
@@ -133,6 +133,7 @@ class houdiniTask2rrJobMapper_node():
     def addEnv(self, var, value):
         self.envListVar.append(var)
         self.envListValue.append(value)
+        logger.debug("Adding env var {} {} = {} {}".format(str(var), type(var), str(value), type(value) ))
         
     def addCustomVar(self, var, value):
         self.customListVar.append(var)
@@ -539,32 +540,50 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
 
 
     def onStartCook(self, static, cook_set):
-        """
-        This callback is called when a PDG cook starts, after static generation.
-        """
-        self.readGlobalUISettings()
-        logger.info('   \n'
-                    '##########################################################\n'
-                    'onStartCook\n')
-        self.h2rrMap.disableAbortAllJobs()
-        self.h2rrMap.clear()
-        self.jobsCreated=False
+        try:
+            """
+            This callback is called when a PDG cook starts, after static generation.
+            """
+            self.readGlobalUISettings()
+            logger.info('   \n'
+                        '##########################################################\n'
+                        'onStartCook\n')
+            self.h2rrMap.disableAbortAllJobs()
+            self.h2rrMap.clear()
+            self.jobsCreated=False
 
-        pdg_workingdir = self["pdg_workingdir"].evaluateString()
-        self.setWorkingDir(pdg_workingdir, pdg_workingdir)
-        
-        if (self.useCallBackServer):
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            #this does not work for Linux if  hostname in /etc/hosts as 127.0.0.1
-            #https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
-            if not self.isCallbackServerRunning():
-                self.startCallbackServer()      
-                logger.info("onStartCook:  workItemResultServerAddr '{}'".format(self.workItemResultServerAddr()))                
-                logger.info("onStartCook:  local_ip '{}'".format(local_ip))                
-
+            pdg_workingdir = self["pdg_workingdir"].evaluateString()
+            self.setWorkingDir(pdg_workingdir, pdg_workingdir)
+            local_ip="";
+            if (self.useCallBackServer):
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+                if not self.isCallbackServerRunning():
+                    self.startCallbackServer()      
+                    logger.info("onStartCook:  workItemResultServerAddr '{}'".format(self.workItemResultServerAddr()))                
+                    logger.info("onStartCook:  hostname '{}'".format(hostname))                
+                    logger.info("onStartCook:  local_ip '{}'".format(local_ip))                
+        except:
+            logger.error("\n   onStartCook  Exception.\n")
+            logger.error(str(traceback.format_exc()))
+            return False
         return True
 
+    def workItemResultServerAddr(self):
+        try:
+            serverName = super().workItemResultServerAddr()
+            
+            local_ip="";
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            if (len(local_ip)>0 and local_ip!="127.0.0.1"):
+                address, port = serverName.split(':')
+                serverName= local_ip + ":" +  port
+        except:
+            logger.error("\n   workItemResultServerAddr Exception.\n")
+            logger.error(str(traceback.format_exc()))
+            return False            
+        return serverName
 
     def onStopCook(self, cancel):
         """

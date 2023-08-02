@@ -266,10 +266,20 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         else:
             submitCMDs = ('{0}/lx__rrSubmitter.sh'.format(RR_ROOT), TempFileName)
 
+        rr_env=os.environ.copy()
+        if 'QT_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_PLUGIN_PATH']
+        if 'QT_LOGGING_RULES' in rr_env:
+            del rr_env['QT_LOGGING_RULES']
+        if 'QT_QPA_FONTDIR' in rr_env:
+            del rr_env['QT_QPA_FONTDIR']
+        if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+
         try:
             if not os.path.isfile(submitCMDs[0]):
                 raise FileNotFoundError
-            subprocess.Popen(submitCMDs, close_fds=True)
+            subprocess.Popen(submitCMDs, close_fds=True, env=rr_env)
         except FileNotFoundError:
             self.report({'ERROR'}, "rrSubmitter not found\n({0})".format(submitCMDs[0]))
             return False
