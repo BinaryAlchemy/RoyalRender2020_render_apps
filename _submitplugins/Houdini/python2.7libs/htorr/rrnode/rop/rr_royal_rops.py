@@ -1,4 +1,4 @@
-# Last change: v9.0.00
+# Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
 from htorr.rrnode.base import RenderNode, rrNode
