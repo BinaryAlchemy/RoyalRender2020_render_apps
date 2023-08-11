@@ -121,6 +121,8 @@ class Dependency(object):
     It is designed as a Singleton. Use class method create() to obtain an instance. This class keeps track of how many times the current instance was entered
     as a context manager by increasing the instance count. When context mangager is exited instance count decreases by one.
     Only if the instance count is zero a new instance will be created, otherwise the current instance will be returned.
+    
+    "index" is the index of the rrDependency input
 
     """
 
@@ -128,33 +130,55 @@ class Dependency(object):
     instance = None
 
     def __init__(self):
-
-        logger.debug("DepManager created")
-        self.jobs = [[], []]
-        self.index = 1
+        self.jobs = [] #1st dimension. Create array by instance
+        self.nodeName = [] #Array by instance_count
+        self.inputIdx = [] #Array by instance_count
 
     def __enter__(self):
         Dependency.instance_count += 1
+        #logger.debug("DDDDependency __enter__ {} newCount {}".format(Dependency.instance.nodeName[Dependency.instance_count-1], Dependency.instance_count))
         return self
 
     def __exit__(self, *kwargs):
+        dm = Dependency.instance
+        idx_instance= Dependency.instance_count-1
+        idx_input= dm.inputIdx[idx_instance]-1 #next is called after the last input, so we have to reduce it by 1
+        if (Dependency.instance_count>1 and idx_input>0):
+            #now copy the last jobs of this rrDependency into the parent rrDependency
+            idx_P_instance= idx_instance-1            
+            idx_P_input= dm.inputIdx[idx_P_instance]
+            #logger.debug("DDDDependency __exit__() inst_count {}, name {},  inputIdx {},  job count {}".format(Dependency.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
+            #logger.debug("DDDDependency __exit__() parent   name {},  inputIdx {},  job count {}".format(dm.nodeName[idx_P_instance],  dm.inputIdx[idx_P_instance], len(dm.jobs[idx_P_instance][idx_P_input])))
+            for job in dm.jobs[idx_instance][idx_input]:
+                dm.jobs[idx_P_instance][idx_P_input].append(job)
+        #logger.debug("DDDDependency __exit__ {} newCount {}".format(dm.nodeName[idx_instance], idx_instance))
+        #remove data of this rrDependency node
+        dm.nodeName.pop(idx_instance)
+        dm.inputIdx.pop(idx_instance)
+        dm.jobs.pop(idx_instance) 
         Dependency.instance_count -= 1
-        logger.debug("DepManager closed")
+        
+        
 
     def next(self):
         """Call to start a new dependency.
         All following jobs which are created will be dependent on the jobs before the function call.
         """
-        if not self.jobs[self.index]:
-            return
-        self.index += 1
-        self.jobs.append([])
+        idx_instance= self.instance_count-1
+        idx_input= self.inputIdx[idx_instance]
+        #logger.debug("DDDDependency next() inst_count {}, name {},  inputIdx {},  job count {}".format(self.instance_count, self.nodeName[idx_instance],  self.inputIdx[idx_instance], len(self.jobs[idx_instance][idx_input])))
+        if idx_input >= 0: #there was an input before
+            if len(self.jobs[idx_instance][idx_input])==0: # but no jobs added, so we overwrite the last slot
+                return
+        self.inputIdx[idx_instance] += 1
+        self.jobs[idx_instance].append([])  #For this instance, for new inputIdx, create job Array
+        
 
     @classmethod
     def process(cls, job):
         """Adds dependencies to job
 
-        Adds all jobs at self.jobs[index-1] as dependencies to job and adds job to self.jobs[index]
+        Adds all jobs at self.jobs[inputIdx-1] as dependencies to job and adds job to self.jobs[inputIdx]
 
         Arguments:
             job Job -- job to add dependencies
@@ -162,23 +186,35 @@ class Dependency(object):
 
         if cls.instance_count > 0:
             dm = cls.instance
-            job.set_dependency(dm.jobs[dm.index - 1])
-            dm.jobs[dm.index].append(job)
+            idx_instance= cls.instance_count-1
+            idx_input= dm.inputIdx[idx_instance]
+            #logger.debug("DDDDependency process() inst_count {}, name {},  inputIdx {},  job count {}".format(cls.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
+            
+            if (idx_input>0):          
+                job.set_dependency( dm.jobs[idx_instance][idx_input-1] )
+            dm.jobs[idx_instance][idx_input].append(job)
+            
 
     @classmethod
-    def create(cls):
-        """Factory mehtod for Dependency instances"""
+    def create(cls, name):
+        """Factory method for Dependency instances"""
         if cls.instance_count == 0:
             dm = cls()
             cls.instance = dm
+            cls.instance_count = 0
+        cls.instance.nodeName.append(name)
+        cls.instance.inputIdx.append(0)
+        cls.instance.jobs.append([]) #For this instance, Create inputIdx array 
+        cls.instance.jobs[cls.instance_count].append([]) #For next instance (inc in __enter__), for inputIdx 0, create job Array
+
+        #logger.debug("DDDDependency create {} jobs_CountInstances {} jobs[thisInstance]_CountIndex {}".format(name, len(cls.instance.jobs), len(cls.instance.jobs[cls.instance_count])))
         return cls.instance
 
     @classmethod
     def reset(cls):
-        """Since been used as a Singleton, this mehtod resets all values"""
+        """Since been used as a Singleton, this method resets all values"""
         cls.instance_count = 0
         cls.instance = None
-        # logger.debug("Dependency reset")
 
 
 class Wedge(object):

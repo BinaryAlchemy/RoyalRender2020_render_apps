@@ -39,7 +39,7 @@ class Output(object):
         path_no_ext = ""
         
         logger.debug("Output for frame 1 is {} (I)".format(str(outf1)))
-        logger.debug("Output for frame 2 is {} (I)".format(str(outf2)))
+        #logger.debug("Output for frame 2 is {} (I)".format(str(outf2)))
         try:
             if outf2 != outf1:
                 self.static = False

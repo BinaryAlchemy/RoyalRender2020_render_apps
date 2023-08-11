@@ -547,7 +547,7 @@ class RenderNode(rrNode):
             start = int(hou.frame())
             end = int(hou.frame())
             inc = 1
-        logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
+        #logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
         return (start, end, inc)
 
     @property

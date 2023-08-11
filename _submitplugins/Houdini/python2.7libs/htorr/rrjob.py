@@ -188,7 +188,7 @@ class Job(object):
             serializer XML_Serializer -- Serializer instance
         """
         serializer.start("Job")
-        logger.debug("Job submitoptions serialize")
+        #logger.debug("Job submitoptions serialize")
         self.options.serialize(serializer)
         if sys.version_info.major == 2:
             for name, parm in self._parms.iteritems():
@@ -206,7 +206,7 @@ class Job(object):
             for aov in self.aovs:
                 serializer.add("ChannelFilename", aov[0])
                 serializer.add("ChannelExtension", aov[1])
-        logger.debug("Job submitoptions serialize end")
+        #logger.debug("Job submitoptions serialize end")
 
     def __str__(self):
         filename = ""
@@ -417,7 +417,7 @@ class SubmitOptions(object):
         if sys.version_info.major == 2:
             for name, parm in self._parms.iteritems():
                 if parm.typ == "tuple":
-                    logger.debug("Parm: {} Eval: {}".format(parm.label, parm.eval()))
+                    #logger.debug("Parm: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         string_tuple = [str(t) for t in parm.eval()]
                         logger.debug(
@@ -427,7 +427,7 @@ class SubmitOptions(object):
                         )
                         sdict[parm.label] = "~".join(string_tuple)
                 if parm.typ == "custom":
-                    logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
+                    #logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
                         logger.debug(
@@ -437,7 +437,7 @@ class SubmitOptions(object):
                         )
                         cdict[parm.label] = text
                 if parm.typ == "env":
-                    logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
+                    #logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
                         logger.debug(
@@ -459,7 +459,7 @@ class SubmitOptions(object):
                         )
                         sdict[parm.label] = "~".join(string_tuple)
                 if parm.typ == "custom":
-                    logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
+                    #logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
                         logger.debug(
@@ -469,7 +469,7 @@ class SubmitOptions(object):
                         )
                         cdict[parm.label] = text
                 if parm.typ == "env":
-                    logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
+                    #logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
                         logger.debug(

@@ -28,7 +28,7 @@ except ImportError:
 def submit(rops=[], gui=True):
     logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
     logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
-    logger.debug("UICurrent: {}".format( hou.frame()))
+    #logger.debug("UICurrent: {}".format( hou.frame()))
     sel = hou.selectedNodes()
 
     if sel and not rops:
