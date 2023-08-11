@@ -1,0 +1,47 @@
+
+
+______________________________________________________________________
+submit.py 
+
+1)    submit()
+        gets all rops to submit
+        =>2 parse_nodes(rops)
+        
+2)  parse_nodes()
+        make_independent_rops() create a list of rrNode and remove rops that are in dependency of other rop (mostly parent nodes)
+                                "dependencies" are execute if Houdini renders the ROP and "ignore dependency" is not activated
+        
+        create rrParser
+        =>3 rrnode.create()  rrNode from rop. 
+        =>4 rrNode.parse() adds jobs to Parser
+        =>5 Parser.SubmissionFactory.get() returns list of jobs with options
+
+
+
+
+______________________________________________________________________
+rrparser.py
+
+5)  Parser.SubmissionFactory.get()
+        create final submission for jobs to submit
+        loop through multiple submission in this Parser.SubmissionFactory
+        baked_jobs() convert jobs in each submission into new jobs that have merged options of job+submission
+        
+
+
+______________________________________________________________________        
+rrnode/base.py        
+        
+3)  Node.create() 
+        Finds the right child class of Node based on Houdini node type name
+        
+4)  rrNode.parse(Parser)
+        if Node is bypassed, then parse parent node
+        otherwise call node childclass  _parse()
+
+
+
+
+
+
+

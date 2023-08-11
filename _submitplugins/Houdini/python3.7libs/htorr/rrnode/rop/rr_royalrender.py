@@ -274,7 +274,7 @@ class DependencyNode(rrNode):
 
     def childclass_parse(self, parseData):
         #logger.debug("UICurrent: {}".format( hou.frame()))
-        with parseData.Dependency.create() as d:
+        with parseData.Dependency.create(self._node.name()) as d:
             for i in self._node.inputs():
                 n = rrNode.create(i)
                 n.parse(parseData)
