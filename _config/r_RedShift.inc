@@ -1,6 +1,6 @@
 
 GPUrequired= 0~1
-Frozen_MinCoreUsage=0.30
+Frozen_MinCoreUsage=0.40
 IconRenderer=r_redshift.png
 
 
