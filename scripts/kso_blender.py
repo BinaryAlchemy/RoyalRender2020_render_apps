@@ -555,6 +555,7 @@ def set_output_format(file_ext, file_format='', scene=None):
 
     if out_format == 'FFMPEG' or out_format.startswith('AVI'):
         # Video: single output
+        global LOCAL_FRAME_LOOP
         LOCAL_FRAME_LOOP = True
     else:
         out_extension = scene.render.file_extension
@@ -653,7 +654,7 @@ def ensure_scene_and_layer():
 
     if RENDER_SCENE and RENDER_SCENE not in bpy.data.scenes:
         log_msg_wrn(f"The scene {RENDER_SCENE} was not found in this file, will default to loaded scene")
-        RENDER_SCENE = None
+        RENDER_SCENE = ""
 
     if not RENDER_SCENE:
         RENDER_SCENE = bpy.context.scene.name
@@ -663,7 +664,7 @@ def ensure_scene_and_layer():
 
     if RENDER_LAYER and RENDER_LAYER not in bpy.data.scenes[RENDER_SCENE].view_layers:
         log_msg_wrn(f"The layer {RENDER_LAYER} was not found in '{RENDER_SCENE}', will default to loaded layer")
-        RENDER_LAYER = None
+        RENDER_LAYER = ""
 
     if not RENDER_LAYER:
         RENDER_LAYER = bpy.context.view_layer.name

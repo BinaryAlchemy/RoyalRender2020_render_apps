@@ -128,7 +128,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         if rendertarget.startswith("AVI_"):
             extension = '.avi'
         elif rendertarget == 'FFMPEG':
-            extension = ffmpeg_exts(scn.render.ffmpeg.format)
+            extension = ffmpeg_exts[scn.render.ffmpeg.format]
 
         # if the video extension is not part of the output filename,
         # blender will add the frame range
