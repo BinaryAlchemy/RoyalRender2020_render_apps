@@ -5,7 +5,7 @@
 # Authors, based on:    Felix Bucella, Patrik Gleich
 # Authors:              Friedrich Wessel (Callisto FX GmbH)
 # Authors, updated by:  Paolo Acampora, Holger Schoenberger (Binary Alchemy)
-# Last change: %rrVersion%
+# Last change: d9.0.8_ffmpg
 #
 # rrInstall_Copy:     \*\scripts\startup\
 # 
@@ -14,7 +14,7 @@
 bl_info = {
     "name": "Royal Render Submitter",
     "author": "Binary Alchemy",
-    "version": "%rrVersion%",
+    "version": "d9.0.8_ffmpg",
     "blender": (2, 80, 0),
     "description": "Submit scene to Royal Render",
     "category": "Render",
@@ -199,7 +199,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             fileID.write("<SubmitterParameter>")
             fileID.write("COCyclesEnableGPU=1~1 GPUrequired=1~1")
             fileID.write("</SubmitterParameter>")
-        writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
+        writeNodeStr(fileID, "rrSubmitterPluginVersion", "d9.0.8_ffmpg")
         writeNodeStr(fileID, "Software", "Blender")
         writeNodeStr(fileID, "Renderer", self._renderer_name)
         writeNodeStr(fileID, "rendererVersion", self._renderer_version)

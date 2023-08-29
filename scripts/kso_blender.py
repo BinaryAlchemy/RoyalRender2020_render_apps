@@ -484,12 +484,15 @@ def set_output_path():
 
 
 def set_output_format(file_ext, file_format='', scene=None):
+    """Set blender output and pick correct format for given extension.
+    Return chosen format, or given file_format if none is found"""
     scene = bpy.data.scenes[RENDER_SCENE]
 
     log_msg(f"Scene file format is set to {scene.render.image_settings.file_format}")
 
-    if (file_ext==""):
-        return
+    if file_ext=="":
+        return file_format
+
     viable_formats = []
     for k, v in OUT_FORMATS.items():
         if file_ext in v:
@@ -553,15 +556,18 @@ def set_output_format(file_ext, file_format='', scene=None):
         scene.render.image_settings.jpeg2k_codec = 'JP2' if file_ext.lower() == '.jp2' else 'J2K'
         log_msg(f"jpeg2k codec set to", scene.render.image_settings.jpeg2k_codec)
 
+    out_extension = scene.render.file_extension
+    if out_extension != file_ext:
+        log_msg_wrn(f"Render file extension '{out_extension}' doesn't match job settings '{file_ext}'")
+    
+    return out_format if out_format else file_format
+
+
+def set_single_file_frame_loop(out_format):
     if out_format == 'FFMPEG' or out_format.startswith('AVI'):
         # Video: single output
         global LOCAL_FRAME_LOOP
         LOCAL_FRAME_LOOP = True
-    else:
-        out_extension = scene.render.file_extension
-        if out_extension != file_ext:
-            log_msg_wrn(f"Render file extension '{out_extension}' doesn't match job settings '{file_ext}'")
-
 
 # KSO connection
 
@@ -730,7 +736,9 @@ if __name__ == "__main__":
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)
     set_output_path()
-    set_output_format(args.render_fileext, args.render_format)
+    
+    out_format = set_output_format(args.render_fileext, args.render_format)
+    set_single_file_frame_loop(out_format)
 
     if args.overwrite_existing != None:
         bpy.data.scenes[RENDER_SCENE].render.use_overwrite = args.overwrite_existing
