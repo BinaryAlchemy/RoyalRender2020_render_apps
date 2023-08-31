@@ -227,6 +227,11 @@ class RRArgParser(object):
         self.res_y = None
         self.camera = None
 
+        self.borderMinX = None
+        self.borderMaxX = None
+        self.borderMinY = None
+        self.borderMaxY = None
+
         self.enable_gpu = False
         self.load_redshift = False
         self.enable_gpu_cpu = False
@@ -238,6 +243,18 @@ class RRArgParser(object):
 
         self.success = self._is_valid()
     
+    def is_tiled(self):
+        if self.borderMinX == None:
+            return False
+        if self.borderMinY == None:
+            return False
+        if self.borderMaxX == None:
+            return False
+        if self.borderMaxY == None:
+            return False
+        
+        return True
+
     def _is_valid(self):
         if self._debug:
             print("seq_start", self.seq_start)
@@ -356,6 +373,18 @@ class RRArgParser(object):
             if arg == "-rY":
                 self.res_y = int(value)
                 continue
+
+            if arg == "-rMinX":
+                self.borderMinX = float(value)
+            
+            if arg == "-rMaxX":
+                self.borderMaxX = float(value)
+
+            if arg == "-rMinY":
+                self.borderMinY = float(value)
+            
+            if arg == "-rMaxY":
+                self.borderMaxY = float(value)
 
             if arg == "-rRenderer":
                 self.renderer = value
@@ -693,6 +722,16 @@ def adjust_resolution(new_res_x, new_res_y):
             render_settings.resolution_y = new_res_y
 
 
+def set_render_region(min_x, max_x, min_y, max_y):
+    render_settings = bpy.data.scenes[RENDER_SCENE].render
+
+    render_settings.border_min_x = min_x
+    render_settings.border_max_x = max_x
+    render_settings.border_min_y = min_y
+    render_settings.border_max_y = max_y
+
+    render_settings.use_border = True
+
 ####
 
 if __name__ == "__main__":
@@ -732,6 +771,9 @@ if __name__ == "__main__":
             settings.device = 'GPU'
 
     adjust_resolution(args.res_x, args.res_y)
+    if args.is_tiled():
+        set_render_region(args.borderMinX, args.borderMaxX, args.borderMinY, args.borderMaxY)
+
     multiply_render_samples(args.renderer, args.anti_alias_mult)
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)

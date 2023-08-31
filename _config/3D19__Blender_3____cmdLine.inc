@@ -80,6 +80,6 @@ COLoadRedshift= 0~0
 
 ################################## Render Settings ################################## 
 
-FlagsRegion= -reg <X1 <X1> ? 0>  <X2 <X2> ? 19999> <Y1 <Y1> ? 0 > <Y2 <Y2> ? 19999>
+FlagsRegion= -rMinX <X1 <X1f> ? 0>  -rMaxX <X2 <X2f> ? 1>  -rMinY <Y1 <Y1f> ? 0 > -rMaxY <Y2 <Y2f> ? 1>
 
 ImageSizeCommandline= -rX <Width> -rY <Height>
