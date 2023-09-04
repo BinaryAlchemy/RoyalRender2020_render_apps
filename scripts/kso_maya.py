@@ -691,6 +691,22 @@ def setRenderSettings_Redshift(arg):
             if (not argValid(arg.RegionY2)):    
                 arg.RegionY2=19999
             maya.mel.eval('setMayaSoftwareRegion('+str(arg.RegionX1)+','+str(arg.RegionX2)+','+str(arg.RegionY1)+','+str(arg.RegionY2)+')')
+        
+        if argValid(arg.AASamples):
+            try:
+                samples_multi = float(arg.AASamples)
+            except TypeError:
+                logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
+            else:
+                if samples_multi != 1.0:
+                    if cmds.getAttr("redshiftOptions.enableAutomaticSampling"):
+                        logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                    else:
+                        new_min_samples = max(round(cmds.getAttr("redshiftOptions.unifiedMinSamples") * samples_multi), 1)
+                        logSetAttr('redshiftOptions.unifiedMinSamples', new_min_samples)
+
+                        new_max_samples = max(round(cmds.getAttr("redshiftOptions.unifiedMaxSamples") * samples_multi), new_min_samples)
+                        logSetAttr('redshiftOptions.unifiedMaxSamples', new_max_samples)
 
     except Exception as e:
         logMessageError(str(e))      
