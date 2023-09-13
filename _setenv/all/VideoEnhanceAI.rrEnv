@@ -19,9 +19,11 @@ echo * ------ VideoEnhanceAI.rrEnv version %rrVersion% ------
 
 #Help files state that these vars should be set
 VEAI_MODEL_DATA_DIR =  C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
-VEAI_MODEL_DIR = C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
+VEAI_MODEL_DIR =       C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
 
 
 #But Topaz Video itself sets these vars:
-TVAI_MODEL_DATA_DIR=C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
-TVAI_MODEL_DIR=C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
+TVAI_MODEL_DATA_DIR=   C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
+TVAI_MODEL_DIR=        C:\ProgramData\Topaz Labs LLC\Topaz Video AI\models
+
+[dir] <TVAI_MODEL_DATA_DIR>

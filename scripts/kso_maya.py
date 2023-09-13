@@ -1174,11 +1174,11 @@ def rrStart(argAll):
             renderSetupCount   = len( cmds.ls( type="renderSetupLayer" ) )  #New 
             renderLayerCount   = len( cmds.ls( type="renderLayer" ) ) #Old 
             renderLayerCount= renderLayerCount - renderSetupCount
-            #logMessage("New Render Setup layer  count: "+str(renderSetupCount))          
-            #logMessage("Legacy layer count: "+str(renderLayerCount))
-            #logMessage("New Render Setup preference enabled: "+str(prefNewSystemEnabled))
-            #logMessage("New Render Setup enabled: "+str(globalVarSet))
-            if (renderSetupCount>0 or (_rrGL_mayaVersion>2022)): # ">2022":I assume nobody is using legacy layers any more
+            logMessage("New Render Setup layer  count: "+str(renderSetupCount))          
+            logMessage("Legacy layer count: "+str(renderLayerCount))
+            logMessage("New Render Setup preference enabled: "+str(prefNewSystemEnabled))
+            logMessage("New Render Setup enabled: "+str(globalVarSet))
+            if (renderSetupCount>0): 
                 if (prefNewSystemEnabled!=1):
                     logMessageError("The new Render Setup layer system has been disabled via the Maya prefs! Unable to render scene file!")
                     return
