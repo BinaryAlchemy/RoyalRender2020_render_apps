@@ -263,6 +263,7 @@ def renderFrames_sub(localFrStart,localFrEnd,localFrStep, imgRes):
         
     elif (arg.rop.isNetwork()):
         foundNode=False
+        arg.rop.syncDelayedDefinition()
         rop_children= arg.rop.children()
         logMessage("Output node '"+arg.ropName+"' is a network node of type '"+str(arg.rop.type().name()) + "', searching in " + str(len(rop_children)) + " children for ROP nodes to render...")
         for child in rop_children:

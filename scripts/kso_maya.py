@@ -207,6 +207,7 @@ class argParser:
         self.AA3=getParam(allArgList,"AA3")
         self.AA4=getParam(allArgList,"AA4")
         self.AAseed=getParam(allArgList,"AAseed")
+        self.AASamples=getParam(allArgList,"AASamples")
         self.RenderDisplace= getParam(allArgList,"RenderDisplace")
         self.RenderMotionBlur= getParam(allArgList,"RenderMotionBlur")
         self.RenderImagePlanes = getParam(allArgList, "RenderImgPlanes")
@@ -599,6 +600,24 @@ def setRenderSettings_Arnold(arg):
             logMessageError(str(e))
         if (argValid(arg.AAseed)):
             logSetAttrType('defaultArnoldRenderOptions.aiUserOptions','AA_seed '+str(arg.AAseed),"string")
+        if argValid(arg.AASamples):
+            try:
+                samples_multi = float(arg.AASamples)
+            except TypeError:
+                logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
+            else:
+                if samples_multi != 1.0:
+                    new_aa_samples = round(cmds.getAttr("defaultArnoldRenderOptions.AASamples") * samples_multi)
+                    logSetAttr('defaultArnoldRenderOptions.AASamples', new_aa_samples)
+
+                    if cmds.getAttr("defaultArnoldRenderOptions.enableAdaptiveSampling"):
+                        new_max_samples = round(cmds.getAttr("defaultArnoldRenderOptions.AASamplesMax") * samples_multi)
+                        logSetAttr('defaultArnoldRenderOptions.AASamplesMax', new_max_samples)
+                    
+                    if cmds.getAttr("defaultArnoldRenderOptions.use_sample_clamp"):
+                        new_samples_clamp = cmds.getAttr("defaultArnoldRenderOptions.AASampleClamp") * samples_multi
+                        logSetAttr('defaultArnoldRenderOptions.AASampleClamp', new_samples_clamp)
+
     except Exception as e:
         logMessageError(str(e))   
 
@@ -672,6 +691,22 @@ def setRenderSettings_Redshift(arg):
             if (not argValid(arg.RegionY2)):    
                 arg.RegionY2=19999
             maya.mel.eval('setMayaSoftwareRegion('+str(arg.RegionX1)+','+str(arg.RegionX2)+','+str(arg.RegionY1)+','+str(arg.RegionY2)+')')
+        
+        if argValid(arg.AASamples):
+            try:
+                samples_multi = float(arg.AASamples)
+            except TypeError:
+                logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
+            else:
+                if samples_multi != 1.0:
+                    if cmds.getAttr("redshiftOptions.enableAutomaticSampling"):
+                        logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                    else:
+                        new_min_samples = max(round(cmds.getAttr("redshiftOptions.unifiedMinSamples") * samples_multi), 1)
+                        logSetAttr('redshiftOptions.unifiedMinSamples', new_min_samples)
+
+                        new_max_samples = max(round(cmds.getAttr("redshiftOptions.unifiedMaxSamples") * samples_multi), new_min_samples)
+                        logSetAttr('redshiftOptions.unifiedMaxSamples', new_max_samples)
 
     except Exception as e:
         logMessageError(str(e))      

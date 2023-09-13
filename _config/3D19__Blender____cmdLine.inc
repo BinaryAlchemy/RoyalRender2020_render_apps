@@ -65,6 +65,5 @@ FlagsRenderQuality2= -eaa 1 -ss 2 -mss 8 -ufil true -rct 0.2 -gct 0.2 -bct 0.2
 FlagsRenderQuality3= -eaa 0 -ss 3 -mss 9 -ufil true -rct 0.1 -gct 0.1 -bct 0.1
 FlagsRenderQuality4= -eaa 0 -ss 3 -mss 9 -ufil true -rct 0.05 -gct 0.05 -bct 0.05
 
-FlagsRegion= -reg <X1 <X1> ? 0>  <X2 <X2> ? 19999> <Y1 <Y1> ? 0 > <Y2 <Y2> ? 19999>
 
 ImageSizeCommandline= -x <Width> -y  <Height>

@@ -39,6 +39,7 @@ import os
 
 # Store the executor globally so that Python can get the callbacks from it.
 SUBSYSTEM_EXECUTOR = None
+TICK_HANDLE = None
 
 
 def all_forward_slashes(filepath):
@@ -125,7 +126,7 @@ def disable_out_of_range_shots(job, start, end):
         if shot_end <= start:
             info.enabled = False
             unreal.log(f"shot {info.outer_name} ends before first frame {start}, disabled")
-        if shot_start > end:
+        if shot_start >= end:
             unreal.log(f"shot {info.outer_name} starts after last frame {end}, disabled")
             info.enabled = False
 
@@ -300,6 +301,10 @@ class RenderArgs:
         self.img_folder = cmdParameters['rOutFolder']
         self.img_ext = cmdParameters['rExt']
         self.img_padding = int(cmdParameters['rPad'])
+        try:
+            self.anti_alias_mult = float(cmdParameters['rAA'])
+        except KeyError:
+            self.anti_alias_mult = 1.0
     
         self._cmdParameters = cmdParameters
 
@@ -361,7 +366,38 @@ class RenderCommander(RenderArgs):
         self.preset = unreal.load_asset(self.preset_path)
         if not self.preset:
             raise Exception(f"Preset Not Found: {self.preset_path}")
+    
+    def override_global_TAA(self):
+        aa_samples = unreal.SystemLibrary.get_console_variable_int_value('r.TemporalAASamples')
+
+        if aa_samples == 0:
+            unreal.log_warning("'r.TemporalAASamples' variable not found")
+            return
         
+        new_samples = max(1, int(aa_samples * self.anti_alias_mult))
+        unreal.SystemLibrary.execute_console_command(None, f"r.TemporalAASamples {new_samples}")
+        unreal.log(f"r.TemporalAASamples changed from {aa_samples} to {unreal.SystemLibrary.get_console_variable_int_value('r.TemporalAASamples')}")
+
+    def overide_AASettings_samples(self):
+        aa_setting = self.preset.find_or_add_setting_by_class(unreal.MoviePipelineAntiAliasingSetting)
+        
+        aa_samples = aa_setting.temporal_sample_count
+        if (aa_samples == 1 and aa_setting.spatial_sample_count == 1):
+            # aa_setting has default value, using r.TemporalAASamples
+            aa_samples = unreal.SystemLibrary.get_console_variable_int_value('r.TemporalAASamples')
+
+        new_samples = max(1, int(aa_samples * self.anti_alias_mult))
+        if new_samples == aa_samples:
+            unreal.log_warning(f"Preset's TemporalAASamples not changed from {aa_samples}")
+            return
+
+        aa_setting.temporal_sample_count = new_samples
+        unreal.log(f"Preset's TemporalAASamples changed from {aa_samples} to {aa_setting.temporal_sample_count}")
+
+        if not aa_setting.override_anti_aliasing and self.anti_alias_mult > 1.0:
+            # if still relying on project's TAA, we make sure that r.TemporalAASamples is increased as well
+            self.override_global_TAA()
+
     def create_out_setting(self):
         try:
             output_setting = next(setting for setting in self.preset.get_all_settings() if isinstance(setting, unreal.MoviePipelineOutputSetting))
@@ -369,6 +405,9 @@ class RenderCommander(RenderArgs):
             output_setting = self.preset.find_or_add_setting_by_class(unreal.MoviePipelineOutputSetting)
 
         output_setting.output_resolution = unreal.IntPoint(self.img_width, self.img_height)
+
+        if self.anti_alias_mult != 1.0:
+            self.overide_AASettings_samples()
 
         if output_setting.file_name_format.endswith(".wav"):
             output_setting.file_name_format = self.img_name[:-4]
@@ -428,6 +467,20 @@ class RenderCommander(RenderArgs):
         subsystem.render_queue_with_executor_instance(SUBSYSTEM_EXECUTOR)
 
 
+def wait_for_asset_registry(delta_seconds):
+    asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
+    if asset_registry.is_loading_assets():
+        unreal.log_warning("Asset Registry still loading...")
+        pass
+    else:
+        global TICK_HANDLE
+        
+        unreal.unregister_slate_pre_tick_callback(TICK_HANDLE)
+        TICK_HANDLE = None
+
+        RenderCommander().render_new_queue()
+                
+
 if __name__ == "__main__":
     unreal.log("RR render module %rrVersion%")
-    RenderCommander().render_new_queue()
+    TICK_HANDLE = unreal.register_slate_pre_tick_callback(wait_for_asset_registry)

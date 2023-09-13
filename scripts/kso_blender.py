@@ -227,6 +227,11 @@ class RRArgParser(object):
         self.res_y = None
         self.camera = None
 
+        self.borderMinX = None
+        self.borderMaxX = None
+        self.borderMinY = None
+        self.borderMaxY = None
+
         self.enable_gpu = False
         self.load_redshift = False
         self.enable_gpu_cpu = False
@@ -238,6 +243,18 @@ class RRArgParser(object):
 
         self.success = self._is_valid()
     
+    def is_tiled(self):
+        if self.borderMinX == None:
+            return False
+        if self.borderMinY == None:
+            return False
+        if self.borderMaxX == None:
+            return False
+        if self.borderMaxY == None:
+            return False
+        
+        return True
+
     def _is_valid(self):
         if self._debug:
             print("seq_start", self.seq_start)
@@ -356,6 +373,18 @@ class RRArgParser(object):
             if arg == "-rY":
                 self.res_y = int(value)
                 continue
+
+            if arg == "-rMinX":
+                self.borderMinX = float(value)
+            
+            if arg == "-rMaxX":
+                self.borderMaxX = float(value)
+
+            if arg == "-rMinY":
+                self.borderMinY = float(value)
+            
+            if arg == "-rMaxY":
+                self.borderMaxY = float(value)
 
             if arg == "-rRenderer":
                 self.renderer = value
@@ -484,12 +513,15 @@ def set_output_path():
 
 
 def set_output_format(file_ext, file_format='', scene=None):
+    """Set blender output and pick correct format for given extension.
+    Return chosen format, or given file_format if none is found"""
     scene = bpy.data.scenes[RENDER_SCENE]
 
     log_msg(f"Scene file format is set to {scene.render.image_settings.file_format}")
 
-    if (file_ext==""):
-        return
+    if file_ext=="":
+        return file_format
+
     viable_formats = []
     for k, v in OUT_FORMATS.items():
         if file_ext in v:
@@ -553,14 +585,18 @@ def set_output_format(file_ext, file_format='', scene=None):
         scene.render.image_settings.jpeg2k_codec = 'JP2' if file_ext.lower() == '.jp2' else 'J2K'
         log_msg(f"jpeg2k codec set to", scene.render.image_settings.jpeg2k_codec)
 
+    out_extension = scene.render.file_extension
+    if out_extension != file_ext:
+        log_msg_wrn(f"Render file extension '{out_extension}' doesn't match job settings '{file_ext}'")
+    
+    return out_format if out_format else file_format
+
+
+def set_single_file_frame_loop(out_format):
     if out_format == 'FFMPEG' or out_format.startswith('AVI'):
         # Video: single output
+        global LOCAL_FRAME_LOOP
         LOCAL_FRAME_LOOP = True
-    else:
-        out_extension = scene.render.file_extension
-        if out_extension != file_ext:
-            log_msg_wrn(f"Render file extension '{out_extension}' doesn't match job settings '{file_ext}'")
-
 
 # KSO connection
 
@@ -653,7 +689,7 @@ def ensure_scene_and_layer():
 
     if RENDER_SCENE and RENDER_SCENE not in bpy.data.scenes:
         log_msg_wrn(f"The scene {RENDER_SCENE} was not found in this file, will default to loaded scene")
-        RENDER_SCENE = None
+        RENDER_SCENE = ""
 
     if not RENDER_SCENE:
         RENDER_SCENE = bpy.context.scene.name
@@ -663,7 +699,7 @@ def ensure_scene_and_layer():
 
     if RENDER_LAYER and RENDER_LAYER not in bpy.data.scenes[RENDER_SCENE].view_layers:
         log_msg_wrn(f"The layer {RENDER_LAYER} was not found in '{RENDER_SCENE}', will default to loaded layer")
-        RENDER_LAYER = None
+        RENDER_LAYER = ""
 
     if not RENDER_LAYER:
         RENDER_LAYER = bpy.context.view_layer.name
@@ -685,6 +721,16 @@ def adjust_resolution(new_res_x, new_res_y):
         else:
             render_settings.resolution_y = new_res_y
 
+
+def set_render_region(min_x, max_x, min_y, max_y):
+    render_settings = bpy.data.scenes[RENDER_SCENE].render
+
+    render_settings.border_min_x = min_x
+    render_settings.border_max_x = max_x
+    render_settings.border_min_y = min_y
+    render_settings.border_max_y = max_y
+
+    render_settings.use_border = True
 
 ####
 
@@ -725,11 +771,16 @@ if __name__ == "__main__":
             settings.device = 'GPU'
 
     adjust_resolution(args.res_x, args.res_y)
+    if args.is_tiled():
+        set_render_region(args.borderMinX, args.borderMaxX, args.borderMinY, args.borderMaxY)
+
     multiply_render_samples(args.renderer, args.anti_alias_mult)
     
     set_frame_range(args.seq_start, args.seq_end, args.seq_step)
     set_output_path()
-    set_output_format(args.render_fileext, args.render_format)
+    
+    out_format = set_output_format(args.render_fileext, args.render_format)
+    set_single_file_frame_loop(out_format)
 
     if args.overwrite_existing != None:
         bpy.data.scenes[RENDER_SCENE].render.use_overwrite = args.overwrite_existing
