@@ -17,9 +17,13 @@ except ImportError:
 def getFilename_convertFrameNr(parm):
     fr1= parm.evalAtFrame(1)
     fr9= parm.evalAtFrame(9999999)
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr1))
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr9))
     #There are Python expressions that return $F4 even after eval()
     fr1= hou.text.expandStringAtFrame(fr1, 1)
     fr9= hou.text.expandStringAtFrame(fr9, 9999999)
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr1))
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr9))
     if (fr1==fr9):
         return fr1
     padding=len(fr1)-len(fr9)+7
@@ -27,6 +31,8 @@ def getFilename_convertFrameNr(parm):
     posFrEnd=posFr+7
     newName= "<FN" + str(padding) + ">"
     newName=fr9[:posFr] + newName + fr9[posFrEnd:]
+    logger.debug("getFilename_convertFrameNr: {} ".format(newName))
+
     return newName
         
 
