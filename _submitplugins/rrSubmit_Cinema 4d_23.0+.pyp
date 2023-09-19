@@ -2229,99 +2229,114 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             lID = lID + 1
             lanDesc = c4d.GeGetLanguage(lID)
         CinemaPath = os.path.dirname(c4d.storage.GeGetPluginPath())
-        CinemaPath = os.path.join(
-            CinemaPath, "resource", "modules", "newman", "strings_" + str(language), "c4d_strings.str"
-        )
+        CinemaPath = os.path.join(CinemaPath, "resource", "modules", "newman")
 
-        LOGGER.debug("Language file 1: "+CinemaPath)
-        strfile = open(CinemaPath)
-        for sline in strfile :
-            sline = sline.rstrip()
-            svalue = ""
-            if ';' in sline and '"' in sline:
-                sline = sline.split('"')
-                svalue = sline[1].rstrip()
-                sline = sline[0].rstrip()
-                if "IDS_PV_STEREO_CHANNEL" in sline:
-                    self.languageStrings['STEREO_CHANNEL'] = svalue
-                elif "IDS_PV_STEREO_ANA_COL_LEFT" in sline:
-                    self.languageStrings['STEREO_ANA_COL_LEFT'] = svalue
-                elif "IDS_PV_STEREO_ANA_COL_RIGHT" in sline:
-                    self.languageStrings['STEREO_ANA_COL_RIGHT'] = svalue
-        strfile.close()
+        if not os.path.isdir(CinemaPath):
+            CinemaPath = os.path.join(os.path.dirname(c4d.storage.GeGetPluginPath()), "resource", "modules", "c4d_manager")
+
+        CinemaPath = os.path.join(CinemaPath, "strings_" + str(language), "c4d_strings.str")
+
+        if os.path.isfile(CinemaPath):
+            LOGGER.debug("Language file 1: "+CinemaPath)
+            strfile = open(CinemaPath)
+            for sline in strfile :
+                sline = sline.rstrip()
+                svalue = ""
+                if ';' in sline and '"' in sline:
+                    sline = sline.split('"')
+                    svalue = sline[1].rstrip()
+                    sline = sline[0].rstrip()
+                    if "IDS_PV_STEREO_CHANNEL" in sline:
+                        self.languageStrings['STEREO_CHANNEL'] = svalue
+                    elif "IDS_PV_STEREO_ANA_COL_LEFT" in sline:
+                        self.languageStrings['STEREO_ANA_COL_LEFT'] = svalue
+                    elif "IDS_PV_STEREO_ANA_COL_RIGHT" in sline:
+                        self.languageStrings['STEREO_ANA_COL_RIGHT'] = svalue
+            strfile.close()
+        else:
+            LOGGER.warning(f"Language file 1 not found: {CinemaPath}")
 
         CinemaPath = os.path.dirname(c4d.storage.GeGetPluginPath())
-        CinemaPath = os.path.join(CinemaPath, "resource", "modules", "c4dplugin", "strings_" + str(language), "c4d_strings.str")
-        LOGGER.debug("Language file 2: " + CinemaPath)
-        strfile = open(CinemaPath)
-        for sline in strfile:
-            sline = sline.rstrip()
-            svalue = ""
-            if ';' in sline and '"' in sline:
-                sline = sline.split('"')
-                svalue = sline[1].rstrip()
-                sline = sline[0].rstrip()
-                if "IDS_STREAM" in sline:
-                    self.languageStrings['STREAM'] = self.convert_umlaut(svalue)
-                if "IDS_MERGEDSTREAM" in sline:
-                    self.languageStrings['MERGEDSTREAM'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_AMBIENT" in sline:
-                    self.languageStrings['ambient'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_ATMOSPHERE" in sline:
-                    self.languageStrings['atmos'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_ATMOSPHERE_MULTIPLY" in sline:
-                    self.languageStrings['atmosmul'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_TRANSPARENCY" in sline:
-                    self.languageStrings['refr'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_REFLECTION" in sline:
-                    self.languageStrings['refl'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_RADIOSITY" in sline:
-                    self.languageStrings['gi'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_CAUSTICS" in sline:
-                    self.languageStrings['caustics'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_DEPTH" in sline:
-                    self.languageStrings['depth'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_SHADOW" in sline:
-                    self.languageStrings['shadow'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_SPECUALR" in sline:
-                    self.languageStrings['specular'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_DIFFUSE" in sline:
-                    self.languageStrings['diffuse'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_ILLUMINATION" in sline:
-                    self.languageStrings['illum'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_SPECULAR" in sline:
-                    self.languageStrings['matspeccol'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_SPECULAR_COLOR" in sline:
-                    self.languageStrings['matspec'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_ENVIRONMENT" in sline:
-                    self.languageStrings['matenv'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_REFLECTION" in sline:
-                    self.languageStrings['matrefl'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_TRANSPARENCY" in sline:
-                    self.languageStrings['mattrans'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_LUMINANCE" in sline:
-                    self.languageStrings['matlum'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_DIFFUSION" in sline:
-                    self.languageStrings['matdif'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_COLOR" in sline:
-                    self.languageStrings['matcolor'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_AMBIENTOCCLUSION" in sline:
-                    self.languageStrings['ao'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MOTIONVECTOR" in sline:
-                    self.languageStrings['motion'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_UV" in sline:
-                    self.languageStrings['uv'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_MATERIAL_NORMAL" in sline:
-                    self.languageStrings['normal'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_RGBA" in sline:
-                    self.languageStrings['rgb'] = self.convert_umlaut(svalue)
-                    self.languageStrings['rgba'] = self.convert_umlaut(svalue)
-                if "IDS_MULTIPASS_OBJECT_LAYER" in sline:
-                    strg = self.convert_umlaut(svalue)
-                    strg = strg.replace("#", "")
-                    strg = strg.strip()
-                    self.languageStrings['object_#_'] = strg
-        strfile.close()
+        CinemaPath = os.path.join(CinemaPath, "resource", "modules", "c4dplugin")
+
+        if not os.path.isdir(CinemaPath):
+            CinemaPath = os.path.join(os.path.dirname(c4d.storage.GeGetPluginPath()), "resource", "modules", "c4d_base")
+                                  
+        CinemaPath = os.path.join(CinemaPath, "strings_" + str(language), "c4d_strings.str")
+
+        if os.path.isfile(CinemaPath):
+            LOGGER.debug("Language file 2: " + CinemaPath)
+            strfile = open(CinemaPath)
+            for sline in strfile:
+                sline = sline.rstrip()
+                svalue = ""
+                if ';' in sline and '"' in sline:
+                    sline = sline.split('"')
+                    svalue = sline[1].rstrip()
+                    sline = sline[0].rstrip()
+                    if "IDS_STREAM" in sline:
+                        self.languageStrings['STREAM'] = self.convert_umlaut(svalue)
+                    if "IDS_MERGEDSTREAM" in sline:
+                        self.languageStrings['MERGEDSTREAM'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_AMBIENT" in sline:
+                        self.languageStrings['ambient'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_ATMOSPHERE" in sline:
+                        self.languageStrings['atmos'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_ATMOSPHERE_MULTIPLY" in sline:
+                        self.languageStrings['atmosmul'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_TRANSPARENCY" in sline:
+                        self.languageStrings['refr'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_REFLECTION" in sline:
+                        self.languageStrings['refl'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_RADIOSITY" in sline:
+                        self.languageStrings['gi'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_CAUSTICS" in sline:
+                        self.languageStrings['caustics'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_DEPTH" in sline:
+                        self.languageStrings['depth'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_SHADOW" in sline:
+                        self.languageStrings['shadow'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_SPECUALR" in sline:
+                        self.languageStrings['specular'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_DIFFUSE" in sline:
+                        self.languageStrings['diffuse'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_ILLUMINATION" in sline:
+                        self.languageStrings['illum'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_SPECULAR" in sline:
+                        self.languageStrings['matspeccol'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_SPECULAR_COLOR" in sline:
+                        self.languageStrings['matspec'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_ENVIRONMENT" in sline:
+                        self.languageStrings['matenv'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_REFLECTION" in sline:
+                        self.languageStrings['matrefl'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_TRANSPARENCY" in sline:
+                        self.languageStrings['mattrans'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_LUMINANCE" in sline:
+                        self.languageStrings['matlum'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_DIFFUSION" in sline:
+                        self.languageStrings['matdif'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_COLOR" in sline:
+                        self.languageStrings['matcolor'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_AMBIENTOCCLUSION" in sline:
+                        self.languageStrings['ao'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MOTIONVECTOR" in sline:
+                        self.languageStrings['motion'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_UV" in sline:
+                        self.languageStrings['uv'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_MATERIAL_NORMAL" in sline:
+                        self.languageStrings['normal'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_RGBA" in sline:
+                        self.languageStrings['rgb'] = self.convert_umlaut(svalue)
+                        self.languageStrings['rgba'] = self.convert_umlaut(svalue)
+                    if "IDS_MULTIPASS_OBJECT_LAYER" in sline:
+                        strg = self.convert_umlaut(svalue)
+                        strg = strg.replace("#", "")
+                        strg = strg.strip()
+                        self.languageStrings['object_#_'] = strg
+            strfile.close()
+        else:
+            LOGGER.warning(f"Language file 2 not found: {CinemaPath}")
 
     def addCameras(self, doc):
         ob = doc.GetFirstObject()
@@ -2405,13 +2420,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             c4d.RDATA_RENDERENGINE_STANDARD: "",
             c4d.RDATA_RENDERENGINE_PHYSICAL: "Physical",
             c4d.RDATA_RENDERENGINE_PREVIEWHARDWARE: "Hardware",
-            c4d.RDATA_RENDERENGINE_CINEMAN: "CineMan",
+            
             1029525: "Octane",
             1029988: "Arnold",
-            1036219: "Redshift",
             1019782: "vray",
             1035287: "cycles",
         }
+
+        try:
+            renderers[c4d.RDATA_RENDERENGINE_CINEMAN] = "CineMan"
+        except AttributeError:
+            # Cineman was removed in C4D 2024
+            pass
+        
+        try:
+            # Redshift attr was added in C4D 2024
+            renderers[c4d.RDATA_RENDERENGINE_REDSHIFT] = "Redshift"
+        except AttributeError:
+            # Fallback to plugin ID
+            renderers[1036219] = "Redshift"
 
         try:
             renderers[c4d.RDATA_RENDERENGINE_PREVIEWSOFTWARE] = "preview"
