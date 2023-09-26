@@ -117,11 +117,12 @@ class ArnoldRop(RenderNode):
 
     @property
     def gpu(self):
-        #if self._node.evalParm("ar_render_device") == "CPU":
-        if self._node.evalParm("ar_denoise") == 1:
-            gpu = False
-        else:
+        if self._node.evalParm("ar_render_device") == "GPU":
             gpu = True
+        elif self._node.evalParm("ar_denoise") == 1:
+            gpu = True
+        else:
+            gpu = False
         return gpu
 
     def to_archive(self):

@@ -17,14 +17,14 @@ TYPEv9=Archive
 
 
 #Deprecated settings
-FlagsVerbose0= <AvFrameTimeMin10 -V2a ? -V2>
+FlagsVerbose0= <AvFrameTimeMin10 -V3a ? -V2>
 FlagsVerbose1= -V0
 FlagsVerbose2= -V1
 FlagsVerbose3= -V4a
 FlagsVerbose4= -V7a
 
 
-FlagsVerboseDefault= <AvFrameTimeMin10 -V2a ? -V2>
+FlagsVerboseDefault= <AvFrameTimeMin10 -V3a ? -V2>
 FlagsVerboseNone=        -V0
 FlagsVerboseWarning=     -V1
 FlagsVerboseInformation= -V4a
