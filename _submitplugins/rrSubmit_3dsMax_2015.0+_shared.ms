@@ -472,7 +472,11 @@ struct rrSubmit_scriptrender
         
         
         if (rrJob.channelNames[1] == "vrayRaw") then (
-            if (renderers.production.fileName_addDot and (rrJob.outimageFileName[rrJob.outimageFileName.count]!=".")) then (
+            addDot = not hasProperty renderers.production #fileName_addDot
+			if (not addDot) then (
+				addDot = renderers.production.fileName_addDot
+			)
+            if ( addDot and (rrJob.outimageFileName[rrJob.outimageFileName.count]!=".")) then (
                 rrJob.outimageFileName= rrJob.outimageFileName + "."
             )
         )
