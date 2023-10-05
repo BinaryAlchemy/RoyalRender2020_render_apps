@@ -60,7 +60,7 @@ class hqSimRop(rrNode):
         jobServer.single_output = True
         jobServer.sceneVar_Job = self.sceneVar_Job
         jobServer.outdir = jobServer.scene_database_dir
-        jobServer.add_custom_option("CustomCommandLine",'"<RR_DIR>render_apps/scripts/houdini_simtracker_start.py" <JobCommandPWHash_asText -JobCommandPWHash <JobCommandPWHash_asText>> -childRRJob <WaitChild> -HoudiniModPath "<OSEnv HFS>/houdini/python3.7libs"', "custom")
+        jobServer.add_custom_option("CustomCommandLine",'"<RR_DIR>render_apps/scripts/houdini_simtracker_start.py" <JobCommandPWHash_asText -JobCommandPWHash <JobCommandPWHash_asText>> -childRRJob <WaitChild> -HoudiniModPath "<OSEnv HFS>/houdini/python<HPyVerP>libs"', "custom")
         jobServer.fstart = 1
         jobServer.fend = 1
         jobServer.finc = 1
