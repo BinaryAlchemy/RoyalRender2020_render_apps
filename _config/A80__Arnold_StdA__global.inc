@@ -48,7 +48,6 @@ licenseFailLine=  abort_on_license_fail enabled
 licenseFailLine=  aborting render because the abort_on_license_fail option
 
 errorSearchLine=  render terminating early
-brokenImageSearchLine=  render terminating early
 
 RealTimeAbortLine= failed authorization
 
