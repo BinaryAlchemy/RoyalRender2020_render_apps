@@ -21,53 +21,52 @@ CommandLine=<envFileExecute <rrEnvFile>>
 CommandLine=<rrEnvLine>
 
 CommandLine=
-	<CPU <LimitCPUs> <CPU>>
+    <CPU <LimitCPUs> <CPU>>
 
 CommandLine=
-	<SetEnvGlobal>
+    <SetEnvGlobal>
 
 CommandLine=
-	<SetEnvSoft>
+    <SetEnvSoft>
 
 
 CommandLine=
-	<ResetExitCode> 
+    <ResetExitCode> 
 
 CommandLine= 
-	"<Exe>"
-	"<PD/ <rrLocalRenderScripts>kso_houdini.py" >
-        -scene "<PD/<Scene>>"
-	-renderer "createUSD"
-	-exportmode true
-	-FrStart <SeqStart>
-	-FrEnd <SeqEnd>
-	-FrStep <SeqStep>
-	-FPadding <ImageFramePadding>
-	-FName "<PD/<ImageDir><ImageFilenameVariables>>" 
-	-FExt "<ImageExtension>" 
-    <ImageSingleOutputFile -FSingleFile True >
- 	-rop "<PD/<Layer>>"
- 	-threads <CPU>
+    "<Exe>"
+    "<PD/ <rrLocalRenderScripts>kso_houdini.py" >
+    -scene "<PD/<Scene>>"
+    -renderer "createUSD"
+    -exportmode true
+    -FrStart <SeqStart>
+    -FrEnd <SeqEnd>
+    -FrStep <SeqStep>
+    -FPadding <ImageFramePadding>
+    -FName "<PD/<ImageDir><ImageFilenameVariables>>" 
+    <ImageSingleOutputFile -FSingleFile True ? -FExt "<ImageExtension>" >
+    -rop "<PD/<Layer>>"
+    -threads <CPU>
     -renderDemo False 
     -avFrameTime <AvFrameTimeSec>
     <AvFrameTimeMin10 -verbose True>
-	<NoFramebyFrameLoop -noFrameLoop True>
+    <NoFramebyFrameLoop -noFrameLoop True>
     <ImageSingleOutputFile -noFrameLoop True>
     <COIgnoreLoadWarnings -ignoreLoadIssues True>
     <COUnlockAssets -unlockAssets True>
-	<COSubFrames -subFrames <COSubFrames>>
-	<SequenceDivideMin ? -noFrameLoop True>    
-	-PyModPath <rrLocalRenderScripts><EL<PD>>
+    <COSubFrames -subFrames <COSubFrames>>
+    <SequenceDivideMin ? -noFrameLoop True>    
+    -PyModPath <rrLocalRenderScripts><EL<PD>>
     <channel -take <channel>>
     <SceneState -wedge <SceneState>>
     <COIgnoreROPDependencies -ignoreROPDependencies>
-	<isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
-	<AdditionalCommandlineParam>
-	<ClientConfigParam>
-	
+    <isKSO -KSOMode <isKSOBool> -KSOPort <ksoTCPport> >
+    <AdditionalCommandlineParam>
+    <ClientConfigParam>
+    
 
 CommandLine=
-	<CheckExitCode> <FN>
+    <CheckExitCode> <FN>
 
 
 
