@@ -44,7 +44,8 @@ CommandLine=
     -FrStep <SeqStep>
     -FPadding <ImageFramePadding>
     -FName "<PD/<ImageDir><ImageFilenameVariables>>" 
-    <ImageSingleOutputFile -FSingleFile True ? -FExt "<ImageExtension>" >
+    <ImageExtension -FExt "<ImageExtension>" >
+    <ImageSingleOutputFile -FSingleFile True>
     -rop "<PD/<Layer>>"
     -threads <CPU>
     -renderDemo False 
