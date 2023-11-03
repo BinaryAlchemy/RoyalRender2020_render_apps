@@ -189,11 +189,22 @@ REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
     RR_ARNOLD_NETWORK = 0
 [EndIf]
 
+
+[If] <RR_ARNOLD_NETWORK>  [==] 1
+    ARNOLD_BIN=<RR_ARNOLD_BASE_LOCAL>/arnold/bin
+[EndIf]
+
+[If] <RR_ARNOLD_NETWORK>  [==] 1
+    # C4D does not like backslashes in the PATH and drops them
+    [BSlashConvert] ARNOLD_BIN  =  <ARNOLD_BIN>
+[EndIf]
+
+
 [If] <RR_ARNOLD_NETWORK>  [==] 1
         echo * Arnold source path is set to <RR_ARNOLD_BASE>
         echo * Arnold cache path is set to <RR_ARNOLD_BASE_LOCAL>
         [copy] SyncNoCreateDir <RR_ARNOLD_BASE>   =>   <RR_ARNOLD_BASE_LOCAL>
-
+        PATH=<ARNOLD_BIN>;<PATH>
         g_additionalModulePath = <g_additionalModulePath>;<RR_ARNOLD_BASE_LOCAL>
 [EndIf]
 ARNOLD_ADP_OPTIN = 0
