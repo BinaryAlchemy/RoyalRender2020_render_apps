@@ -400,34 +400,50 @@ class rrDenoiseRop(RenderNode):
     def rr_job_variablesFunc(self):
         parm = self._node.parm("denoiser")
         parmValue = parm.evalAsString() 
-        if (parmValue=="rman"):
+        if (parmValue=="arnold"):
             return ""
-        elif (parmValue=="arnold"):
-            return ""
-            
-        addFlags=""
-        normal = self._node.parm("hou_normal").evalAsString()
-        albedo = self._node.parm("hou_albedo").evalAsString()
-        aov = self._node.parm("hou_aov").evalAsString()
-        motion = self._node.parm("hou_motion").evalAsString()
-        if (normal and len(normal)>0):
-            addFlags= addFlags + "NormalName=" + normal + ";"
-        if (albedo and len(albedo)>0):
-            addFlags= addFlags + "AlbedoName=" + albedo + ";"
-        if (motion and len(motion)>0):
-            addFlags= addFlags + "MotionName=" + aov + ";"
-        if (aov and len(aov)>0):
-            addFlags= addFlags + "AOVNames=" + aov + ";"
+        elif (parmValue=="rman"):
+            addFlags=""
+            alpha = self._node.parm("aov_alpha").evalAsString()
+            albedo = self._node.parm("aov_albedo").evalAsString()
+            diffuse = self._node.parm("aov_diffuse").evalAsString()
+            irradiance = self._node.parm("aov_irradiance").evalAsString()
+            specular = self._node.parm("aov_specular").evalAsString()
+            if (alpha and len(alpha)>0):
+                addFlags= addFlags + "AlphaName=" + alpha + ";"
+            if (albedo and len(albedo)>0):
+                addFlags= addFlags + "AlbedoName=" + albedo + ";"
+            if (diffuse and len(diffuse)>0):
+                addFlags= addFlags + "DiffuseName=" + diffuse + ";"
+            if (irradiance and len(irradiance)>0):
+                addFlags= addFlags + "IrradianceName=" + irradiance + ";"            
+            if (specular and len(specular)>0):
+                addFlags= addFlags + "SpecularName=" + specular + ";"            
+            return addFlags
+        else:    
+            addFlags=""
+            normal = self._node.parm("hou_normal").evalAsString()
+            albedo = self._node.parm("hou_albedo").evalAsString()
+            aov = self._node.parm("hou_aov").evalAsString()
+            motion = self._node.parm("hou_motion").evalAsString()
+            if (normal and len(normal)>0):
+                addFlags= addFlags + "NormalName=" + normal + ";"
+            if (albedo and len(albedo)>0):
+                addFlags= addFlags + "AlbedoName=" + albedo + ";"
+            if (motion and len(motion)>0):
+                addFlags= addFlags + "MotionName=" + aov + ";"
+            if (aov and len(aov)>0):
+                addFlags= addFlags + "AOVNames=" + aov + ";"
 
-        opt=""
-        if (parmValue=="hou_intel"):
-            opt = self._node.parm("hou_option_oidn").evalAsString()
-        else:
-            opt = self._node.parm("hou_option_optix").evalAsString()
-        if (opt and len(opt)>0):
-            addFlags= addFlags + "Options=" + opt + ";"
+            opt=""
+            if (parmValue=="hou_intel"):
+                opt = self._node.parm("hou_option_oidn").evalAsString()
+            else:
+                opt = self._node.parm("hou_option_optix").evalAsString()
+            if (opt and len(opt)>0):
+                addFlags= addFlags + "Options=" + opt + ";"
 
-        return addFlags
+            return addFlags
         
         
         

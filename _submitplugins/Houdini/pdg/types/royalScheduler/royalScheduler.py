@@ -744,6 +744,11 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
                 
         #We do not limit the number of jobs to submit, therefore always ready
         #logger.debug("      onTick return SchedulerReady")
+        
+        #a way to tell the rrClient that this app is still running.
+        #Creates a 3sec CPU peak every 120 seconds
+        rrCmds.aliveCpuPeak()
+        
         return pdg.tickResult.SchedulerReady
 
 
