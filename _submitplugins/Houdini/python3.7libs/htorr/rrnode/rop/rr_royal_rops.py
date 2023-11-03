@@ -147,9 +147,9 @@ class rrPythonRop(rrNode):
                     settingname = setting.split("=")[0]
                     settingvalues = setting.split("=")[-1]
                     values = settingvalues.split("~")
-                    logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
+                    #logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
                     job.add_custom_option(settingname, values)
-                    logger.debug("Submitoptions: {}".format(job.options))
+                    #logger.debug("Submitoptions: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettings")
 
@@ -160,9 +160,9 @@ class rrPythonRop(rrNode):
                     settingname = setting.split("=")[0]
                     settingvalues = setting.split("=")[-1]
                     values = settingvalues.split("~")
-                    logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
+                    #logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
                     job.add_custom_option(settingname, values)
-                    logger.debug("Submitoptions Func: {}".format(job.options))
+                    #logger.debug("Submitoptions Func: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettingsFunc")
 
@@ -177,7 +177,7 @@ class rrPythonRop(rrNode):
                         varname= varname.strip()
                         varvalue= varvalue.strip()
                         customvarname = "Custom{}".format(varname)
-                        logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                        #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                         job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables")
@@ -193,7 +193,7 @@ class rrPythonRop(rrNode):
                         varname= varname.strip()
                         varvalue= varvalue.strip()
                         customvarname = "Custom{}".format(varname)
-                        logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                        #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                         job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables")

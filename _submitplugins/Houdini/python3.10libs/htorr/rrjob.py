@@ -22,8 +22,8 @@ from htorr import utils
 import os
 import sys
 from htorr import rrsubmitter
-
 import logging
+
 logger = logging.getLogger("HtoRR")
 
 sharedPath= os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared"))
@@ -178,7 +178,7 @@ class Job(object):
 
     def add_custom_option(self, name, value, type="tuple"):
         """Adds a custom option and value to Job options"""
-        logger.debug("Add custom job option: {} Value: {}".format(name, value))
+        #logger.debug("Add custom job option: {} Value: {}".format(name, value))
         self.options.add_custom_option(name, value, type)
 
     def serialize(self, serializer):
@@ -249,7 +249,15 @@ class Job(object):
 
     def set_dependency(self, jobs):
         """Makes this job dependend on the list of jobs provided."""
+        logger.debug("********************************** set_dependency. OLD: {}".format(self._dependency ))
         self._dependency = jobs
+        logger.debug("********************************** set_dependency. NEW: {}".format(self._dependency ))
+
+    def add_dependency(self, jobs):
+        """Makes this job dependend on the list of jobs provided."""
+        logger.debug("********************************** add_dependency. OLD: {}".format(self._dependency ))
+        self._dependency = self._dependency + jobs
+        logger.debug("********************************** add_dependency. NEW: {}".format(self._dependency ))
 
     def set_frange(self, frange):
         """Sets the frame range.
@@ -395,9 +403,7 @@ class SubmitOptions(object):
     def add_custom_option(self, name, value, type):
         """Adds custom option to Submit Options Dictionary"""
         self._parms[name] = Parm(name, name, type)
-        logger.debug(
-            "Added new Parm: {}={} ({})".format(self._parms[name].label, value, type)
-        )
+        #logger.debug( "Added new custom option: {}={} ({})".format(self._parms[name].label, value, type) )
         self._parms[name].set(value)
         # logger.debug("Set parm value to {}".format(value))
         # logger.debug("Get parm value {}".format(self._parms[name].eval()))
@@ -410,7 +416,7 @@ class SubmitOptions(object):
         Arguments:
             serializer XML_Serializer -- Serializer instance
         """
-        logger.debug("SubmitOptions.serialize(): {}".format(self))
+        #logger.debug("SubmitOptions.serialize(): {}".format(self))
         sdict = {}
         cdict = {}
         elist = []
@@ -420,31 +426,19 @@ class SubmitOptions(object):
                     #logger.debug("Parm: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         string_tuple = [str(t) for t in parm.eval()]
-                        logger.debug(
-                            "Add Parameter: {} to sdict with Value: {}".format(
-                                parm.label, "~".join(string_tuple)
-                            )
-                        )
+                        #logger.debug( "Add Parameter: {} to sdict with Value: {}".format(parm.label, "~".join(string_tuple)) )
                         sdict[parm.label] = "~".join(string_tuple)
                 if parm.typ == "custom":
                     #logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
-                        logger.debug(
-                            "Add Parameter: {} to cdict with Value: {}".format(
-                                parm.label, text
-                            )
-                        )
+                        #logger.debug("Add Parameter: {} to cdict with Value: {}".format(parm.label, text))
                         cdict[parm.label] = text
                 if parm.typ == "env":
                     #logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
-                        logger.debug(
-                            "Add Parameter: {} to elist with Value: {}".format(
-                                parm.label, text
-                            )
-                        )
+                        #logger.debug("Add Parameter: {} to elist with Value: {}".format(parm.label, text))
                         elist.append("{}={}".format(parm.label, text))
 
         else:
@@ -452,31 +446,19 @@ class SubmitOptions(object):
                 if parm.typ == "tuple":
                     if parm.eval():
                         string_tuple = [str(t) for t in parm.eval()]
-                        logger.debug(
-                            "3: Add Parameter: {} to sdict with Value: {}".format(
-                                parm.label, "~".join(string_tuple)
-                            )
-                        )
+                        #logger.debug("Add Parameter: {} to sdict with Value: {}".format(parm.label, "~".join(string_tuple)))
                         sdict[parm.label] = "~".join(string_tuple)
                 if parm.typ == "custom":
                     #logger.debug("Custom: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
-                        logger.debug(
-                            "Add Parameter: {} to cdict with Value: {}".format(
-                                parm.label, text
-                            )
-                        )
+                        #logger.debug("Add Parameter: {} to cdict with Value: {}".format(parm.label, text))
                         cdict[parm.label] = text
                 if parm.typ == "env":
                     #logger.debug("Env: {} Eval: {}".format(parm.label, parm.eval()))
                     if parm.eval():
                         text = parm.eval()
-                        logger.debug(
-                            "Add Parameter: {} to elist with Value: {}".format(
-                                parm.label, text
-                            )
-                        )
+                        #logger.debug("Add Parameter: {} to elist with Value: {}".format(parm.label, text))
                         elist.append("{}={}".format(parm.label, text))
 
         try:

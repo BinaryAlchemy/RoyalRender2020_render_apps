@@ -32,7 +32,7 @@ def detectRenderEngine(renderer_parm):
     try:
         ren = renderer_parm.eval() 
     except:
-        logger.debug("No renderer set or unable to read: {}".format(traceback.format_exc()))       
+        #logger.debug("No renderer set or unable to read: {}".format(traceback.format_exc()))       
         return _NAME_Karma
         
     if (ren == None):
@@ -186,16 +186,17 @@ class UsdRop(RenderNode):
         try:
             parm = self._node.parm("outputimage")
             parmValue = parm.eval()
-            logger.debug("{}: outputimage set, archive ".format(self._node.path()))               
+            #logger.debug("{}: outputimage set for archive ".format(self._node.path()))               
             outputFound=True
         except:
-            logger.debug("{}: no outputimage, no archive ".format(self._node.path()))  
+            #logger.debug("{}: no outputimage for archive ".format(self._node.path()))  
+            pass
         
         if not outputFound:
             stage= None
             import loputils
             lop = self._node.evalParm('loppath')
-            logger.debug("renderproductList: lop is {}".format(lop))
+            #logger.debug("renderproductList: lop is {}".format(lop))
             if lop:
                 lop = self._node.parm("loppath").evalAsNode()
                 stage = lop.stage() 
@@ -362,7 +363,7 @@ class UsdStandalone(UsdRop):
         stage= None
         import loputils
         lop = self._node.evalParm('loppath')
-        logger.debug("renderproductList: lop is {}".format(lop))
+        #logger.debug("renderproductList: lop is {}".format(lop))
         noStage=True
         if lop:
             lop = self._node.parm("loppath").evalAsNode()
@@ -405,7 +406,7 @@ class UsdStandalone(UsdRop):
                     product["resY"] = a.Get()[1]
             if (isValidImage):
                 allproducts.append(product)
-        printList_Debug("renderproductList", allproducts)
+        #printList_Debug("renderproductList", allproducts)
         return allproducts
 
     @property
@@ -525,7 +526,7 @@ class UsdRenderRop(RenderNode):
         stage= None
         import loputils
         lop = self._node.evalParm('loppath')
-        logger.debug("renderproductList: lop is {}".format(lop))
+        #logger.debug("renderproductList: lop is {}".format(lop))
         noStage=True
         if lop:
             lop = self._node.parm("loppath").evalAsNode()
@@ -568,7 +569,7 @@ class UsdRenderRop(RenderNode):
                     product["resY"] = a.Get()[1]
             if (isValidImage):
                 allproducts.append(product)
-        printList_Debug("renderproductList", allproducts)
+        #printList_Debug("renderproductList", allproducts)
         return allproducts        
 
 class UsdRenderRop_LOP(UsdRenderRop):

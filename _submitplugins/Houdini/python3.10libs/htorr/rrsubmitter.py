@@ -154,14 +154,15 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
                    + "\"" )
         logger.debug("Submit cmd: {}".format(command))   
         rr_env=os.environ.copy()
-        if 'QT_PLUGIN_PATH' in rr_env:
-            del rr_env['QT_PLUGIN_PATH']
-        if 'QT_LOGGING_RULES' in rr_env:
-            del rr_env['QT_LOGGING_RULES']
-        if 'QT_QPA_FONTDIR' in rr_env:
-            del rr_env['QT_QPA_FONTDIR']
-        if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
-            del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+        envCount= len(list(rr_env))
+        ie=0
+        while (ie<envCount):
+            envVar= list(rr_env)[ie]
+            if envVar.startswith("QT_"):
+                del rr_env[envVar]
+                envCount= envCount -1
+            else:
+                ie= ie+1
 
 
         # Execute RR Submitter with Popen Instance

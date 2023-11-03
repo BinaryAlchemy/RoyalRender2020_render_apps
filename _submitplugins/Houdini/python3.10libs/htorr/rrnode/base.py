@@ -91,10 +91,7 @@ class rrNode(object):
         Arguments:
             parseData {htorr.rrparser.ParseData} -- [parseData instance which provides needed fuctionality]
         """
-        logger.debug(
-            self.path
-            + ": Bypassing rrNode of type {} and parsing inputs".format(self.name)
-        )
+        logger.debug( self.path+ ": Bypassing rrNode of type {} and parsing inputs".format(self.name))
         for i in self._node.inputs():
             n = rrNode.create(i)
             n.parse(parseData)
@@ -258,7 +255,7 @@ class RenderNode(rrNode):
         ALl nodes which support archive rendering, have to implement to_archive and to_standalone to cast the wrapper instance to the appropriate class.
 
         """
-       
+        logger.debug( self._node.path() + ": RenderNode parse() ")
         # check if node is bypassed
         if self._node.isBypassed():
             return
@@ -278,7 +275,7 @@ class RenderNode(rrNode):
         #    joblist = self.renderproduct_childclass_parse(parseData)
         #    logger.debug("Renderproduct jobs: {}".format(joblist))
         #    for job in joblist:
-        #        job.set_dependency([archive_job])
+        #        job.add_dependency([archive_job])
         #    return
 
         # if node is not an archive render call childclass_parse without casting.
@@ -294,12 +291,15 @@ class RenderNode(rrNode):
 
             
             if archive_create:
+                logger.debug("-------------------------- RenderNode ArchiveExport {}".format(self._node.path()))
                 self.to_archive()
                 archive_job = self.childclass_parse(parseData)
             else:
                 #we do not want to add the archive job to our main parseData as a job
-                #but we need to parse it to get the output image
+                #but we need to parse it to get the output archive. Which is the scene of our StandaloneRender job
+                logger.debug("-------------------------- RenderNode Archive TEMP DELETED {}".format(self._node.path()))
                 parserTemp = htorr.rrparser.ParseData()
+                parserTemp.isTempHelper= True
                 archive_job = self.childclass_parse(parserTemp)
 
             archiveScene=""
@@ -315,12 +315,13 @@ class RenderNode(rrNode):
 
             # the other as standalone job
             if archive_render:
+                logger.debug("-------------------------- RenderNode StandaloneRender {}".format(self._node.path()))
                 self.to_standalone()
 
                 standalone_job = self.childclass_parse(parseData)
                 standalone_job.scene = archiveScene
                 if (archive_create):
-                    standalone_job.set_dependency([archive_job])
+                    standalone_job.add_dependency([archive_job])
 
     def childclass_parse(self, parseData):
         """Creating a Job instance and parsing all node properties to job properties.
@@ -328,7 +329,7 @@ class RenderNode(rrNode):
         """
         self.parse_init()
         
-        job = parseData.Job.create()
+        job = parseData.Job.create(parseData.isTempHelper)
         job.software = self.software
         job.software_version = self.software_version
         job.renderer = self.renderer
@@ -396,9 +397,9 @@ class RenderNode(rrNode):
                         settingname= settingname.strip()
                         settingvalues= settingvalues.strip()
                         values = settingvalues.split("~")
-                        logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
+                        #logger.debug( "Found custom job option: {} Value: {}".format(settingname, values) )
                         job.add_custom_option(settingname, values)
-                        logger.debug("Submitoptions Func: {}".format(job.options))
+                        #logger.debug("Submitoptions Func: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettingsFunc\n"+jobsettings+"\n"+traceback.format_exc())
                 
@@ -413,9 +414,9 @@ class RenderNode(rrNode):
                         settingname= settingname.strip()
                         settingvalues= settingvalues.strip()
                         values = settingvalues.split("~")
-                        logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
+                        #logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
                         job.add_custom_option(settingname, values)
-                        logger.debug("Submitoptions: {}".format(job.options))
+                        #logger.debug("Submitoptions: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettings\n"+traceback.format_exc())
 
@@ -431,7 +432,7 @@ class RenderNode(rrNode):
                         varvalue= varvalue.strip()
                         if len(varvalue)>0:
                             customvarname = "Custom{}".format(varname)
-                            logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                            #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                             job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())
@@ -447,7 +448,7 @@ class RenderNode(rrNode):
                         varname= varname.strip()
                         varvalue= varvalue.strip()
                         customvarname = "Custom{}".format(varname)
-                        logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                        #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                         job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())

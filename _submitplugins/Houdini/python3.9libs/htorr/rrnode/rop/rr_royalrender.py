@@ -273,9 +273,11 @@ class DependencyNode(rrNode):
     name = "rrDependency"
 
     def childclass_parse(self, parseData):
-        #logger.debug("UICurrent: {}".format( hou.frame()))
+        logger.debug("DDDDDDDDDDDD DependencyNode childclass_parse")
         with parseData.Dependency.create(self._node.name()) as d:
             for i in self._node.inputs():
+                logger.debug("DDDDDDDDDDDD DependencyNode create()...")
                 n = rrNode.create(i)
+                logger.debug("DDDDDDDDDDDD DependencyNode parse()...")
                 n.parse(parseData)
                 d.next()
