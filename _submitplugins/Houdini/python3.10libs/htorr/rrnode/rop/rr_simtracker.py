@@ -6,6 +6,7 @@ import os.path
 from htorr.rroutput import Output
 from htorr.rrnode.base import rrNode
 import random
+import sys
 
 
 logger = logging.getLogger("HtoRR")
@@ -41,7 +42,7 @@ class hqSimRop(rrNode):
         elif (sliceType==1):
             numSlices= self._node.parm("num_slices").eval()
         else:
-            logger.info("{}: Volume and Particle Slicing supported only!".format(self.path))
+            logger.error("{}: Volume and Particle Slicing supported only!".format(self.path))
             return None
         logger.info("{}: numSlices: {}".format(self.path, numSlices))
         
@@ -60,12 +61,17 @@ class hqSimRop(rrNode):
         jobServer.single_output = True
         jobServer.sceneVar_Job = self.sceneVar_Job
         jobServer.outdir = jobServer.scene_database_dir
-        jobServer.add_custom_option("CustomCommandLine",'"<RR_DIR>render_apps/scripts/houdini_simtracker_start.py" <JobCommandPWHash_asText -JobCommandPWHash <JobCommandPWHash_asText>> -childRRJob <WaitChild> -HoudiniModPath "<OSEnv HFS>/houdini/python<HPyVerP>libs"', "custom")
+        jobServer.add_custom_option("CustomCommandLine",'"<RR_DIR>render_apps/scripts/houdini_simtracker_start.py" <JobCommandPWHash_asText -JobCommandPWHash <JobCommandPWHash_asText>> -childRRJob <WaitChild> -HoudiniModPath <PD/ "<OSEnv HFS>/houdini/python<CustomHPyVerP>libs">', "custom")
         jobServer.fstart = 1
         jobServer.fend = 1
         jobServer.finc = 1
         jobServer.layer = self._node.parm("hq_driver").eval()
         
+        #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
+        pythonVerP= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
+        pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
+        jobServer.add_custom_option("CustomHPyVerP", pythonVerP, "custom")
+        jobServer.add_custom_option("CustomHPyVer", pythonVer, "custom")
         
 
         
@@ -88,6 +94,9 @@ class hqSimRop(rrNode):
         job.add_custom_option("CustomSlicerPort", "8000" , "custom")
         job.add_custom_option("CustomSlicerClient", "localhost" , "custom")
         job.add_custom_option("PPHoudiniStopSimServer", [0, 1])
+
+        job.add_custom_option("CustomHPyVerP", pythonVerP, "custom")
+        job.add_custom_option("CustomHPyVer", pythonVer, "custom")
 
         job.fstart = 0
         job.fend = numSlices -1
