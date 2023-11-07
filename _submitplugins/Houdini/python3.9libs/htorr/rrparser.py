@@ -19,9 +19,23 @@ from cmath import log
 import logging
 import sys
 from htorr import rrjob
-
+import traceback
 
 logger = logging.getLogger("HtoRR")
+
+def get_call_stack():
+    lineIdx= 0
+    allLines=""
+    lineCount= len(traceback.format_stack())
+    for line in traceback.format_stack():
+        lineIdx= lineIdx + 1
+        if (lineIdx < lineCount-5):
+            continue
+        if (lineIdx >= lineCount-1):
+            continue
+        allLines= allLines+ line.strip() + "\n"
+        
+    return allLines
 
 
 class JobFactory(object):
@@ -31,13 +45,14 @@ class JobFactory(object):
         self.id = 0
         self.proccessors = []
 
-    def create(self):
+    def create(self, isTempHelper):
         """Returns a Job instance."""
         self.id += 1
         job = rrjob.Job()
         job.pre_id = self.id
-        for p in self.proccessors:
-            p.process(job)
+        if (not isTempHelper):
+            for p in self.proccessors:
+                p.process(job)
         return job
 
     def register(self, proccessor):
@@ -87,8 +102,8 @@ class SubmissionFactory(object):
 
         submission_converted = rrjob.Submission()
         for s in self._submissions:
-            logger.debug("SubmissionFactory.get(): submission.options\n{}".format(s.options))
-            logger.debug("SubmissionFactory.get(): submission {}\n".format(s))
+            #logger.debug("SubmissionFactory.get(): submission.options\n{}".format(s.options))
+            #logger.debug("SubmissionFactory.get(): submission {}\n".format(s))
             
             #Copies all Jobs, bakes SubmitOptions of Submission into SubmitOptions of jobs and returns baked jobs.
             jobs =s.jobs
@@ -102,7 +117,7 @@ class SubmissionFactory(object):
                 else:
                     for name, label in rrjob.RR_PARMS.items():
                         if name in s.paramOverrides:
-                            logger.debug("SubmissionFactory.get():  override {}: {}".format(name, s.paramOverrides[name]))
+                            #logger.debug("SubmissionFactory.get():  override {}: {}".format(name, s.paramOverrides[name]))
                             j._parms[name].set( s.paramOverrides[name])
         
             for j in jobs:
@@ -126,6 +141,7 @@ class Dependency(object):
 
     """
 
+    logger.debug("DDDDDDDDDDDD  Dependency CLASS CONSTRUCTOR  ")
     instance_count = 0
     instance = None
 
@@ -136,22 +152,27 @@ class Dependency(object):
 
     def __enter__(self):
         Dependency.instance_count += 1
-        #logger.debug("DDDDependency __enter__ {} newCount {}".format(Dependency.instance.nodeName[Dependency.instance_count-1], Dependency.instance_count))
+        logger.debug("DDDDDDDDDDDD  Dependency __enter__ {} newCount {}".format(Dependency.instance.nodeName[Dependency.instance_count-1], Dependency.instance_count))
         return self
 
     def __exit__(self, *kwargs):
         dm = Dependency.instance
+        if not dm:
+          logger.debug("DDDDDDDDDDDD  Dependency __exit__() NONE  Count: {}".format(Dependency.instance_count))
+          # how come we ended up here?
+          Dependency.instance_count = 0
+          return
         idx_instance= Dependency.instance_count-1
         idx_input= dm.inputIdx[idx_instance]-1 #next is called after the last input, so we have to reduce it by 1
         if (Dependency.instance_count>1 and idx_input>0):
             #now copy the last jobs of this rrDependency into the parent rrDependency
             idx_P_instance= idx_instance-1            
             idx_P_input= dm.inputIdx[idx_P_instance]
-            #logger.debug("DDDDependency __exit__() inst_count {}, name {},  inputIdx {},  job count {}".format(Dependency.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
-            #logger.debug("DDDDependency __exit__() parent   name {},  inputIdx {},  job count {}".format(dm.nodeName[idx_P_instance],  dm.inputIdx[idx_P_instance], len(dm.jobs[idx_P_instance][idx_P_input])))
+            logger.debug("DDDDDDDDDDDD  Dependency __exit__() inst_count {}, name {},  inputIdx {},  job count {}".format(Dependency.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
+            logger.debug("DDDDDDDDDDDD  Dependency __exit__() parent   name {},  inputIdx {},  job count {}".format(dm.nodeName[idx_P_instance],  dm.inputIdx[idx_P_instance], len(dm.jobs[idx_P_instance][idx_P_input])))
             for job in dm.jobs[idx_instance][idx_input]:
                 dm.jobs[idx_P_instance][idx_P_input].append(job)
-        #logger.debug("DDDDependency __exit__ {} newCount {}".format(dm.nodeName[idx_instance], idx_instance))
+        logger.debug("DDDDDDDDDDDD  Dependency __exit__ {} newCount {}".format(dm.nodeName[idx_instance], Dependency.instance_count-1))
         #remove data of this rrDependency node
         dm.nodeName.pop(idx_instance)
         dm.inputIdx.pop(idx_instance)
@@ -166,7 +187,7 @@ class Dependency(object):
         """
         idx_instance= self.instance_count-1
         idx_input= self.inputIdx[idx_instance]
-        #logger.debug("DDDDependency next() inst_count {}, name {},  inputIdx {},  job count {}".format(self.instance_count, self.nodeName[idx_instance],  self.inputIdx[idx_instance], len(self.jobs[idx_instance][idx_input])))
+        logger.debug("DDDDDDDDDDDD  Dependency next() inst_count {}, name {},  inputIdx {},  job count {}".format(self.instance_count, self.nodeName[idx_instance],  self.inputIdx[idx_instance], len(self.jobs[idx_instance][idx_input])))
         if idx_input >= 0: #there was an input before
             if len(self.jobs[idx_instance][idx_input])==0: # but no jobs added, so we overwrite the last slot
                 return
@@ -177,21 +198,33 @@ class Dependency(object):
     @classmethod
     def process(cls, job):
         """Adds dependencies to job
-
-        Adds all jobs at self.jobs[inputIdx-1] as dependencies to job and adds job to self.jobs[inputIdx]
+        
+        Called when a new job is created.
+        Adds all jobs of last input self.jobs[inputIdx-1] as dependencies to this new job and adds new job to self.jobs[inputIdx]
 
         Arguments:
             job Job -- job to add dependencies
         """
-
+        #logger.debug("DDDDDDDDDDDD  Dependency process() \n{}".format(get_call_stack()))
         if cls.instance_count > 0:
             dm = cls.instance
             idx_instance= cls.instance_count-1
             idx_input= dm.inputIdx[idx_instance]
-            #logger.debug("DDDDependency process() inst_count {}, name {},  inputIdx {},  job count {}".format(cls.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
+            logger.debug("DDDDDDDDDDDD  Dependency process() inst_count {}, name {},  inputIdx {},  job count {}+1".format(cls.instance_count, dm.nodeName[idx_instance],  dm.inputIdx[idx_instance], len(dm.jobs[idx_instance][idx_input])))
             
             if (idx_input>0):          
-                job.set_dependency( dm.jobs[idx_instance][idx_input-1] )
+                #Add all jobs of last input as dependencies to this new job
+                job.add_dependency( dm.jobs[idx_instance][idx_input-1])
+
+            if (cls.instance_count > 1):     
+                #Add all jobs of last instance  as dependencies to this new job
+                PRE_idx_instance= cls.instance_count-2
+                PRE_idx_input= dm.inputIdx[PRE_idx_instance]
+                if (PRE_idx_input>0):          
+                    job.add_dependency( dm.jobs[PRE_idx_instance][PRE_idx_input-1])
+
+                
+            #adds new job to this input self.jobs[inputIdx]
             dm.jobs[idx_instance][idx_input].append(job)
             
 
@@ -203,16 +236,17 @@ class Dependency(object):
             cls.instance = dm
             cls.instance_count = 0
         cls.instance.nodeName.append(name)
-        cls.instance.inputIdx.append(0)
-        cls.instance.jobs.append([]) #For this instance, Create inputIdx array 
-        cls.instance.jobs[cls.instance_count].append([]) #For next instance (inc in __enter__), for inputIdx 0, create job Array
+        cls.instance.inputIdx.append(0) #For this instance, create input 0
+        cls.instance.jobs.append([]) #For this instance, create input array
+        cls.instance.jobs[cls.instance_count].append([]) #For this instance, for input 0, create job array
 
-        #logger.debug("DDDDependency create {} jobs_CountInstances {} jobs[thisInstance]_CountIndex {}".format(name, len(cls.instance.jobs), len(cls.instance.jobs[cls.instance_count])))
+        logger.debug("DDDDDDDDDDDD  Dependency create {} Instances {} ".format(name, cls.instance_count))
         return cls.instance
 
     @classmethod
     def reset(cls):
         """Since been used as a Singleton, this method resets all values"""
+        logger.debug("DDDDDDDDDDDD  Dependency RESET  \n{}".format(get_call_stack()))
         cls.instance_count = 0
         cls.instance = None
 
@@ -293,6 +327,7 @@ class ParseData(object):
 
     Wedge = Wedge
     Dependency = Dependency
+    isTempHelper = False  #will not result into any jobs that are submitted
 
     def __init__(self):
         self.SubmissionFactory = SubmissionFactory()
@@ -304,8 +339,9 @@ class ParseData(object):
         self.rendererPreSuffix= ""
 
     def __del__(self):
-        Wedge.reset()
-        Dependency.reset()
+        if (not isTempHelper):
+            Wedge.reset()
+            Dependency.reset()
 
 
 class ParserHandler(logging.StreamHandler):

@@ -91,19 +91,19 @@ class ProductOutput(object):
         #logger.debug("Product Output")
         
         try:
-            #attrib.Get truncates to range set in scene, therefore we cannot use frame 1 and 2
-            outf1 = attrib.Get(1)
-            outf2 = attrib.Get(1)
+            #attrib.Get does not work with a frame for render products. Which means we always get the same frame name
+            outf1 = attrib.Get(seqStart)
+            outf2 = attrib.Get(seqEnd+1) 
         except:
             logger.debug("No image output set.")
             return
         
         path_no_ext = ""
         
-        logger.debug("Output for frame {} is {} (PO)".format(seqStart, outf1))
-        logger.debug("Output for frame {} is {} (PO)".format(seqEnd, outf2))
+        #logger.debug("Output for frame {} is {} (PO)".format(seqStart, outf1))
+        #logger.debug("Output for frame {} is {} (PO)".format(seqEnd+1, outf2))
 
-        if outf2 != outf1:
+        if outf2 != outf1: # always the same, condition always false
             self.static = False
             exp = 0
             lastOutName="empty"
@@ -157,5 +157,5 @@ class ProductOutput(object):
                     #logger.debug("self.padding {}   path_no_ext {}".format(self.padding, path_no_ext))
             
             
-        #logger.debug("ProductOutput: self.padding {} self.extension {}  path_no_ext {}".format(self.padding, self.extension, path_no_ext))
+        logger.debug("ProductOutput:  path_no_ext {} self.padding {} self.extension {} ".format(path_no_ext, self.padding, self.extension))
         self.dir, self.name = os.path.split(path_no_ext)

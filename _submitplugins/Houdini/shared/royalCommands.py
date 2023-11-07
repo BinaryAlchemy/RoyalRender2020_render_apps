@@ -340,3 +340,8 @@ def sendrequest_jobStatusInfo(jobID):
     rrSubmitter= loadRRmodule()
     return rrSubmitter.send_getJobStatus(jobID)
         
+
+def aliveCpuPeak(jobID):
+    rrSubmitter= loadRRmodule()
+    return rrSubmitter.runCPUPeak(2)
+        
