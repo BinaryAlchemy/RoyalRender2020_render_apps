@@ -37,6 +37,7 @@ permanentErrorSearchLine = Unable to connect to hserver for license
 permanentErrorSearchLine = The installed OpenGL driver is not able to run OpenGL
 permanentErrorSearchLine = There must be a camera in the USD file
 permanentErrorSearchLine = does not match Houdini version at RR submission
+permanentErrorSearchLine = Please start the server before retrying
 
 
 errorSearchLine = aborting render script

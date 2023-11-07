@@ -15,6 +15,7 @@ import os
 import sys
 import re
 import tempfile
+import subprocess
 
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
@@ -2013,7 +2014,23 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         #print ("Executing: '"+exePath+"'  "+cmdFlags)
         if not os.path.isfile(exePath):
             rrWriteLog("RR executable not found or cannot be accessed!\n "+exePath+" \n")
-        os.system("\""+exePath+"\"  "+cmdFlags)
+        
+        cmdLine="\""+exePath+"\"  "+cmdFlags
+        
+        rr_env= os.environ.copy()
+        envCount= len(list(rr_env))
+        ie=0
+        while (ie<envCount):
+            envVar= list(rr_env)[ie]
+            if envVar.startswith("QT_"):
+                del rr_env[envVar]
+                envCount= envCount -1
+            else:
+                ie= ie+1
+
+
+        subprocess.Popen(cmdLine, close_fds=True, env=rr_env)
+
         
             
     def askFrameset(self, message="Enter Frames:"):
