@@ -19,7 +19,7 @@ from pdg.scheduler import PyScheduler
 from pdg.job.eventdispatch import EventDispatchMixin
 from pdg.utils.mq import MQUtility, MQInfo, MQState, MQUsage, MQSchedulerMixin
 from pdgutils import PDGNetMQRelay, mqGetError, mqCreateMessage, PDGNetMessageType
-from pdg.scheduler import submitGraphAsJob
+#from pdg.scheduler import submitGraphAsJob
 from pdg.utils import expand_vars
 
 
@@ -290,6 +290,18 @@ class houdiniTask2rrJobMapper():
                     newJob.customDataAppend_Str(self.nodes[i].customListVar[iv], self.nodes[i].customListValue[iv] )
                 newJob.customDataAppend_Str("rrSubmitterParameter", scheduler.jobSettings )
                 logger.debug("Add Job:  scheduler.jobSettings  {} ".format(scheduler.jobSettings))
+                
+                if "rrJobProject" in os.environ:
+                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "CompanyProjectName=0~' + os.environ["rrJobProject" ] +  '" ' )
+                if "rrJobUser" in os.environ:
+                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "UserName=0~' + os.environ["rrJobUser" ] +  '" ' )
+                if "rrJobCustomSequence" in os.environ:
+                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "CustomSeQName=0~' + os.environ["rrJobCustomSequence" ] +  '" ' )
+                if "rrJobCustomShot" in os.environ:
+                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "CustomSHotName=0~' + os.environ["rrJobCustomShot" ] +  '" ' )
+                if "rrJobCustomVersion" in os.environ:
+                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "CustomVersionName=0~' + os.environ["rrJobCustomVersion" ] +  '" ' )
+                
                     
                 #logger.debug("Add Job: {}   {} start:{} end:{}\n{}".format( newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd, envList))
                 #logger.debug("Add Job: {}  {}   {} start:{} end:{}".format(newJob.sceneName , newJob.renderApp.rendererName,  newJob.layer, newJob.seqStart,  newJob.seqEnd))
@@ -796,7 +808,7 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             else:
                 logger.error("Unable to export as xml file "+xmlFilename)
         else:
-            if (not rrCmds.submitJobList()):
+            if (not rrCmds.submitJobList_withUI()):
                 logger.error("Unable to submit jobs!")
             else:
                 logger.info("Submitted 1 job!")

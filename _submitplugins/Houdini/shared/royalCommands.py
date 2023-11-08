@@ -258,6 +258,11 @@ def submitJobList():
     return rrSubmitter.submitJobs()
     pass
     
+def submitJobList_withUI():
+    rrSubmitter= loadRRmodule()
+    return rrSubmitter.submitJobs_withUI()
+    pass
+    
 def getXmlTempFile(prefix):    
     now = datetime.now() 
     return os.path.join(tempfile.gettempdir(), prefix+ "_"+ now.strftime("%m%d%H%M%S") +".xml")
@@ -341,7 +346,7 @@ def sendrequest_jobStatusInfo(jobID):
     return rrSubmitter.send_getJobStatus(jobID)
         
 
-def aliveCpuPeak(jobID):
+def aliveCpuPeak():
     rrSubmitter= loadRRmodule()
     return rrSubmitter.runCPUPeak(2)
         
