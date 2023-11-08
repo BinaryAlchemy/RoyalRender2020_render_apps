@@ -25,7 +25,7 @@ except ImportError:
     logger.info("Module imported outside of hython environment")
 
 
-def submit(rops=[], gui=True):
+def submit(rops=[], gui=True, askForSave=True):
     logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
     logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
     #logger.debug("UICurrent: {}".format( hou.frame()))
@@ -93,8 +93,9 @@ def submit(rops=[], gui=True):
         return
         
     if hou.isUIAvailable():
-        if not utils.open_save_hip():
-            return
+        if (askForSave):
+            if not utils.open_save_hip():
+                return
     
     retJobIDs=[]
     

@@ -169,7 +169,11 @@ class Filecache(RenderNode):
 
     @property
     def output_parm(self):
-        return "file"
+        filemethod = self._node.parm("filemethod").eval() 
+        if (filemethod == 1):
+            return "file"
+            
+        return "sopoutput"
 
     @property
     def renderer_version(self):

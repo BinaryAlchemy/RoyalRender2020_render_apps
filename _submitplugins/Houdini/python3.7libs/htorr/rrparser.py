@@ -31,7 +31,7 @@ def get_call_stack():
         lineIdx= lineIdx + 1
         if (lineIdx < lineCount-5):
             continue
-        if (lineIdx >= lineCount-1):
+        if (lineIdx >= lineCount):
             continue
         allLines= allLines+ line.strip() + "\n"
         
@@ -45,7 +45,7 @@ class JobFactory(object):
         self.id = 0
         self.proccessors = []
 
-    def create(self, isTempHelper):
+    def create(self, isTempHelper= False):
         """Returns a Job instance."""
         self.id += 1
         job = rrjob.Job()
@@ -141,7 +141,7 @@ class Dependency(object):
 
     """
 
-    logger.debug("DDDDDDDDDDDD  Dependency CLASS CONSTRUCTOR  ")
+    #logger.debug("DDDDDDDDDDDD  Dependency CLASS CONSTRUCTOR  ")
     instance_count = 0
     instance = None
 
@@ -152,7 +152,7 @@ class Dependency(object):
 
     def __enter__(self):
         Dependency.instance_count += 1
-        logger.debug("DDDDDDDDDDDD  Dependency __enter__ {} newCount {}".format(Dependency.instance.nodeName[Dependency.instance_count-1], Dependency.instance_count))
+        #logger.debug("DDDDDDDDDDDD  Dependency __enter__ {} newCount {}".format(Dependency.instance.nodeName[Dependency.instance_count-1], Dependency.instance_count))
         return self
 
     def __exit__(self, *kwargs):
@@ -240,13 +240,13 @@ class Dependency(object):
         cls.instance.jobs.append([]) #For this instance, create input array
         cls.instance.jobs[cls.instance_count].append([]) #For this instance, for input 0, create job array
 
-        logger.debug("DDDDDDDDDDDD  Dependency create {} Instances {} ".format(name, cls.instance_count))
+        #logger.debug("DDDDDDDDDDDD  Dependency create {} Instances {} ".format(name, cls.instance_count))
         return cls.instance
 
     @classmethod
     def reset(cls):
         """Since been used as a Singleton, this method resets all values"""
-        logger.debug("DDDDDDDDDDDD  Dependency RESET  \n{}".format(get_call_stack()))
+        #logger.debug("DDDDDDDDDDDD  Dependency RESET  \n{}".format(get_call_stack()))
         cls.instance_count = 0
         cls.instance = None
 
@@ -339,9 +339,10 @@ class ParseData(object):
         self.rendererPreSuffix= ""
 
     def __del__(self):
-        if (not isTempHelper):
-            Wedge.reset()
-            Dependency.reset()
+        logger.debug("ParseData _del_ \n{}".format(get_call_stack()))
+        if (not self.isTempHelper):
+            self.Wedge.reset()
+            self.Dependency.reset()
 
 
 class ParserHandler(logging.StreamHandler):
