@@ -70,6 +70,10 @@ CommandLine=
     <CheckExitCode> <FN>
 
 
+CommandLine=
+    "<rrBin64>rrKillWait" 1 hserver true
+
+
 
 
 #################################################
