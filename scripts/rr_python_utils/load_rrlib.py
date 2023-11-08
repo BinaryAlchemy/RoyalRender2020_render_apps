@@ -1,3 +1,12 @@
+"""
+Imports Royal Render main module for the current version of Python,
+e.g. :mod:`libpyRR39`
+
+.. code-block:: python
+
+    from rr_python_utils.load_rrlib import rrLib
+"""
+
 import sys
 import logging
 from .errors import RR_GenericError

@@ -17,3 +17,7 @@ class RR_ConnectionError(Exception):
 class RR_GenericError(Exception):
     pass    
     
+    
+class RR_IncompatibleVersion(Exception):
+    pass    
+    
