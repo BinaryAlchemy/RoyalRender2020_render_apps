@@ -44,7 +44,11 @@ def logMessageError(msg, doRaise, printTraceback):
     logMessageGen("ERR", str(msg)+"\n")
     if printTraceback:
         import traceback
-        logMessageGen("ERR","-------------------------------- Traceback --------------------------------:\n"+traceback.format_exc()+"---------------------------------------------------------------------------\n")    
+        traceBack_str= traceback.format_exc()
+        if not doRaise:
+            #OperationFailed is set in the Houdini config as a Permanent Error that deassigns the client.
+            traceBack_str= traceBack_str.replace("OperationFailed", "Operation  Failed")
+        logMessageGen("ERR","-------------------------------- Traceback --------------------------------:\n"+ traceBack_str +"---------------------------------------------------------------------------\n")    
     
     if 'rrJobVersion' in os.environ:    
         houVersion= hou.applicationVersionString()
