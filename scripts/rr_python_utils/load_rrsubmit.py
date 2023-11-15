@@ -1,3 +1,11 @@
+"""
+Imports Royal Render submission module for the current version of Python,
+e.g. :mod:`libpyRR39_submit`
+
+.. code-block:: python
+
+    from rr_python_utils.load_rrsubmit import rrSubmitLib
+"""
 import sys
 import logging
 from .errors import RR_GenericError
@@ -11,7 +19,7 @@ if (sys.version_info.major == 2):
     loaded_rrSubmit= True
 elif (sys.version_info.major == 3):
     if (sys.version_info.minor == 7):
-        import libpyRR39_submit as rrSubmitLib
+        import libpyRR37_submit as rrSubmitLib
         loaded_rrSubmit= True
     elif (sys.version_info.minor == 9):
         import libpyRR39_submit as rrSubmitLib

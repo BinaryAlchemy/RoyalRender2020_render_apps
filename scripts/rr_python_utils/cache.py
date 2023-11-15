@@ -9,15 +9,17 @@ from datetime import datetime
 
 from .errors import RR_EnvironNotFound, RR_RecursiveCopyError, RR_FolderNotFound
 
+logLevel= logging.INFO
+#logLevel= logging.DEBUG
 
 rrLogger=logging.getLogger("rrPy")
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(logLevel)
 #formatter = logging.Formatter("%(asctime)s %(name)s| %(levelname)s:  %(message)s", "%H:%M:%S")
 formatter = logging.Formatter("%(asctime)s | %(levelname)s:  %(message)s", "%H:%M:%S")
 ch.setFormatter(formatter)
 rrLogger.addHandler(ch)
-rrLogger.setLevel(logging.INFO)
+rrLogger.setLevel(logLevel)
 
     
 
@@ -43,7 +45,10 @@ def get_rr_bin_folder():
             return ""
         rr_path=os.environ['RR_ROOT']
 
-    #for beta sites that use some RR9 apps, but farm is still RR8
+    #for sites that use some RRv9 apps, but farm is still RRv8
+    if (not 'rrIsDebug' in os.environ):
+        rr_path = rr_path.replace("_debug", "_release")
+
     if (os.path.exists(os.path.join(rr_path, "_RR9"))):
         rr_path= os.path.join(rr_path, "_RR9")
         
@@ -55,10 +60,10 @@ def get_rr_bin_folder():
         bin_path = os.path.join(bin_path, "mac")
     else:
         bin_path = os.path.join(bin_path, "lx")
-
-    bin_path += '64'
-
-    bin_path = bin_path.replace("_debug", "_release")
+        
+    if is_64bit():
+        bin_path += '64'
+    
     return bin_path
 
 
@@ -76,7 +81,7 @@ def rr_sync_copy(src_path, dst_path, errors):
             logger.debug("skipping: same size and time: {0}".format(src_path))
             return
 
-    logger.info("Copying file: {} {}".format(src_path,dst_path))
+    logger.debug("Copying file: {} {}".format(src_path,dst_path))
 
     try:
         if os.path.isfile(dst_path):
@@ -110,7 +115,7 @@ def rr_sync_tree(src_dir, dst_dir, symlinks=False):
     ignored_names = ('QtGui', 'Qt5Gui', 'QtXml', 'Qt5Xml', 'Qt5Widgets', 
                      'avcodec', 'avformat', 'avutil', 'cuda', 'swscale',
                      'Half', 'Iex', 'IlmImf', 'IlmThread', 'Imath', 'OpenEXR',
-                     'libcurl', 'libpng', 'rrJpeg', 'curl', 'rrShared', '7z', 
+                     'libcurl', 'libpng', 'rrJpeg', 'curl', '7z', 
                      'D3Dcompiler', 'iconengines', 'imageformats',
                      'platforms', 'bearer', 'translations')
 
@@ -157,13 +162,25 @@ def rr_sync_tree(src_dir, dst_dir, symlinks=False):
         raise RR_RecursiveCopyError(errors)
 
 
-def cache_module_locally(module_folder=None):
+def cache_module_locally(module_folder=None, target_folder=None):
     """Copy files required for python script execution to a local temp folder, add temp folder to modules path.
 
     Module files and their required dependenicy libs are locked while they are in use.
     If launched from the RR network folder, they might prevent updating Royal Render files.
     And there is a constant network connection. There have been cases in which a tiny network disruption caused Windows to fail loading additional functions from a dll
     """
+    if ('RR_PYTHON_FOLDER' in os.environ):
+        module_path= os.environ['RR_PYTHON_FOLDER']
+        sys.path.append(module_path)    
+        #logger.info("added module path " + module_path)
+        return
+    if ('RR_PYTHON_LIBS_FOLDER' in os.environ):
+        module_path= os.environ['RR_PYTHON_LIBS_FOLDER']
+        sys.path.append(module_path)
+        #logger.info("added module path " + module_path)
+        return
+
+    
     logger = get_logger()
     if not module_folder:
         module_folder = get_rr_bin_folder()
@@ -175,7 +192,6 @@ def cache_module_locally(module_folder=None):
     
     # Get the default temp folder
     tmp_folder = tempfile.gettempdir()
-
     if module_folder.endswith("64"):
         tmp_folder = os.path.join(tmp_folder, "rrbin64_py")
     else:
@@ -184,6 +200,16 @@ def cache_module_locally(module_folder=None):
     if not sys.platform.lower().startswith("win"):
         tmp_folder = os.path.join(tmp_folder, "lib")
         module_folder = os.path.join(module_folder, "lib")
+
+    if ('RR_PYTHON_CACHE_FOLDER' in os.environ):
+        tmp_folder= os.environ['RR_PYTHON_CACHE_FOLDER']
+        sys.path.append(tmp_folder)
+        logger.info("added module path " + tmp_folder)
+        
+    if target_folder!=None:
+        tmp_folder=target_folder    
+    logger.info("RR target folder ({})".format(tmp_folder))
+
 
     rr_sync_tree(module_folder, tmp_folder)
 

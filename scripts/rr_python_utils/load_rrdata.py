@@ -1,3 +1,12 @@
+"""
+Imports Royal Render data and statistics module for the current version of Python,
+e.g. :mod:`libpyRR39_datafiles`
+
+.. code-block:: python
+
+    from rr_python_utils.load_rrdata import rrData
+"""
+
 import sys
 import logging
 from .errors import RR_GenericError
