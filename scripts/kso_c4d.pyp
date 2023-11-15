@@ -1252,7 +1252,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                 else:
                     msg = "error rendering document: "
                     if res == c4d.RENDERRESULT_OUTOFMEMORY:
-                        msg += "Not enough memory."
+                        msg += "Not enough memory. In case of Redshift: Unspecified error, please see separate Redshift log file."
                     elif res == c4d.RENDERRESULT_ASSETMISSING:
                         msg += "Assets (textures etc.) are missing"
                     elif res == c4d.RENDERRESULT_SAVINGFAILED:
@@ -1305,7 +1305,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                     else:
                         msg = "error rendering document: "
                         if res == c4d.RENDERRESULT_OUTOFMEMORY:
-                            msg += "Not enough memory."
+                            msg += "Not enough memory.  In case of Redshift: Unspecified error, please see separate Redshift log file."
                         elif res == c4d.RENDERRESULT_ASSETMISSING:
                             msg += "Assets (textures etc.) are missing"
                         elif res == c4d.RENDERRESULT_SAVINGFAILED:
@@ -1342,7 +1342,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
             else:
                 msg = "error rendering document: "
                 if res == c4d.RENDERRESULT_OUTOFMEMORY:
-                    msg += "Not enough memory."
+                    msg += "Not enough memory.  In case of Redshift: Unspecified error, please see separate Redshift log file."
                 elif res == c4d.RENDERRESULT_ASSETMISSING:
                     msg += "Assets (textures etc.) are missing"
                 elif res == c4d.RENDERRESULT_SAVINGFAILED:
