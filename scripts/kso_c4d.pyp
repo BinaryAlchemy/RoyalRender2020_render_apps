@@ -662,6 +662,8 @@ def get_common_subpath(org_dir, new_dir):
 
 
 def arnoldSetDriversPath(doc, arg):
+    if (len(arg.FNameVar) < 4):
+        return
     logMessageDebug("Setting arnold drivers output path")
 
     # utilities just for this scope
@@ -892,7 +894,8 @@ def arnold_ass_export(fr_start, fr_end, fr_step):
     logMessage("Exporting .ass to " + arg.FNameVar + arg.FExt)
 
     options = c4d.BaseContainer()
-    options.SetFilename(0, arg.FNameVar + ".ass")
+    if (len(arg.FNameVar) > 4):
+        options.SetFilename(0, arg.FNameVar + ".ass")
     if (arg.FExt.find(".gz")>0):
         options.SetInt32(1, True)  # export .gz file
     options.SetInt32(6, fr_start)  # start frame
@@ -1015,121 +1018,122 @@ def setRenderParams(doc, arg):
 
         rd[c4d.RDATA_GLOBALSAVE] = True
 
-        if arg.exportmode:
-            #do not change output filename as the .ass file is our output filename for the job
-            pass
-        elif not argValid(arg.Channel):
-            logMessage("INFO: setRenderParams: main output only")
-            #main output only
-            rd[c4d.RDATA_SAVEIMAGE] = True
-            rd[c4d.RDATA_PATH] = arg.FNameVar
-            try:
-                if argValid(arg.FExt):
-                    rd[c4d.RDATA_FORMAT] = c4d_ext_id(arg.FExt)
-            except AttributeError:
-                logMessage("Couldn't set output image format to {0}".format(arg.FExt))
-                return False
-
-        elif arg.Channel == "Reg_Multi":
-            #main and multipass output
-            #submitter plugin has read the multipass output as filename, not the main output
-            logMessage("INFO: setRenderParams: main and multipass output")
-
-            rd[c4d.RDATA_SAVEIMAGE] = True
-            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
-            rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
-
-            # check if prefix/suffix have been added to filename
-            scene_output = os.path.basename(rd[c4d.RDATA_MULTIPASS_FILENAME])
-            rr_output = os.path.basename(arg.FNameVar)
-            try:
-                prefix, suffix = rr_output.split(scene_output, 1)
-            except ValueError:
+        if (len(arg.FNameVar) > 4):
+            if arg.exportmode:
+                #do not change output filename as the .ass file is our output filename for the job
                 pass
-            else:
-                reg_out_dir, reg_out_file = os.path.split(rd[c4d.RDATA_PATH])
-                rd[c4d.RDATA_PATH] = os.path.join(reg_out_dir, prefix + reg_out_file + suffix)
-
-            reg_path = rrGetDirName(allForwardSlashes(rd[c4d.RDATA_PATH]))
-            job_path = rrGetDirName(allForwardSlashes(arg.FNameVar))
-            subpath = get_common_subpath(reg_path, job_path)
-
-            if rd[c4d.RDATA_PATH] and not reg_path:
-                # reg_path has no dir
-                logMessageDebug("appending {0} to {1}".format(rd[c4d.RDATA_PATH], job_path))
-                rd[c4d.RDATA_PATH] = os.path.join(job_path, rd[c4d.RDATA_PATH])
-
-            if subpath:
-                logMessageDebug("reg_path: " + reg_path)
-                logMessageDebug("job path: " + job_path)
-                logMessageDebug("common path: " + subpath)
-
-                org_common_start = reg_path.index(subpath)
-                new_common_start = job_path.index(subpath)
-
-                org_root = reg_path[:org_common_start]
-                new_root = job_path[:new_common_start]
-
-                rd[c4d.RDATA_PATH] = rd[c4d.RDATA_PATH].replace(org_root, new_root, 1)
-
-            tile_render, tile_num = get_tile_settings(arg)
-            if tile_render:
-                rd[c4d.RDATA_PATH] = make_tile_path(rd[c4d.RDATA_PATH], tile_num)
-
-            rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
-        elif arg.Channel == "MultiPass":
-            logMessage("INFO: setRenderParams: all multipass output")
-
-            orig_multipass_out = rd[c4d.RDATA_MULTIPASS_FILENAME]
-
-            rd[c4d.RDATA_SAVEIMAGE] = False
-            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
-            rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
-            # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
-            rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
-
-            try:
-                if argValid(arg.FExt):
-                    rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
-            except AttributeError:
-                logMessage("Couldn't set output image format to {0}".format(arg.FExt))
-                return False
-        else:
-            logMessage("INFO: setRenderParams: one single multipass output")
-
-            #a specific pass was set to render
-            rd[c4d.RDATA_SAVEIMAGE] = False
-            rd[c4d.RDATA_MULTIPASS_ENABLE] = True
-            rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
-            rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
-            rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
-
-            try:
-                if argValid(arg.FExt):
-                    rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
-            except AttributeError:
-                logMessage("Couldn't set output image format to {0}".format(arg.FExt))
-                return False
-            # check for already enabled passes
-            pass_exists = False
-            mp = rd.GetFirstMultipass()
-            while mp:
-                if mp.GetName().lower() == arg.Channel.lower():
-                    pass_exists = True
-                    if mp.GetBit(c4d.BIT_VPDISABLED):
-                        mp.ToggleBit(c4d.BIT_VPDISABLED)  # make sure pass is active
-                elif not mp.GetBit(c4d.BIT_VPDISABLED):
-                    mp.ToggleBit(c4d.BIT_VPDISABLED)  # disable other passes
-                mp = mp.GetNext()
-
-            if not pass_exists:
-                new_pass = c4d.BaseList2D(c4d.Zmultipass)
+            elif not argValid(arg.Channel):
+                logMessage("INFO: setRenderParams: main output only")
+                #main output only
+                rd[c4d.RDATA_SAVEIMAGE] = True
+                rd[c4d.RDATA_PATH] = arg.FNameVar
                 try:
-                    new_pass.GetDataInstance()[c4d.MULTIPASSOBJECT_TYPE] = c4d_pass_id(arg.Channel)
+                    if argValid(arg.FExt):
+                        rd[c4d.RDATA_FORMAT] = c4d_ext_id(arg.FExt)
                 except AttributeError:
-                    logMessageError("Couldn't find pass element for {0}".format(arg.Channel))
+                    logMessage("Couldn't set output image format to {0}".format(arg.FExt))
                     return False
-                rd.InsertMultipass(new_pass)
+
+            elif arg.Channel == "Reg_Multi":
+                #main and multipass output
+                #submitter plugin has read the multipass output as filename, not the main output
+                logMessage("INFO: setRenderParams: main and multipass output")
+
+                rd[c4d.RDATA_SAVEIMAGE] = True
+                rd[c4d.RDATA_MULTIPASS_ENABLE] = True
+                rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
+
+                # check if prefix/suffix have been added to filename
+                scene_output = os.path.basename(rd[c4d.RDATA_MULTIPASS_FILENAME])
+                rr_output = os.path.basename(arg.FNameVar)
+                try:
+                    prefix, suffix = rr_output.split(scene_output, 1)
+                except ValueError:
+                    pass
+                else:
+                    reg_out_dir, reg_out_file = os.path.split(rd[c4d.RDATA_PATH])
+                    rd[c4d.RDATA_PATH] = os.path.join(reg_out_dir, prefix + reg_out_file + suffix)
+
+                reg_path = rrGetDirName(allForwardSlashes(rd[c4d.RDATA_PATH]))
+                job_path = rrGetDirName(allForwardSlashes(arg.FNameVar))
+                subpath = get_common_subpath(reg_path, job_path)
+
+                if rd[c4d.RDATA_PATH] and not reg_path:
+                    # reg_path has no dir
+                    logMessageDebug("appending {0} to {1}".format(rd[c4d.RDATA_PATH], job_path))
+                    rd[c4d.RDATA_PATH] = os.path.join(job_path, rd[c4d.RDATA_PATH])
+
+                if subpath:
+                    logMessageDebug("reg_path: " + reg_path)
+                    logMessageDebug("job path: " + job_path)
+                    logMessageDebug("common path: " + subpath)
+
+                    org_common_start = reg_path.index(subpath)
+                    new_common_start = job_path.index(subpath)
+
+                    org_root = reg_path[:org_common_start]
+                    new_root = job_path[:new_common_start]
+
+                    rd[c4d.RDATA_PATH] = rd[c4d.RDATA_PATH].replace(org_root, new_root, 1)
+
+                tile_render, tile_num = get_tile_settings(arg)
+                if tile_render:
+                    rd[c4d.RDATA_PATH] = make_tile_path(rd[c4d.RDATA_PATH], tile_num)
+
+                rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+            elif arg.Channel == "MultiPass":
+                logMessage("INFO: setRenderParams: all multipass output")
+
+                orig_multipass_out = rd[c4d.RDATA_MULTIPASS_FILENAME]
+
+                rd[c4d.RDATA_SAVEIMAGE] = False
+                rd[c4d.RDATA_MULTIPASS_ENABLE] = True
+                rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
+                # rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
+                rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+
+                try:
+                    if argValid(arg.FExt):
+                        rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
+                except AttributeError:
+                    logMessage("Couldn't set output image format to {0}".format(arg.FExt))
+                    return False
+            else:
+                logMessage("INFO: setRenderParams: one single multipass output")
+
+                #a specific pass was set to render
+                rd[c4d.RDATA_SAVEIMAGE] = False
+                rd[c4d.RDATA_MULTIPASS_ENABLE] = True
+                rd[c4d.RDATA_MULTIPASS_SAVEIMAGE] = True
+                rd[c4d.RDATA_MULTIPASS_SUFFIX] = True
+                rd[c4d.RDATA_MULTIPASS_FILENAME] = arg.FNameVar
+
+                try:
+                    if argValid(arg.FExt):
+                        rd[c4d.RDATA_MULTIPASS_SAVEFORMAT] = c4d_ext_id(arg.FExt)
+                except AttributeError:
+                    logMessage("Couldn't set output image format to {0}".format(arg.FExt))
+                    return False
+                # check for already enabled passes
+                pass_exists = False
+                mp = rd.GetFirstMultipass()
+                while mp:
+                    if mp.GetName().lower() == arg.Channel.lower():
+                        pass_exists = True
+                        if mp.GetBit(c4d.BIT_VPDISABLED):
+                            mp.ToggleBit(c4d.BIT_VPDISABLED)  # make sure pass is active
+                    elif not mp.GetBit(c4d.BIT_VPDISABLED):
+                        mp.ToggleBit(c4d.BIT_VPDISABLED)  # disable other passes
+                    mp = mp.GetNext()
+
+                if not pass_exists:
+                    new_pass = c4d.BaseList2D(c4d.Zmultipass)
+                    try:
+                        new_pass.GetDataInstance()[c4d.MULTIPASSOBJECT_TYPE] = c4d_pass_id(arg.Channel)
+                    except AttributeError:
+                        logMessageError("Couldn't find pass element for {0}".format(arg.Channel))
+                        return False
+                    rd.InsertMultipass(new_pass)
 
         logMessage("")
         if orig_global_save != rd[c4d.RDATA_GLOBALSAVE]:
@@ -1272,7 +1276,8 @@ def renderFrames(FrStart, FrEnd, FrStep):
             else:
                 logMessage( "Rendering Frames : " + str(FrStart) + "-" + str(FrEnd))
                 for fr in range(FrStart, FrEnd + 1, FrStep):
-                    kso_tcp.writeRenderPlaceholder_nr(allForwardSlashes(arg.FName), fr, arg.FPadding, arg.FExt)
+                    if (len(arg.FName) > 4):
+                        kso_tcp.writeRenderPlaceholder_nr(allForwardSlashes(arg.FName), fr, arg.FPadding, arg.FExt)
                     logMessage( "Rendering Frame #" + str(fr) +" ...")
                     doc.SetTime(c4d.BaseTime(fr, fps))
                     rd[c4d.RDATA_FRAMEFROM] = c4d.BaseTime(fr, fps)

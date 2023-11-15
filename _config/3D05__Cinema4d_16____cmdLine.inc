@@ -30,9 +30,9 @@ CommandLine= "<Exe>"
     ::osx $LicenseFlags
     ::lx  $LicenseFlags
     -Scene "<Scene>"
-    -FName "<ImageDir><ImageFilename>"
-    ::win -FNameVar "<ImageDir><ImageFilenameVariables>"
-    ::osx -FNameVar '<ImageDir><ImageFilenameVariables>'
+    <DoNotCheckForFrames -FName "<ImageDir><ImageFilename>" >
+    ::win <DoNotCheckForFrames -FNameVar "<ImageDir><ImageFilenameVariables>">
+    ::osx <DoNotCheckForFrames -FNameVar '<ImageDir><ImageFilenameVariables>'>
     <ImageSingleOutputFile ? -FExt "<ImageExtension>" >
     -FrStart <SeqStart> -FrEnd <SeqEnd> -FrStep <SeqStep>
     -PyModPath <rrLocalRenderScripts><EL<PD>>
