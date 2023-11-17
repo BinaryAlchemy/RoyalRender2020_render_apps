@@ -35,6 +35,17 @@ PXR_PLUGINPATH_NAME = <PXR_PLUGINPATH_NAME>;&
 [EndIf]
 
 
+RR_HOUDINI_PACKAGE_BASE  =  <rrPlugins><rrExeVersion>\packages
+RR_HOUDINI_PACKAGE_LOCAL  =  <rrLocalExeDir><rrExeVersion>\packages
+echo * RRs predefined package dir is set to 
+echo * <RR_HOUDINI_PACKAGE_BASE>
+echo * It will be cached to <RR_HOUDINI_PACKAGE_LOCAL>
+
+HOUDINI_PACKAGE_DIR  =  <RR_HOUDINI_PACKAGE_LOCAL>;<HOUDINI_PACKAGE_DIR>
+echo * HOUDINI_PACKAGE_DIR is set to <HOUDINI_PACKAGE_DIR>
+[copy] SyncNoCreateDir <RR_HOUDINI_PACKAGE_BASE>   =>   <RR_HOUDINI_PACKAGE_LOCAL>
+
+
 PATH= <rrBaseAppPath>\bin;<PATH>
 
 LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>

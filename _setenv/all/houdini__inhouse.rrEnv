@@ -7,6 +7,8 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 #[exec] <rrBaseAppPath>\houdini\hserver -S myLicenseServerIP
 
 
+# HOUDINI_PACKAGE_DIR= somefolder
+
 
 # ###################  Arnold/HtoA environment variables ###################
 # solidangle_LICENSE  =  port@hostname
