@@ -25,6 +25,9 @@ elif (sys.version_info.major == 3):
     elif (sys.version_info.minor == 9):
         import libpyRR39 as rrLib
         loaded_rrLib= True
+    elif (sys.version_info.minor == 10):
+        import libpyRR310 as rrLib
+        loaded_rrLib= True
 if (not loaded_rrLib):
     raise RR_GenericError("\n    Unable to load RR module for python version {}.{}.\n".format(sys.version_info.major,sys.version_info.minor))
 else:

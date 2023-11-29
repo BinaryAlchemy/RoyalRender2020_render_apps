@@ -14,6 +14,10 @@ import logging
 
 StructureID_RRN_TCP_HeaderData_v6 = 0x0D06
 Size_RRN_TCP_HeaderData_v6 = 214
+
+StructureID_RRN_TCP_HeaderData_v7 = 0x0D07
+Size_RRN_TCP_HeaderData_v7 = 339
+
 StructureID_rrCommands  =0x0B04
 Size_RRCommands = 2032
 rrnData_commands = 7
@@ -252,36 +256,52 @@ class _RRCommands():
         #return struct.pack("=HBBhbbQii1002sHH1000?bb",self.StructureID,self.ctype, self.command, keptfree, keptfree,keptfree,self.paramID, self.paramX, self.paramY, keptfree, keptfree, self.paramS, self.paramSlength,self.paramSType)
 
     def fromBinary(self, buf):
-        tmp= struct.unpack("=HBBhbbQiiHH1002s1000?bb",buf)
+        tmp= struct.unpack("=HBBhhQiiHH1002s1000?bb",buf)
         #= Native byte order, standard var size, no alignment
-        #0     H  uInt16 
-        #1,2   BB uChar  
-        #3     h  Int16
-        #4,5   bb Char
-        #6     Q  uInt64
-        #7,8   ii Int32
-        #9,10  HH uInt16
-        #11    s  Char[]
-        #12    ?  bool[]
-        #13,14 bb Char
+        #0     H  uInt16 StructureID
+        #1     B  uChar  type   
+        #2     B  uChar  command
+        #3     h  Int16  unused
+        #4     h  Int16  unused
+        #5     Q  uInt64 paramID
+        #6     i  Int32  paramX
+        #7     i  Int32  paramY
+        #8     H  uInt16 UniChar-length
+        #9     H  uInt16 UniChar-type
+        #10    s  UniChar[] paramS
+        #11    ?  bool[] unused
+        #12    b  Char   unused
+        #13    b  Char   unused
         self.StructureID= tmp[0] 
         self.ctype= tmp[1] 
         self.command= tmp[2] 
-        self.paramID= tmp[6] 
-        self.paramX= tmp[7] 
-        self.paramY= tmp[8]
-        self.paramSlength= tmp[9]
-        self.paramSType= tmp[10]
-        paramsTemp=tmp[11]
+        self.paramID= tmp[5] 
+        self.paramX= tmp[6] 
+        self.paramY= tmp[7]
+        self.paramSlength= tmp[8]
+        self.paramSType= tmp[9]
+        paramsTemp=tmp[10]
         self.paramS=""   
         if (sys.version_info > (3, 0)):
+
+            #logMessageError("StructureID: "+str(self.StructureID))
+            #logMessageError("ctype: "+str(self.ctype))
+            #logMessageError("command: "+str(self.command))
+            #logMessageError("tmp[3] : "+str(tmp[3] ))
+            #logMessageError("tmp[4] : "+str(tmp[4] ))
+            #logMessageError("paramID: "+str(self.paramID))
+            #logMessageError("paramX: "+str(self.paramX))
+            #logMessageError("paramY: "+str(self.paramY))
+            #logMessageError("paramSlength: "+str(self.paramSlength))
+            #logMessageError("paramSType: "+str(self.paramSType))
+
             paramsTemp= paramsTemp[:(self.paramSlength*2)]
-            self.paramS= paramsTemp.decode(encoding="utf_16_le", errors="strict")
-            #logMessage("paramSlength: "+str(self.paramSlength))
-            #logMessage("len paramS: "+str(len(self.paramS)))
             #hexStr=paramsTemp.hex()
-            #logMessage("paramS: "+str(hexStr))
-            #logMessage("paramS: "+str(self.paramS))
+            #logMessageError("paramS: "+str(hexStr))
+            #logMessageError("paramS: "+str(self.paramS))
+            sys.stdout.flush()
+            sys.stderr.flush()
+            self.paramS= paramsTemp.decode(encoding="utf_16_le", errors="strict")
         else:
             for c in range(0, self.paramSlength):  #string is actually unicode 16bit, but for these commands a dirty ANSI conversion is fine 
                 self.paramS= self.paramS+ paramsTemp[c*2]
@@ -315,6 +335,31 @@ class _RRN_TCP_HeaderData_v6():
     def rightStructure(self):
         return (self.StructureID== StructureID_RRN_TCP_HeaderData_v6)
 
+
+class _RRN_TCP_HeaderData_v7():
+    StructureID= StructureID_RRN_TCP_HeaderData_v7
+    dataLen=0   
+    dataType=0  
+    dataNrElements=0
+    appType=14  
+
+    #def toBinary(self):
+        #keptfree=0
+        #keptfreeS=""
+        #return struct.pack("=HIIHbhB190s",self.StructureID,keptfree,self.dataLen,keptfree,self.dataType,self.dataNrElements,self.appType,keptfreeS)
+
+    def fromBinary(self, buf):
+        tmp= struct.unpack("=HHII??IIhbB313c",buf)
+        self.StructureID= tmp[0] 
+        self.dataLen= tmp[7] 
+        self.dataNrElements= tmp[8] 
+        self.dataType= tmp[9] 
+        self.appType= tmp[10] 
+
+    def rightStructure(self):
+        return (self.StructureID== StructureID_RRN_TCP_HeaderData_v7)
+
+
 rrKSONextCommand=""
 
 
@@ -322,12 +367,12 @@ rrKSONextCommand=""
 class rrKSOTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         logMessageDebug("rrKSOTCPHandler")
-        headerData=_RRN_TCP_HeaderData_v6()
-        headerData.fromBinary(self.request.recv(Size_RRN_TCP_HeaderData_v6))
+        headerData=_RRN_TCP_HeaderData_v7()
+        headerData.fromBinary(self.request.recv(Size_RRN_TCP_HeaderData_v7))
         if ((not headerData.rightStructure()) or (headerData.dataType!=rrnData_commands) or (headerData.dataLen!=Size_RRCommands) ):
             self.server.continueLoop=False
             logMessageError("TCP header wrong! "
-                   + " ID:"+ str(headerData.StructureID)+"!=" +str(StructureID_RRN_TCP_HeaderData_v6)
+                   + " ID:"+ str(headerData.StructureID)+"!=" +str(StructureID_RRN_TCP_HeaderData_v7)
                    + " type:"+ str(headerData.dataType)+"!=" +str(rrnData_commands)
                    + " len:"+ str(headerData.dataLen)+"!=" +str(Size_RRCommands)
                    )

@@ -24,6 +24,9 @@ elif (sys.version_info.major == 3):
     elif (sys.version_info.minor == 9):
         import libpyRR39_submit as rrSubmitLib
         loaded_rrSubmit= True
+    elif (sys.version_info.minor == 10):
+        import libpyRR310_submit as rrSubmitLib
+        loaded_rrSubmit= True
 if (not loaded_rrSubmit):
     raise RR_GenericError("\n    Unable to load RR module for python version {}.{}.\n".format(sys.version_info.major,sys.version_info.minor))
 else:
