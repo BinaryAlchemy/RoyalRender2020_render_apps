@@ -16,7 +16,7 @@ StructureID_RRN_TCP_HeaderData_v6 = 0x0D06
 Size_RRN_TCP_HeaderData_v6 = 214
 
 StructureID_RRN_TCP_HeaderData_v7 = 0x0D07
-Size_RRN_TCP_HeaderData_v7 = 339
+Size_RRN_TCP_HeaderData_v7 = 340
 
 StructureID_rrCommands  =0x0B04
 Size_RRCommands = 2032
@@ -349,7 +349,7 @@ class _RRN_TCP_HeaderData_v7():
         #return struct.pack("=HIIHbhB190s",self.StructureID,keptfree,self.dataLen,keptfree,self.dataType,self.dataNrElements,self.appType,keptfreeS)
 
     def fromBinary(self, buf):
-        tmp= struct.unpack("=HHII??IIhbB313c",buf)
+        tmp= struct.unpack("=HHII??IIhbB314c",buf)
         self.StructureID= tmp[0] 
         self.dataLen= tmp[7] 
         self.dataNrElements= tmp[8] 
