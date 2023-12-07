@@ -26,6 +26,8 @@ tcp.setLogin(args.authStr, "")
 print("Sending Job Command")
 jobsApply=[]
 jobsApply.append(int(args.jid))
-tcp.jobSendCommand(jobsApply,rrJob._LogMessage.lDelete,0)
+if not tcp.jobSendCommand(jobsApply,rrJob._LogMessage.lDelete,0):
+    print("Error jobSendCommand: " + tcp.errorMessage())
+
 
 print("done")
