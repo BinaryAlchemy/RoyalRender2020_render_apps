@@ -53,7 +53,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-# LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -421,13 +421,13 @@ def allForwardSlashes(filepath):
     return os.path.normpath(filepath).replace('\\', '/')
 
 
-def applyPathCorrections(filepath, truncate_dot=True):
+def applyPathCorrections(filepath, truncate_dot=True, separate_digit=True):
     """c4d truncates the output to the last dot. Also, adds a _ if the path ends with a number"""
     if truncate_dot:
         filepath = truncateToLastDot(filepath)
 
     doc = c4d.documents.GetActiveDocument()
-    if filepath and check_trailing_digit(doc.GetActiveRenderData()[c4d.RDATA_NAMEFORMAT]):
+    if separate_digit and filepath and check_trailing_digit(doc.GetActiveRenderData()[c4d.RDATA_NAMEFORMAT]):
         if filepath.endswith("<IMS>"):
             if filepath[-6].isdigit():
                 filepath = filepath[:-5] + "_" + "<IMS>"
@@ -1228,6 +1228,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         """
         filenameComb, fileext = self.getChannelNameExt(job, channelName, channelDescription, as_suffix)
 
+        LOGGER.debug(f"Adding {channelName} - {filenameComb}, {fileext}")
         job.channelExtension.append(fileext)
         job.channelFileName.append(filenameComb)
         job.maxChannels += 1
@@ -1677,7 +1678,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         aov_c4d_names = {
             c4d.REDSHIFT_AOV_TYPE_DEPTH: "depth",
             c4d.REDSHIFT_AOV_TYPE_MOTION_VECTORS: "motion",
-            c4d.REDSHIFT_AOV_TYPE_OBJECT_ID: "object_0"
+            # c4d.REDSHIFT_AOV_TYPE_OBJECT_ID: "object"
         }
 
         ID_CUSTOM_UI_AOV = 1036235  # Redshift AOVs ID
@@ -1874,7 +1875,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         
         return num_elems
 
-    def replacePathTokens(self, job, image_name, render_data):
+    def replacePathTokens(self, job, image_name, render_data, separate_digit=True):
         # replace c4d tokens with RR tokens
         image_name = image_name.replace("$camera", "<Camera>")
         # image_name = image_name.replace("$prj", "<Scene>")  # do not need tokens that cannot be changed in rrSubmitter
@@ -1901,7 +1902,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         image_name = image_name.replace("$range", "{0}_{1}".format(job.seqStart, job.seqEnd))
         image_name = image_name.replace("$fps", str(job.frameRateRender))
 
-        return applyPathCorrections(image_name, truncate_dot=False)
+        return applyPathCorrections(image_name, truncate_dot=False, separate_digit=separate_digit)
 
     @staticmethod
     def handleRelativeFileOut(file_path):
@@ -1957,7 +1958,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 LOGGER.debug("Channel: MultiPass")
                 job.channel = "MultiPass"
-            job.imageName = applyPathCorrections(render_data[c4d.RDATA_MULTIPASS_FILENAME])
+            job.imageName = applyPathCorrections(render_data[c4d.RDATA_MULTIPASS_FILENAME], separate_digit=False)
             if job.renderer == "Arnold" and render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
         else:
@@ -1971,8 +1972,10 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         job.layerName = ""
         job.setImagePadding(name_id=render_data[c4d.RDATA_NAMEFORMAT])
 
-        job.imageName = self.replacePathTokens(job, job.imageName, render_data)
-        LOGGER.debug("imageName is: " + job.imageName)
+        LOGGER.debug("0 - imageName is: " + job.imageName)
+
+        job.imageName = self.replacePathTokens(job, job.imageName, render_data, separate_digit=not (is_multipass and not is_mp_single))
+        LOGGER.debug("1 - imageName is: " + job.imageName)
 
         job.imageName = self.handleRelativeFileOut(job.imageName)
         job.imageName = job.imageName + "<IMS>"
@@ -2039,6 +2042,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             elif job.renderer == "Arnold":
                 self.addChannelsArnold(job, mainMP, render_data)
 
+
         if not mainMP.isValid():
             # no need to go through the multipass channels
             is_multipass = False
@@ -2053,13 +2057,16 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 # Apparently, this scene has no Multipass available, no need to set the channel for the kso plugin
                 job.channel = ""
 
+        LOGGER.debug("imageName: before correction " + job.imageName)
+        job.imageName = applyPathCorrections(job.imageName, separate_digit=not (is_multipass and not is_mp_single))
+
         if self.hasAlpha:
             regularImageName = "RGBA"
         else:
             regularImageName = "RGB"
         if job.renderer == "Arnold":
             regularImageName = "RGBA"
-        LOGGER.debug("imageName is: " + job.imageName)
+        LOGGER.debug("2 - imageName is: " + job.imageName)
 
         c4dVersionMajor = int(c4d.GetC4DVersion() / 1000)
 
@@ -2122,7 +2129,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             job.imageName = filenameComb
             job.imageFormat = fileext
 
-        LOGGER.debug("imageName is: " + job.imageName)
+        LOGGER.debug("3 - imageName is: " + job.imageName)
 
         if (render_data[c4d.RDATA_STEREO] and (render_data[c4d.RDATA_STEREO_CALCRESULT]==c4d.RDATA_STEREO_CALCRESULT_S)):
             curMaxChannels = job.maxChannels
