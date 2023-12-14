@@ -156,6 +156,12 @@ def get_img_ext_class(img_ext):
     if img_ext == "bmp":
         return unreal.MoviePipelineImageSequenceOutput_BMP
     
+    if img_ext == "mov":
+        return unreal.MoviePipelineAppleProResOutput
+    
+    if img_ext == "mxf":
+        return unreal.MoviePipelineAvidDNxOutput
+    
     unreal.log_warning(f"Image extension '{img_ext}' not found")
              
 
@@ -298,6 +304,7 @@ class RenderArgs:
         self.seq_end = int(cmdParameters['rEnd'])
         self.seq_offset = int(cmdParameters['rOffset'])
         self.img_name = cmdParameters['rOutName']
+
         self.img_folder = cmdParameters['rOutFolder']
         self.img_ext = cmdParameters['rExt']
         self.img_padding = int(cmdParameters['rPad'])
@@ -313,6 +320,9 @@ class RenderArgs:
         self.preset_path = self.get_preset_path()
         
         self._cmdParameters = None
+
+        if self.img_name.endswith(".mov") or self.img_name.endswith(".mxf"):
+            self.img_name, self.img_ext = os.path.splitext(self.img_name)
 
         unreal.log("Initialized job arguments:")
         unreal.log(f"\tpreset: {self.preset_path}")
@@ -355,8 +365,10 @@ def on_individual_job_finished_callback(params):
 def on_individual_shot_finished_callback(params):
     unreal.log("job shot completed")
 
+
 def on_executor_error(is_fatal, error_text):
     unreal.log(f"Got {'non' if not is_fatal else ''} error: {error_text}")
+
 
 class RenderCommander(RenderArgs):
     def __init__(self):
@@ -409,7 +421,7 @@ class RenderCommander(RenderArgs):
         if self.anti_alias_mult != 1.0:
             self.overide_AASettings_samples()
 
-        if output_setting.file_name_format.endswith(".wav"):
+        if output_setting.file_name_format[-4:] in (".wav", ".mov", ".mxf", ""):
             output_setting.file_name_format = self.img_name[:-4]
         else:
             output_setting.file_name_format = self.img_name + ("{frame_number_shot}" if self.seq_offset else "{frame_number}")
@@ -421,9 +433,6 @@ class RenderCommander(RenderArgs):
         return output_setting
     
     def render_new_queue(self):
-        # We are going to spawn a light into the world at the (0,0,0) point. If you have more than
-        # one job in the queue, we will change the color of the light after each job to show how to
-        # make variations of your render if desired.
         subsystem = unreal.get_editor_subsystem(unreal.MoviePipelineQueueSubsystem)
         pipelineQueue = subsystem.get_queue()
 
