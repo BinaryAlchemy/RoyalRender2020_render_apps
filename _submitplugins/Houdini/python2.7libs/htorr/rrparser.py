@@ -339,7 +339,7 @@ class ParseData(object):
         self.rendererPreSuffix= ""
 
     def __del__(self):
-        logger.debug("ParseData _del_ \n{}".format(get_call_stack()))
+        #logger.debug("ParseData _del_ \n{}".format(get_call_stack()))
         if (not self.isTempHelper):
             self.Wedge.reset()
             self.Dependency.reset()
