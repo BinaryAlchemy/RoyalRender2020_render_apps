@@ -497,6 +497,16 @@ def submit_ue_jobs(queue):
                 copy_output_settings(setting, ue_job, new_job_rr)
                 continue
 
+            if isinstance(setting, unreal.MoviePipelineVideoOutputBase):
+                # video output
+                new_job_rr.imageSingleOutput = True
+                if isinstance(setting, unreal.MoviePipelineAppleProResOutput):
+                    new_job_rr.imageExtension = ".mov"
+                elif isinstance(setting, unreal.MoviePipelineAvidDNxOutput):
+                    new_job_rr.imageExtension = ".mxf"
+
+                continue
+
             class_name = setting.get_class().get_name()
 
             if class_name == 'MoviePipelineWaveOutput':
@@ -504,7 +514,7 @@ def submit_ue_jobs(queue):
                 new_job_rr.imageExtension = ".wav"
                 split_shot_jobs = False
                 continue
-
+            
             if 'ImageSequenceOutput' not in class_name:
                 continue
 
@@ -512,6 +522,9 @@ def submit_ue_jobs(queue):
             img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
             new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
         
+        if new_job_rr.imageSingleOutput:
+            split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
+
         job_sequence = get_job_sequence(ue_job)
         shot_tracks = job_sequence.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
         if len(shot_tracks) > 1:
@@ -527,79 +540,90 @@ def submit_ue_jobs(queue):
         new_job_rr.seqName = seq_asset_name
         movie_lib = unreal.MoviePipelineLibrary()
 
-        if shot_sections:
-            master_job = copy.deepcopy(new_job_rr)
-            master_job.isActive = False
-            master_job.shotName = "NoShot"
+        def set_full_sequence_job(a_job):
+            a_job.shotName = "NoShot"
 
-            master_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(master_job.imageFileName, file_params)
-            master_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(master_job.imageDir, file_params)
+            a_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageFileName, file_params)
+            a_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageDir, file_params)
 
-            master_job.imageFileName = master_job.imageFileName.replace(".{ext}", "")
-            master_job.imageDir = master_job.imageDir.replace(".{ext}", "")
+            a_job.imageFileName = a_job.imageFileName.replace(".{ext}", "")
+            a_job.imageDir = a_job.imageDir.replace(".{ext}", "")
 
-            rr_jobs.append(master_job)
+        if not shot_sections:
+            new_job_rr.isActive = True
+            set_full_sequence_job(new_job_rr)
+
+            rr_jobs.append(new_job_rr)
+        else:
+            if not new_job_rr.imageSingleOutput:
+                # if video output contains shot name, unreal won't render the full sequence as a single file
+                master_job = copy.deepcopy(new_job_rr)
+                
+                master_job.isActive = False
+                set_full_sequence_job(master_job)
+
+                rr_jobs.append(master_job)
         
-        movie_utils = unreal.MovieSceneSectionExtensions()
-        for info, section in get_shot_sequences(ue_job):
-            if section:
-                shot_start = section.get_start_frame()
-                shot_end = section.get_end_frame() - 1
-
-                if shot_start > new_job_rr.seqEnd:
-                    continue
-
-                if shot_end < new_job_rr.seqStart:
-                    continue
-
-                sequence = section.get_sequence()
-                camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
-                if camera_track:
-                    cam_start, cam_end = get_track_range(camera_track)
-                    cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
-                    cam_end = movie_utils.get_parent_sequence_frame(section, cam_end, job_sequence) - 1
-
-                    shot_start = max(new_job_rr.seqStart, shot_start, cam_start)
-                    shot_end = min(new_job_rr.seqEnd, shot_end, cam_end)
-                else:
-                    shot_start = max(new_job_rr.seqStart, shot_start)
-                    shot_end = min(new_job_rr.seqEnd, shot_end)
-            else:
-                shot_start = new_job_rr.seqStart
-                shot_end = new_job_rr.seqEnd
-
-            # TODO: per shot preset override
-
-            shot_job = copy.deepcopy(new_job_rr)
-            shot_job.seqStart = shot_start
-            shot_job.seqEnd = shot_end
-
-            if split_shot_jobs:
-                file_params.shot_override = info
-            else:
-                file_params.shot_override = None
-
-            if '{frame_number_shot}' in shot_job.imageFileName:
+            movie_utils = unreal.MovieSceneSectionExtensions()
+            for info, section in get_shot_sequences(ue_job):
                 if section:
-                    shot_job.seqFileOffset = -movie_utils.get_parent_sequence_frame(section, 0, job_sequence)
+                    shot_start = section.get_start_frame()
+                    shot_end = section.get_end_frame() - 1
+
+                    if shot_start > new_job_rr.seqEnd:
+                        continue
+
+                    if shot_end < new_job_rr.seqStart:
+                        continue
+
+                    sequence = section.get_sequence()
+                    camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                    if camera_track:
+                        cam_start, cam_end = get_track_range(camera_track)
+                        cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
+                        cam_end = movie_utils.get_parent_sequence_frame(section, cam_end, job_sequence) - 1
+
+                        shot_start = max(new_job_rr.seqStart, shot_start, cam_start)
+                        shot_end = min(new_job_rr.seqEnd, shot_end, cam_end)
+                    else:
+                        shot_start = max(new_job_rr.seqStart, shot_start)
+                        shot_end = min(new_job_rr.seqEnd, shot_end)
                 else:
-                    unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
-                shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
+                    shot_start = new_job_rr.seqStart
+                    shot_end = new_job_rr.seqEnd
 
-            shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
-            shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
+                # TODO: per shot preset override
 
-            shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
-            shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
+                shot_job = copy.deepcopy(new_job_rr)
+                shot_job.seqStart = shot_start
+                shot_job.seqEnd = shot_end
 
-            if file_params.shot_override:
-                shot_job.camera = file_args.filename_arguments['camera_name']
-                shot_job.shotName = file_args.filename_arguments['shot_name']
+                if split_shot_jobs:
+                    file_params.shot_override = info
+                else:
+                    file_params.shot_override = None
 
-            shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
+                if '{frame_number_shot}' in shot_job.imageFileName:
+                    if section:
+                        shot_job.seqFileOffset = -movie_utils.get_parent_sequence_frame(section, 0, job_sequence)
+                    else:
+                        unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
+                    shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
 
-            shot_job.isActive = info.enabled
-            rr_jobs.append(shot_job)
+                shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
+                shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
+
+                shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
+                shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
+
+                if file_params.shot_override:
+                    shot_job.camera = file_args.filename_arguments['camera_name']
+                    shot_job.shotName = file_args.filename_arguments['shot_name']
+
+                shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
+
+                shot_job.isActive = info.enabled
+                rr_jobs.append(shot_job)
 
     if not rr_jobs:
         dialog = unreal.EditorDialog()
