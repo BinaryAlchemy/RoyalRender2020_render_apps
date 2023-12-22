@@ -15,7 +15,7 @@
 ######################################################################
 
 import c4d
-from c4d import gui, plugins
+from c4d import gui, plugins, bitmaps
 
 import copy
 import datetime
@@ -53,7 +53,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-LOGGER.setLevel(logging.DEBUG)
+# LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -2553,7 +2553,10 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
 
 
 if __name__ == '__main__':
+    thispath = os.path.dirname(os.path.abspath(__file__))
+    icon = bitmaps.BaseBitmap()
+    icon.InitWith(os.path.join(thispath, "rrSubmit_Cinema 4d_23.0+.png"))
     # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs) does not work with macOS + R23
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID, "rrSubmit", 0, None, "rrSubmit", RRSubmit())
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM, "rrSubmit - Select Camera...", 0, None, "rrSubmit - Select Camera...", RRSubmit(multi_cam=True))
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS, "rrSubmit - Export Arnold .ass files", 0, None,  "rrSubmit - Export Arnold .ass files", RRSubmitAssExport())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID, "rrSubmit", 0, icon, "rrSubmit", RRSubmit())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM, "rrSubmit - Select Camera...", 0, icon, "rrSubmit - Select Camera...", RRSubmit(multi_cam=True))
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS, "rrSubmit - Export Arnold .ass files", 0, icon,  "rrSubmit - Export Arnold .ass files", RRSubmitAssExport())
