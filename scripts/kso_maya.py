@@ -603,7 +603,7 @@ def setRenderSettings_Arnold(arg):
         if argValid(arg.AASamples):
             try:
                 samples_multi = float(arg.AASamples)
-            except TypeError:
+            except:
                 logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
             else:
                 if samples_multi != 1.0:
@@ -695,7 +695,7 @@ def setRenderSettings_Redshift(arg):
         if argValid(arg.AASamples):
             try:
                 samples_multi = float(arg.AASamples)
-            except TypeError:
+            except:
                 logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
             else:
                 if samples_multi != 1.0:
