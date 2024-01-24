@@ -604,7 +604,7 @@ def setRenderSettings_Arnold(arg):
             try:
                 samples_multi = float(arg.AASamples)
             except:
-                logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
+                logMessage("Warning: Samples argument given but not a valid float: {0}".format(arg.AASamples))
             else:
                 if samples_multi != 1.0:
                     new_aa_samples = round(cmds.getAttr("defaultArnoldRenderOptions.AASamples") * samples_multi)
@@ -696,7 +696,7 @@ def setRenderSettings_Redshift(arg):
             try:
                 samples_multi = float(arg.AASamples)
             except:
-                logMessage(f"Warning: Samples argument given but not a valid float: {arg.AASamples}")
+                logMessage("Warning: Samples argument given but not a valid float: {0}".format(arg.AASamples))
             else:
                 if samples_multi != 1.0:
                     if cmds.getAttr("redshiftOptions.enableAutomaticSampling"):
