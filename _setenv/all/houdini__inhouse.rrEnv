@@ -43,3 +43,10 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
 # ###################  If you have issues accessing external file (e.g. Alembic), try to uncomment the following line ###################
 # HOUDINI_ACCESS_METHOD  =  2
+
+
+# ###################  Octane environment variables ###################
+# [If] <RR_OCTANE_BASE>  [==] 
+#     RR_OCTANE_BASE  =  \\myfileserver\Renderer\Octane_<rrJobRendererVersion>_Houdini_<ExeVersionFull>
+# [EndIf]
+

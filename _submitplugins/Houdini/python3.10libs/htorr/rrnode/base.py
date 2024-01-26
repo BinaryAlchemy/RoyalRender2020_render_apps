@@ -339,7 +339,7 @@ class RenderNode(rrNode):
             job.renderer= parseData.rendererPreSuffix.replace("*", job.renderer)
         job.renderer_version = self.renderer_version
         job.scene = self.scene
-        job.layer = self.path
+        job.layer = self.layerName 
         job.outname = self.outname
         job.outdir = self.outdir
         job.outext = self.outext
@@ -526,6 +526,18 @@ class RenderNode(rrNode):
     def renderer_version(self):
         """Property for renderer version"""
         return
+
+    @abc.abstractproperty
+    def layerName(self):
+        """Property for layer name
+
+        Returns:
+            string -- layer name
+
+        Examples:
+            Octane
+        """
+        return self.path
 
     @abc.abstractproperty
     def output_parm(self):

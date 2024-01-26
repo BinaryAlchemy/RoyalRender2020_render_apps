@@ -17,4 +17,5 @@ import htorr.rrnode.rop.rr_renderman
 import htorr.rrnode.rop.rr_simtracker
 import htorr.rrnode.rop.rr_usd
 import htorr.rrnode.rop.rr_vray
+import htorr.rrnode.rop.rr_octane
 
