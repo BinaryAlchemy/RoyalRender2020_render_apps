@@ -466,9 +466,11 @@ class SubmitOptions(object):
             if distribution == "full":
                 pass
             elif distribution == "frameafterframe":
+                sdict["RenderPreviewFirst"] = "0~0"
                 sdict["DistributeStartToEnd"] = "0~1"
                 sdict["MaxClientsAtATime"] = "0~1"
             elif distribution == "oneclient":
+                sdict["RenderPreviewFirst"] = "0~0"
                 sdict["DistributeStartToEnd"] = "0~1"
                 sdict["MaxClientsAtATime"] = "0~1"
                 sdict["SeqDivMIN"] = "0~0"

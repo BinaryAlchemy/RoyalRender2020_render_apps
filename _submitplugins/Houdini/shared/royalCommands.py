@@ -212,11 +212,15 @@ def loadRRmodule():
                 import libpyRR39_submit as rrSubmitLib
                 logger.debug("libpyRR39_submit loaded ({})".format(rrSubmitLib.__file__))
                 rrsched__pyRR_submit_loaded= True
+            elif (sys.version_info.minor == 10):
+                import libpyRR310_submit as rrSubmitLib
+                logger.debug("libpyRR310_submit loaded ({})".format(rrSubmitLib.__file__))
+                rrsched__pyRR_submit_loaded= True
         if (not rrsched__pyRR_submit_loaded):
-            logger.warning("\n    Unable to load libpyRR_submit for python version {}.{}.\n    Buttons to get client names do not work.\n"
+            logger.warning("\n    Unable to load libpyRR_submit for python version {}.{}.\n"
             .format(sys.version_info.major,sys.version_info.minor))
     except:
-         logger.warning("\n    Unable to load libpyRR_submit.\n    Buttons to get client names do not work.\n")
+         logger.warning("\n    Unable to load libpyRR_submit.\n ")
          logger.debug(str(traceback.format_exc()))
          return None
     

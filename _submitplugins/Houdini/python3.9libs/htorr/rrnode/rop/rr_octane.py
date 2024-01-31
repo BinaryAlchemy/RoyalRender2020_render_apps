@@ -19,12 +19,20 @@ logger = logging.getLogger("HtoRR")
 
 
 def _getOctaneVersion():
-    try:
-        pass
-    except ImportError:
+    octaneVersion=  hou.hscript( 'Octane_version')
+    octaneVersion= octaneVersion[0]
+    pos= octaneVersion.find("Plugin version:")
+    if (pos<0):
         return ""
+    pos= pos + len("Plugin version:")
+    octaneVersion= octaneVersion[pos:]
+    pos= octaneVersion.find("(")
+    if (pos<0):
+        return ""
+    octaneVersion= octaneVersion[:pos]
+    octaneVersion= octaneVersion.strip()    
 
-    return ""
+    return octaneVersion
             
 
 class OctaneRop(RenderNode):

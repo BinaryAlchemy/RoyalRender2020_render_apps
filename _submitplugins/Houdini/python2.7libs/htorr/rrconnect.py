@@ -169,6 +169,10 @@ def  loadModule_libpyRR2():
                 import libpyRR39 as rrLib
                 logger.debug("libpyRR39 loaded ({})".format(rrLib.__file__))
                 htorr__pyRR_loaded= True
+            elif (sys.version_info.minor == 10):
+                import libpyRR310 as rrLib
+                logger.debug("libpyRR310 loaded ({})".format(rrLib.__file__))
+                htorr__pyRR_loaded= True
         if (not htorr__pyRR_loaded):
             logger.warning("\n    Unable to load libpyRR for python version {}.{}.\n    Buttons to get client names do not work.\n".format(sys.version_info.major,sys.version_info.minor))
     except:
