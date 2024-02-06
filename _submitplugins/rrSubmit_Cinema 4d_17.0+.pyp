@@ -1012,10 +1012,10 @@ class RRSubmitBase(object):
         """Call rrSubmitterconsole and pass the XML job file as a parameter"""
         if WID is not None:
             # c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID + " -WaitForID " + WID)
-            call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
+            call([rrGetRR_Root() + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
         elif PID is not None:
             # c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID)
-            call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID])
+            call([rrGetRR_Root() + self.getRRSubmitterConsole(), filename, "-PID", PID])
         else:
             c4d.storage.GeExecuteProgram(rrGetRR_Root() + self.getRRSubmitterConsole(), filename)
         return True
@@ -2395,6 +2395,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
         self.setFileout()
+
+        if len(self.job[0].imageName) == 0 or self.job[0].imageName == "<IMS>" :
+            # output not set
+            gui.MessageDialog('Output Path not set, please check Render Setting')
+            return False
 
         take_manager = TakeManager(self, doc)
         take_manager.add_takes()

@@ -976,6 +976,11 @@ class RRSubmit(c4d.plugins.CommandData):
         self.setImageFormat()
         self.setFileout()
 
+        if len(self.job[0].imageName) == 0 or self.job[0].imageName == "<IMS>" :
+            # output not set
+            gui.MessageDialog('Output Path not set, please check Render Setting')
+            return False
+
         if (False): #(SHOWTILEDIALOG) or (self.job.seqStart==self.job.seqEnd)):
             self.dialog = RRDialog()
             ret = self.dialog.Open(dlgtype=c4d.DLG_TYPE_MODAL_RESIZEABLE, pluginid=PLUGIN_ID)
