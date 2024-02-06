@@ -1010,10 +1010,10 @@ class RRSubmitBase(object):
         """Call rrSubmitterconsole and pass the XML job file as a parameter"""
         if WID != None:
             #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID + " -WaitForID " + WID)
-            call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
+            call([rrGetRR_Root() + self.getRRSubmitterConsole(), filename, "-PID", PID, "-WID", WID])
         elif PID != None:
             #c4d.storage.GeExecuteProgramEx(rrGetRR_Root() + self.getRRSubmitterConsole(), filename + " -PreID " + PID)
-            call([rrGetRR_Root + self.getRRSubmitterConsole(), filename, "-PID", PID])
+            call([rrGetRR_Root() + self.getRRSubmitterConsole(), filename, "-PID", PID])
         else:
             c4d.storage.GeExecuteProgram(rrGetRR_Root() + self.getRRSubmitterConsole(), filename)
         return True
