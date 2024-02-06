@@ -135,7 +135,6 @@ RR_REDSHIFT_VERSION= <RR_REDSHIFT_VERSION>
 [If] <rrJobRenderer>  [contains] redshift
     echo * Rendering with Redshift
     REDSHIFT_USED = TRUE
-    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
@@ -143,7 +142,6 @@ RR_REDSHIFT_VERSION= <RR_REDSHIFT_VERSION>
 [If] <rrJobRenderer>  [contains] createRS
     echo * Creating with Redshift
     REDSHIFT_USED = TRUE
-    echo REDSHIFT_USED is <REDSHIFT_USED>
     [If] <RR_REDSHIFT_VERSION>  [==] 
         RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
     [EndIf]
@@ -298,8 +296,8 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
     HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
     LD_LIBRARY_PATH  =  <VRAY_APPSDK>\bin;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
     PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
-    PYTHONPATH = <VRAY_APPSDK>\python<HPyVer>;<PYTHONPATH>
-    VFH_DSO_PATH = <VFH_HOME>\dso_py<HPyVer>
+    PYTHONPATH = <VRAY_APPSDK>\python<HPyVer>;<VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>\python;<PYTHONPATH>
+    VFH_DSO_PATH = <VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>
 
     [If] <rrExeVersionMajor>  [<] 19
         #2 instead of 27
@@ -388,7 +386,42 @@ RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
 
 
 
-# conversion of back-slashes into slashes for Windows as Houdini does not like backslashes
+
+
+# ###################  Octane environment variables ###################
+
+OCTANE_USED = FALSE
+RR_OCTANE_VERSION= <RR_OCTANE_VERSION>
+
+[If] <rrJobRenderer>  [contains] Octane
+    echo * Rendering with Octane
+    OCTANE_USED = TRUE
+    [If] <RR_OCTANE_VERSION>  [==] 
+        RR_OCTANE_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+[EndIf]
+[If] <RR_OCTANE_VERSION>  [==] 
+    RR_OCTANE_VERSION  =  AnyVersion
+[EndIf]
+
+[If] <RR_OCTANE_BASE>  [==] 
+    RR_OCTANE_BASE  =  <rrSharedExeDir>Octane_<RR_OCTANE_VERSION>_Houdini_<ExeVersionFull>
+[EndIf]
+RR_OCTANE_BASE_LOCAL  =  <rrLocalExeDir>Octane_<RR_OCTANE_VERSION>_Houdini_<ExeVersionFull>
+echo * Octane source path is set to <RR_OCTANE_BASE>
+echo * Octane cache path is set to <RR_OCTANE_BASE_LOCAL>
+[copy] SyncNoCreateDir <RR_OCTANE_BASE>   =>   <RR_OCTANE_BASE_LOCAL>
+
+
+PATH  =  <RR_OCTANE_BASE_LOCAL>\bin;<PATH>
+HOUDINI_PATH  =  <RR_OCTANE_BASE_LOCAL>;<HOUDINI_PATH>
+HOUDINI_DSO_ERROR  =  2
+
+
+
+
+####################################################################################################
+# conversion of back-slashes into slashes for Windows as Houdini does/did not like backslashes
 [BSlashConvert] HOUDINI_PATH  =  <HOUDINI_PATH>
 [BSlashConvert] HOUDINI_OTLSCAN_PATH  =  <HOUDINI_OTLSCAN_PATH>
 [BSlashConvert] HOUDINI_SOHO_PATH  =  <HOUDINI_SOHO_PATH>

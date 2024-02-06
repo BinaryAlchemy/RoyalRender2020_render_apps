@@ -307,8 +307,8 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
     HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
     LD_LIBRARY_PATH  =  <VRAY_APPSDK>\bin;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
     PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
-    PYTHONPATH = <VRAY_APPSDK>\python<HPyVer>;<PYTHONPATH>
-    VFH_DSO_PATH = <VFH_HOME>\dso_py<HPyVer>
+    PYTHONPATH = <VRAY_APPSDK>\python<HPyVer>;<VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>\python;<PYTHONPATH>
+    VFH_DSO_PATH = <VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>
 
     [If] <rrExeVersionMajor>  [<] 19
         #2 instead of 27
