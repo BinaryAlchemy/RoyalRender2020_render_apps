@@ -20,6 +20,7 @@ RealTimeAbortLine= Output file locked or path not available for writing. Skippin
 RealTimeAbortLine= Rendering aborted due to license failure
 RealTimeAbortLine= The render will not start
 RealTimeAbortLine= Engine 'REDSHIFT' not available for scene
+RealTimeAbortLine= Maxon licensing error
 
 
 ::include(<ConfigFileName>__inhouse.inc)
