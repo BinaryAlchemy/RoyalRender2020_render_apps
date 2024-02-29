@@ -151,6 +151,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
 [EndIf]
 
 VRAY_VFB_GUI  =  0
+VRAY_SEND_FEEDBACK =  0
 
 
 
