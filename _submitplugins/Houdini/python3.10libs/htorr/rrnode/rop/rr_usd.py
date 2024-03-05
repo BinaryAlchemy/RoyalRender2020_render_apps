@@ -280,16 +280,16 @@ class UsdStandalone(UsdRop):
             return "VRay"
         return ""
     
+        
     @property
     def renderer_version(self):
         renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Arnold:
+            return super(UsdStandalone, self).software_version
+
         if renderer==_NAME_Karma:
             return ""
-            
-        elif renderer==_NAME_Arnold:
-            import htorr.rrnode.rop.rr_arnold as rr_arnold
-            return rr_arnold._getArnoldVersion()
-        
+       
         elif renderer==_NAME_Arnold_husk:
             import htorr.rrnode.rop.rr_arnold as rr_arnold
             return rr_arnold._getArnoldVersion()
@@ -306,7 +306,18 @@ class UsdStandalone(UsdRop):
             import htorr.rrnode.rop.rr_vray as rr_vray
             return rr_vray._getVRayVersion()
         
-        return ""
+        return ""            
+            
+        
+        
+    @property
+    def software_version(self):
+        renderer= detectRenderEngine(self._node.parm("renderer"))
+        if renderer==_NAME_Arnold:
+            import htorr.rrnode.rop.rr_arnold as rr_arnold
+            return rr_arnold._getArnoldVersion()
+
+        return super(UsdStandalone, self).software_version
 
     @property
     def rr_job_variablesFunc(self):
