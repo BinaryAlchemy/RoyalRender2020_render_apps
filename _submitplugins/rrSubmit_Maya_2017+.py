@@ -1367,7 +1367,7 @@ class rrMayaLayer:
                         self.channelExtension.append(self.imageExtension)
                         self.maxChannels +=1
             self.camera=self.camera + " MultiCam"
-        if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<Camera>")<0)):
+        if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<camera>")<0)):
             self.camera=""
         if (self.renderer=="mayaSoftware") or (self.renderer=="redshift") or (self.renderer=="vray"):
             self.imageFileName=self.imageFileName.replace('<Camera>','<CameraKeepVBar>')
