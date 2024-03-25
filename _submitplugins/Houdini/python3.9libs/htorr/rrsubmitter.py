@@ -226,4 +226,4 @@ class RrGuiSubmitter(RrCmdSubmitter):
         if (not os.path.exists(self.get_rr_rrStartLocal_path())):
             logger.warning("RR executable does not exist:\n" + self.get_rr_rrStartLocal_path())
         else:
-            subprocess.Popen(command, env=rr_env)
+            subprocess.Popen(command, env=rr_env, shell=True)

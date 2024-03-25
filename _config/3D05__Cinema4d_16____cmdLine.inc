@@ -82,7 +82,7 @@ ImageSizeCommandline= -width <Width> -height <Height>
 ################################## Client Settings ################################## 
 
 errorSearchLine= Several plugins used in this project are missing
-errorSearchLine= Plugin '
+#errorSearchLine= Plugin '   We must not enable this as  C4D 2024 adds Redshift even if it is not used as renderer
 errorSearchLine= Could not initialize Renderer
 
 

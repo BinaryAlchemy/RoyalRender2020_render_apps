@@ -481,7 +481,14 @@ def submit_ue_jobs(queue):
         # ALL SETTINGS contain output, format, and other setting classes
         for setting in out_settings:
             if isinstance(setting, unreal.MoviePipelineConsoleVariableSetting):
-                cvars = setting.console_variables
+                try:
+                    console_vars = setting.get_console_variables()
+                except AttributeError:
+                    # version < 5.2: direct access to dict
+                    cvars = setting.console_variables
+                else:
+                    cvars = {v.name: v.value for v in console_vars}
+
                 try:
                     split_shot_jobs = not bool(cvars['RR_NO_SPLIT'])
                 except KeyError:
