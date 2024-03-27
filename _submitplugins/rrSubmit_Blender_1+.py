@@ -2,10 +2,9 @@
 ######################################################################
 #
 # Royal Render Plugin script for Blender 
-# Authors, based on:    Felix Bucella, Patrik Gleich
-# Authors:              Friedrich Wessel (Callisto FX GmbH)
-# Authors, updated by:  Paolo Acampora, Holger Schoenberger (Binary Alchemy)
-# Last change: d9.0.8_ffmpg
+# Authors, based on:    Felix Bucella, Patrik Gleich, Friedrich Wessel
+# Authors:  Paolo Acampora (Binary Alchemy), Holger Schoenberger (Binary Alchemy)
+# Last change: %rrVersion%
 #
 # rrInstall_Copy:     \*\scripts\startup\
 # 
@@ -14,7 +13,7 @@
 bl_info = {
     "name": "Royal Render Submitter",
     "author": "Binary Alchemy",
-    "version": "d9.0.8_ffmpg",
+    "version": "%rrVersion%",
     "blender": (2, 80, 0),
     "description": "Submit scene to Royal Render",
     "category": "Render",
@@ -194,12 +193,17 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeBool = self.writeNodeBool
 
         fileID.write("<Job>\n")
-
-        if scn.cycles.device == 'GPU':
-            fileID.write("<SubmitterParameter>")
-            fileID.write("COCyclesEnableGPU=1~1 GPUrequired=1~1")
-            fileID.write("</SubmitterParameter>")
-        writeNodeStr(fileID, "rrSubmitterPluginVersion", "d9.0.8_ffmpg")
+        if (self._renderer_name=="Cycles"):
+            if scn.cycles.device == 'GPU':
+                fileID.write("<SubmitterParameter>")
+                fileID.write("COCyclesEnableGPU=1~1 GPUrequired=1~1")
+                fileID.write("</SubmitterParameter>")
+        if (self._renderer_name=="Luxcore"):
+            if scn.luxcore.config.device == 'OCL':
+                fileID.write("<SubmitterParameter>")
+                fileID.write("COCyclesEnableGPU=1~1 GPUrequired=1~1")
+                fileID.write("</SubmitterParameter>")
+        writeNodeStr(fileID, "rrSubmitterPluginVersion", "%rrVersion%")
         writeNodeStr(fileID, "Software", "Blender")
         writeNodeStr(fileID, "Renderer", self._renderer_name)
         writeNodeStr(fileID, "rendererVersion", self._renderer_version)
@@ -301,6 +305,16 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         if (self._renderer_name=="Redshift"):
             import addon_utils
             mod = sys.modules.get("redshift")
+            modInfo= addon_utils.module_bl_info(mod)
+            versionStr=""
+            for v in modInfo["version"]:
+                if (len(versionStr)!=0):
+                    versionStr= versionStr + "."
+                versionStr= versionStr + str(v)        
+            self._renderer_version= versionStr
+        if (self._renderer_name=="Luxcore"):
+            import addon_utils
+            mod = sys.modules.get("BlendLuxCore")
             modInfo= addon_utils.module_bl_info(mod)
             versionStr=""
             for v in modInfo["version"]:

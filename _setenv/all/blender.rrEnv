@@ -82,7 +82,6 @@ PYTHONPATH = <rrLocalRenderScripts>;<PYTHONPATH>
         LD_LIBRARY_PATH  =  <RR_REDSHIFT_BASE_LOCAL>\bin;<LD_LIBRARY_PATH>
     [EndIf]
     
-    g_additionalModulePath  =  <g_additionalModulePath>;<REDSHIFT_PLUG_IN_PATH>
     REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
 [Else]
     [If] <rrJobRenderer>  [contains] redshift

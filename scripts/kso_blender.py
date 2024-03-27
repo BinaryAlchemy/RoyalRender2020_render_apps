@@ -62,6 +62,18 @@ def log_msg_err(msg):
 
 # Startup Utilities
 
+def set_luxcore_CUDA():
+    v_major, v_minor, _ = bpy.app.version
+
+    if v_major > 2 or v_minor > 79:
+        prefs = bpy.context.preferences
+    else:
+        prefs = bpy.context.user_preferences
+
+    addon_prefs = prefs.addons["BlendLuxCore"].preferences
+    addon_prefs.gpu_backend="CUDA"
+
+
 def enable_gpu_devices(addon_name='cycles', use_CPU=False, use_optix=False):
     v_major, v_minor, _ = bpy.app.version
 
@@ -748,8 +760,12 @@ if __name__ == "__main__":
     import kso_tcp
     useAllCores()
     
+    log_msg(" Renderer set: "+ args.renderer)
+    
     if args.load_redshift:
         enable_addon("redshift")
+    if args.renderer.lower() == "luxcore":
+        enable_addon("BlendLuxCore")
 
     log_msg(" About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
@@ -769,6 +785,10 @@ if __name__ == "__main__":
             if settings.device != 'GPU':
                 log_msg(f"Switching Cycles render device from '{settings.device}' to 'GPU'")
             settings.device = 'GPU'
+            
+        if args.renderer.lower() == "luxcore":          
+            set_luxcore_CUDA()
+            
 
     adjust_resolution(args.res_x, args.res_y)
     if args.is_tiled():
