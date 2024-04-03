@@ -415,7 +415,9 @@ def rrKSOStartServer():
                 else:
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
-        logMessage("rrKSO closed")
+        logMessage("Closing TCP")    
+        server.closeTCP()
+        logMessage("rrKSO closed") 
     except NameError as e:
         logMessage(str(e)+"\n")        
     except Exception as e:
