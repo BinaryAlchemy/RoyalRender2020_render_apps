@@ -34,6 +34,17 @@ PXR_PLUGINPATH_NAME = <PXR_PLUGINPATH_NAME>;&
     HOUDINI_PATH  =  <RR_ROOT>\render_apps\_submitplugins\Houdini;<HOUDINI_PATH>
 [EndIf]
 
+[If] <RR_HOUDINI_PACKAGE_BASE>  [==] 
+    RR_HOUDINI_PACKAGE_BASE  =  <rrPlugins><rrExeVersion>\packages
+[EndIf]
+RR_HOUDINI_PACKAGE_LOCAL  =  <rrLocalExeDir><rrExeVersion>\packages
+echo * RRs Houdini package dir is set to <RR_HOUDINI_PACKAGE_BASE>
+echo * It will be cached to <RR_HOUDINI_PACKAGE_LOCAL>
+
+HOUDINI_PACKAGE_DIR  =  <RR_HOUDINI_PACKAGE_LOCAL>;<HOUDINI_PACKAGE_DIR>
+echo * HOUDINI_PACKAGE_DIR is set to <HOUDINI_PACKAGE_DIR>
+[copy] SyncNoCreateDir <RR_HOUDINI_PACKAGE_BASE>   =>   <RR_HOUDINI_PACKAGE_LOCAL>
+
 
 PATH= <rrBaseAppPath>\bin;<PATH>
 

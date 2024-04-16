@@ -14,7 +14,6 @@ AllowImageDirChange= 1
 SequenceDivide= 0~1
 AllowLocalSceneCopy= 1~0
 RenderVerbose=0~0
-AASamples=1~1
 
 
 

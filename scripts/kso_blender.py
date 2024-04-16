@@ -506,12 +506,12 @@ def render_frame_range(start, end, step, movie=False):
 
             scene.frame_start = fr
             scene.frame_end = fr
-            bpy.ops.render.render(animation=True, write_still=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
+            bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
     else:
         log_msg(f"Rendering Frames (no frame loop): {start} - {end}")
         set_frame_range(start, end, step)
         flush_log()
-        bpy.ops.render.render(animation=True, write_still=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
+        bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
 
 
 def set_output_path():
@@ -711,13 +711,22 @@ def ensure_scene_and_layer():
     
     global RENDER_LAYER
 
-    if RENDER_LAYER and RENDER_LAYER not in bpy.data.scenes[RENDER_SCENE].view_layers:
+    if RENDER_LAYER and (RENDER_LAYER not in bpy.data.scenes[RENDER_SCENE].view_layers):
         log_msg_wrn(f"The layer {RENDER_LAYER} was not found in '{RENDER_SCENE}', will default to loaded layer")
         RENDER_LAYER = ""
 
     if not RENDER_LAYER:
         RENDER_LAYER = bpy.context.view_layer.name
-        log_msg_wrn(f"No Layer argument given, using '{RENDER_LAYER}'")
+        log_msg_wrn(f"No Layer argument given, using scene settings")
+    else:
+        for layer in bpy.data.scenes[RENDER_SCENE].view_layers:
+            if (layer.name != RENDER_LAYER):
+                log_msg(f"Disabling layer {layer.name}")
+                layer.use= False
+            else:
+                log_msg(f"Enabling layer {layer.name}")
+                layer.use= True
+    
 
 
 def adjust_resolution(new_res_x, new_res_y):

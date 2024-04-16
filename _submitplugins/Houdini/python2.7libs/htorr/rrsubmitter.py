@@ -154,6 +154,15 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
                    + "\"" )
         logger.debug("Submit cmd: {}".format(command))   
         rr_env=os.environ.copy()
+        if 'QT_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_PLUGIN_PATH']
+        if 'QT_LOGGING_RULES' in rr_env:
+            del rr_env['QT_LOGGING_RULES']
+        if 'QT_QPA_FONTDIR' in rr_env:
+            del rr_env['QT_QPA_FONTDIR']
+        if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
+            del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+            
         envCount= len(list(rr_env))
         ie=0
         while (ie<envCount):
@@ -171,7 +180,7 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
         if os.name == 'nt':
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        proc = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, env=rr_env)
+        proc = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, env=rr_env, shell=True)
 
         out = proc.communicate()[0]
         out= out.decode('ascii')
