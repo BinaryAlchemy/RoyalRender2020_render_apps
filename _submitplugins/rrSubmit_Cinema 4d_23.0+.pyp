@@ -378,30 +378,61 @@ def GetRedshiftPluginVersion():
 
 # Octane
 def GetOctaneVersion(doc):
+    versionDocument= ""
+    versionDisplay= ""
+    versionIntern= ""
+    versionReturn=""
+
+
     ID_OCTANE_LIVEPLUGIN = 1029499
+    doc = c4d.documents.GetActiveDocument()
     octane_container = doc[ID_OCTANE_LIVEPLUGIN]
+    if octane_container:
+       versionDocument= str(octane_container[c4d.SET_OCTANE_VERSION])
 
-    if not octane_container:
-        return
+    data = c4d.plugins.GetWorldPluginData(1031195)
+    if data:
+        versionDisplay=data[5001]
+        versionIntern=str(data[5000])
 
-    oc_ver_num = str(octane_container[c4d.SET_OCTANE_VERSION])
+    numberChars = set('0123456789')
+    if any((c in numberChars) for c in versionIntern) and any((c in numberChars) for c in versionDisplay):
+        if '[' in versionDisplay:
+            versionDisplay= versionDisplay[:versionDisplay.find('[')]
+        if '-' in versionDisplay:
+            versionDisplay= versionDisplay[:versionDisplay.find('-')]
 
-    # format to major.minor.update
-    # 3080400 is 3.08.4
-    # 4000016 is 4.00.0-RC6
-    # 10021301 is 10.02.13
+        # strip release candidate
+        versionIntern = versionIntern[:-2]
+        oc_update = versionIntern[-2:]
 
-    # strip release candidate
-    oc_ver_num = oc_ver_num[:-2]
-    oc_update = oc_ver_num[-2:]
+        versionIntern = versionIntern[:-2]
+        oc_minor = versionIntern[-2:]
 
-    oc_ver_num = oc_ver_num[:-2]
-    oc_minor = oc_ver_num[-2:]
+        oc_major = versionIntern[:-2]
+        # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
+        versionIntern= ".".join((oc_major, oc_minor, oc_update))
 
-    oc_major = oc_ver_num[:-2]
-    # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
-    return ".".join((oc_major, oc_minor, oc_update))
+        if (oc_major > "13"):
+            versionReturn= versionDisplay
+        else:
+            versionReturn= versionIntern 
+            
+    else:
+        # strip release candidate
+        versionDocument = versionDocument[:-2]
+        oc_update = versionDocument[-2:]
 
+        versionDocument = versionDocument[:-2]
+        oc_minor = versionDocument[-2:]
+
+        oc_major = versionDocument[:-2]
+
+        # format to major.minor.update, i.e. 4000016 is V4.00.0-RC6
+        versionDocument= ".".join((oc_major, oc_minor, oc_update))
+        versionReturn= versionDocument 
+        
+    return versionReturn
 
 # Global
 
