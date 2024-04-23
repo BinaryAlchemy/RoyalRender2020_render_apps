@@ -95,6 +95,37 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
                     "\n Please execute     rrWorkstationInstaller and restart.")
 
     @staticmethod
+    def get_ocio_config_file():
+        try:
+            return os.environ['OCIO']
+        except KeyError:
+            pass
+        
+        bl_dir = os.path.dirname(bpy.app.binary_path)
+        default_cfg_file = os.path.join(bl_dir, ".".join(str(d) for d in bpy.app.version[:2]) ,"datafiles", "colormanagement", "config.ocio")
+        return default_cfg_file
+    
+    @staticmethod
+    def get_out_colorspace_settings(scene):
+        try:
+            image_settings = scene.render.image_settings
+        except AttributeError:
+            return ''
+
+        try:
+            has_color_space = image_settings.has_linear_colorspace
+        except AttributeError:
+            return ''
+        
+        if not has_color_space:
+            return ''
+
+        if image_settings.color_management == 'FOLLOW_SCENE':
+            return ''
+        
+        return image_settings.linear_colorspace_settings.name
+
+    @staticmethod
     def writeNodeStr(fileID, name, text):
         text = text.replace("&", "&amp;")
         text = text.replace("<", "&lt;")
@@ -222,6 +253,11 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         writeNodeStr(fileID, "Layer", layer)
         writeNodeStr(fileID, "CustomFrameFormat", file_format)
+
+        out_colorspace = self.get_out_colorspace_settings(scn)
+        if out_colorspace:
+            writeNodeStr(fileID, "ColorSpace", out_colorspace)
+            writeNodeStr(fileID, "ColorSpaceConfigFile", self.get_ocio_config_file())
 
         fileID.write("</Job>\n")
 
