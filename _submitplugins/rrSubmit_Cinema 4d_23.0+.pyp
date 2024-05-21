@@ -2009,6 +2009,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         LOGGER.debug("1 - imageName is: " + job.imageName)
 
         job.imageName = self.handleRelativeFileOut(job.imageName)
+        
+        if (len(job.imageName)==0):
+            LOGGER.warning(f"No output filename for take {job.layerName} set!")
+            return
+        
         job.imageName = job.imageName + "<IMS>"
 
         addStereoString = ""

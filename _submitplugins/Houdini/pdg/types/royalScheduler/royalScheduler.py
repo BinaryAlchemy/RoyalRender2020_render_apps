@@ -1,6 +1,13 @@
 # Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
+# python script to reload this python module in Houdini after a script change:
+# import pdg; pdg.TypeRegistry.types().registeredType(pdg.registeredType.Scheduler, "royalscheduler").reload()
+
+
+LOG_FUNCTION_ENTER_EXIT= False
+
+
 import json
 import os
 import socket
@@ -23,6 +30,7 @@ from pdgutils import PDGNetMQRelay, mqGetError, mqCreateMessage, PDGNetMessageTy
 from pdg.utils import expand_vars
 
 
+
 sharedPath=os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared"))
 sys.path.append(sharedPath)
 import royalCommands as rrCmds
@@ -36,7 +44,15 @@ except:
 import royalDefs as rrDefs
 
 
-
+def houdiniMajorVersion_Int():
+    version= hou.applicationVersion()
+    if (len(version)>0):
+        version=version[0]
+    else:
+        version=18
+        
+    logger.debug("Houdini version is {}".format(version))
+    return version
 
 
 _jobTypeNone=0
@@ -319,7 +335,7 @@ class houdiniTask2rrJobMapper():
                     logger.error("Unable to export as xml file "+xmlFilename)
             else:
                 if (not rrCmds.submitJobList()):
-                    logger.error("Unable to submit jobs!")
+                    logger.error("Unable to submit jobs! {}".format(rrCmds.getErrorString()))
                     return False
                 else:
                     
@@ -402,9 +418,6 @@ class houdiniTask2rrJobMapper():
         
 
 
-# import pdg; pdg.TypeRegistry.types().registeredType(pdg.registeredType.Scheduler, "royalscheduler").reload()
-
-
 
 class RoyalScheduler( CallbackServerMixin, PyScheduler):
 
@@ -439,7 +452,9 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             logger.setLevel(logging.DEBUG)
         
         submitterVerbose= self["rr_submissionVerbose"].evaluateString()
-        if (submitterVerbose=="error"):
+        if (submitterVerbose=="none"):
+            rrCmds.setVerboseLevel(0)
+        elif (submitterVerbose=="error"):
             rrCmds.setVerboseLevel(1)
         elif (submitterVerbose=="warning"):
             rrCmds.setVerboseLevel(2)
@@ -548,6 +563,8 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         self.h2rrMap.disableAbortAllJobs()
         if (self.useCallBackServer):
             self.stopCallbackServer()
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onStop--EXIT-----------------')
         return True
 
 
@@ -579,9 +596,14 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             logger.error("\n   onStartCook  Exception.\n")
             logger.error(str(traceback.format_exc()))
             return False
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onStartCook--EXIT-----------------')
+
         return True
 
     def workItemResultServerAddr(self):
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------workItemResultServerAddr-------------------')
         try:
             serverName = super().workItemResultServerAddr()
             
@@ -595,6 +617,8 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             logger.error("\n   workItemResultServerAddr Exception.\n")
             logger.error(str(traceback.format_exc()))
             return False            
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------workItemResultServerAddr--EXIT-----------------')
         return serverName
 
     def onStopCook(self, cancel):
@@ -610,6 +634,8 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             self.h2rrMap.disableAbortAllJobs()
         if (self.useCallBackServer):
             self.stopCallbackServer()            
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onStopCook--EXIT-----------------')
 
         return True
 
@@ -619,9 +645,9 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         This callback is evaluated when the given pdg.WorkItem is ready to be executed. 
         The scheduler should create the necessary job spec for their farm scheduler and submit it if possible.
         """
-        #logger.debug("onSchedule:  {};{};{};{}".format(work_item.node.name, work_item.id, work_item.index, work_item.command))
-
-        #logger.info('onSchedule input: {} - {}'.format(work_item.node.name, work_item.name))
+        if LOG_FUNCTION_ENTER_EXIT:       
+            #logger.debug("------------------- onSchedule:  {};{};{};{}".format(work_item.node.name, work_item.id, work_item.index, work_item.command))
+            logger.debug('------------------- onSchedule input: {} - {}'.format(work_item.node.name, work_item.name))
         #if len(work_item.command) == 0:
          #   return pdg.scheduleResult.CookSucceeded
             
@@ -632,8 +658,12 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         #Houdini sends 60 tasks per second by default
         #We collect them and send a pack of tasks for each node in onTick() every x seconds
         if not self.h2rrMap.activateWork(work_item, self):
+            if LOG_FUNCTION_ENTER_EXIT:
+                logger.debug('-------------------onSchedule--EXIT1-----------------')
             return pdg.scheduleResult.Failed
 
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onSchedule--EXIT2-----------------')
         return pdg.scheduleResult.Succeeded
 
 
@@ -657,7 +687,8 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         and the max items per tick is 30. This means that onSchedule will be called a maximum of 60 times per second. 
         Adjusting these values can be useful to control the load on the farm scheduler.
         """
-        #logger.debug("onTick")
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onTick-------------------')
         
         
         #we pre-generate the jobs. 
@@ -698,9 +729,14 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
                 if (not self.h2rrMap.submitJobs(self)):
                     return pdg.tickResult.SchedulerCancelCook                
                 self.jobsCreated= True
+
                 if (self.exportXML):
+                    if LOG_FUNCTION_ENTER_EXIT:
+                        logger.debug('-------------------onTick--EXIT1-----------------')
                     return pdg.tickResult.SchedulerCancelCook                
-                
+
+                if LOG_FUNCTION_ENTER_EXIT:
+                    logger.debug('-------------------onTick--EXIT2-----------------')
                 return pdg.tickResult.SchedulerBusy
                 
             except:
@@ -761,6 +797,8 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         #Creates a 3sec CPU peak every 120 seconds
         rrCmds.aliveCpuPeak()
         
+        if LOG_FUNCTION_ENTER_EXIT:
+            logger.debug('-------------------onTick--EXIT3-----------------')
         return pdg.tickResult.SchedulerReady
 
 
@@ -809,11 +847,14 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
                 logger.error("Unable to export as xml file "+xmlFilename)
         else:
             if (not rrCmds.submitJobList_withUI()):
-                logger.error("Unable to submit jobs!")
+                logger.error("Unable to submit jobs! {}".format(rrCmds.getErrorString()))
             else:
                 logger.info("Submitted 1 job!")
         
-        return None # we not not offer website links
+        if (houdiniMajorVersion_Int() >= 20):
+            return "", "" # we not not offer url links nor JobID
+        else:
+            return "" # we not not offer url links 
 
 
     

@@ -211,18 +211,22 @@ class FetchNode(rrNode):
     name = "fetch"
 
     def childclass_parse(self, parseData):
-        source = self._node.evalParm("source")
-        if len(source) > 0:
-            sourceNode = self._node.parm("source").evalAsNode()
-            n = rrNode.create(sourceNode)
-            n.parse(parseData)
+        sourceParm=self._node.parm("source")
+        if sourceParm:
+            source = self._node.evalParm("source")
+            if len(source) > 0:
+                sourceNode = self._node.parm("source").evalAsNode()
+                n = rrNode.create(sourceNode)
+                n.parse(parseData)
 
     def dependencies(self):
         retNodes = self._node.inputs()
-        source = self._node.evalParm("source")
-        if len(source) > 0:
-            sourceNode = self._node.parm("source").evalAsNode()
-            retNodes = retNodes + (sourceNode,)
+        sourceParm=self._node.parm("source")
+        if sourceParm:
+            source = self._node.evalParm("source")
+            if len(source) > 0:
+                sourceNode = self._node.parm("source").evalAsNode()
+                retNodes = retNodes + (sourceNode,)
         logger.debug("{}: dependencies are: {} ".format(self._node.path(), retNodes))
         return retNodes
 

@@ -175,8 +175,9 @@ def rrModule_createLocalCache(rrBinFolder):
                     modPath=modPath + '/python/37'
                 else: 
                     modPath=modPath + '/python/39'
-    sys.path.append(modPath)
-    logger.debug("added module path "+modPath)
+    if modPath not in sys.path:
+        sys.path.append(modPath)
+        logger.debug("added module path "+modPath)
 
 
 
@@ -217,11 +218,11 @@ def loadRRmodule():
                 logger.debug("libpyRR310_submit loaded ({})".format(rrSubmitLib.__file__))
                 rrsched__pyRR_submit_loaded= True
         if (not rrsched__pyRR_submit_loaded):
-            logger.warning("\n    Unable to load libpyRR_submit for python version {}.{}.\n"
+            logger.warning("\n Unable to load libpyRR_submit for python version {}.{}.\n"
             .format(sys.version_info.major,sys.version_info.minor))
     except:
-         logger.warning("\n    Unable to load libpyRR_submit.\n ")
-         logger.debug(str(traceback.format_exc()))
+         logger.warning("Unable to load libpyRR_submit.\nPython sys.path is: \n "+str(sys.path))
+         logger.warning(str(traceback.format_exc()))
          return None
     
     global rrJob
@@ -353,4 +354,8 @@ def sendrequest_jobStatusInfo(jobID):
 def aliveCpuPeak():
     rrSubmitter= loadRRmodule()
     return rrSubmitter.runCPUPeak(2)
+        
+def getErrorString():
+    rrSubmitter= loadRRmodule()
+    return rrSubmitter.errorString()
         

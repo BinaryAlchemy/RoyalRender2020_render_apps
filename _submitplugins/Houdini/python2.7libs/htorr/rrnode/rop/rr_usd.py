@@ -197,12 +197,14 @@ class UsdRop(RenderNode):
             import loputils
             lop = self._node.evalParm('loppath')
             #logger.debug("renderproductList: lop is {}".format(lop))
-            if lop:
+            if self._node.input(0):
+                input = self._node.input(0)
+                stage = input.stage()
+            elif lop:
                 lop = self._node.parm("loppath").evalAsNode()
                 stage = lop.stage() 
             else:
-                input = self._node.input(0)
-                stage = input.stage()
+                logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
             
             if (stage== None):
                 return []
@@ -374,20 +376,15 @@ class UsdStandalone(UsdRop):
         stage= None
         import loputils
         lop = self._node.evalParm('loppath')
-        #logger.debug("renderproductList: lop is {}".format(lop))
-        noStage=True
-        if lop:
-            lop = self._node.parm("loppath").evalAsNode()
-            if lop:
-                stage = lop.stage() 
-                noStage=False
-            else:
-                logger.error("{}: loppath does not exist: {}".format(self._node.path(), self._node.evalParm('loppath')))     
-        if (noStage):
+        if self._node.input(0):
             input = self._node.input(0)
-            if input:
-                stage = input.stage()
-        
+            stage = input.stage()
+        elif lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            stage = lop.stage() 
+        else:
+            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+
         if (stage== None):
             logger.debug("{}: no stage found! ".format(self._node.path()))     
             return []
@@ -537,20 +534,15 @@ class UsdRenderRop(RenderNode):
         stage= None
         import loputils
         lop = self._node.evalParm('loppath')
-        #logger.debug("renderproductList: lop is {}".format(lop))
-        noStage=True
-        if lop:
-            lop = self._node.parm("loppath").evalAsNode()
-            if lop:
-                stage = lop.stage() 
-                noStage=False
-            else:
-                logger.error("{}: loppath does not exist: {}".format(self._node.path(), self._node.evalParm('loppath')))     
-        if (noStage):
+        if self._node.input(0):
             input = self._node.input(0)
-            if input:
-                stage = input.stage()
-        
+            stage = input.stage()
+        elif lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            stage = lop.stage() 
+        else:
+            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+
         if (stage== None):
             logger.debug("{}: no stage found! ".format(self._node.path()))     
             return []
