@@ -101,8 +101,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         except KeyError:
             pass
         
-        bl_dir = os.path.dirname(bpy.app.binary_path)
-        default_cfg_file = os.path.join(bl_dir, ".".join(str(d) for d in bpy.app.version[:2]) ,"datafiles", "colormanagement", "config.ocio")
+        default_cfg_file = os.path.join("<rrBaseAppPath>", ".".join(str(v) for v in bpy.app.version[:2]),"datafiles", "colormanagement", "config.ocio")
         return default_cfg_file
     
     @staticmethod
