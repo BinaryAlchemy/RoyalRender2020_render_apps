@@ -1135,6 +1135,14 @@ try:
         else:
             render_default()
 
+    flushLog()
+    logMessage("                                      .   ")
+    logMessage("                                     ...  ")
+    logMessage("                                    ..... ")
+    logMessage("                                   ..end..")
+    flushLog()
+    time.sleep(2) #some delay as some log messages seem to be cut off
+            
 except NameError as e:
     logMessage("Warning: "+str(e)+"\n")      
 except Exception as e:
