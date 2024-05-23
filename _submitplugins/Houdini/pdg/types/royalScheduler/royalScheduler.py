@@ -278,6 +278,7 @@ class houdiniTask2rrJobMapper():
                 if self.nodes[i].hjobIsServer:
                     renderApp.rendererName="pyServer"  
                     newJob.layer="PDG Server"
+                    newJob.customDataAppend_Str("rrSubmitterParameter", ' "Priority=1~80" ' )
                 elif (self.nodes[i].hjobType==_jobTypePython):
                     renderApp.rendererName="PDGpy"  
                 else:
