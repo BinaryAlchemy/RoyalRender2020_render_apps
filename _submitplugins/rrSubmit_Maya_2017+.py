@@ -1392,21 +1392,27 @@ class rrsceneInfo:
         self.SceneName=""
         self.DatabaseDir=""
         self.RequiredLicenses=""
+        self.ColorSpace = ""
+        self.ColorSpaceConfigFile = ""
             
     def getsceneInfo(self):
         self.DatabaseDir=cmds.workspace( q=True, rd=True )
         self.SceneName=cmds.file( q=True, location=True )
+
         global _rrGL_mayaVersion
         global _rrGL_mayaVersionMinorStr  
-        self.MayaVersion=  str(_rrGL_mayaVersion)+"."+str(_rrGL_mayaVersionMinorStr)
+
+        self.MayaVersion =  str(_rrGL_mayaVersion)+"."+str(_rrGL_mayaVersionMinorStr)
         if (str(cmds.pluginInfo( query=True, listPlugins=True )).find('Yeti')>0):
             nodes= cmds.ls( type='pgYetiGroom' ) + cmds.ls( type='pgYetiMaya' ) + cmds.ls( type='pgYetiMayaFeather' )
             if (len(nodes)>0):
                 self.RequiredLicenses=self.RequiredLicenses+"/Yeti;"
         
-        
+        self.ColorSpace = cmds.colorManagementPrefs(q=True, renderingSpaceName=True)
+        self.ColorSpaceConfigFile = cmds.colorManagementPrefs(q=True, configFilePath=True)
 
-
+        self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace("<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
+        self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace(cmds.internalVar(mayaInstallDir=True), "<rrBaseAppPath>") 
 
 
 def rrGetRR_Root():
@@ -1876,6 +1882,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"Version", sceneInfo.MayaVersion)
         self.subE(jobElement,"SceneName", sceneInfo.SceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
+        self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
+        self.subE(jobElement,"ColorSpaceConfigFile", sceneInfo.ColorSpaceConfigFile)
         self.subE(jobElement,"Renderer", DPass.renderer)
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
         self.subE(jobElement,"Camera",camera)
@@ -1918,6 +1926,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"Version", sceneInfo.MayaVersion)
         self.subE(jobElement,"SceneName", sceneInfo.SceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
+        self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
+        self.subE(jobElement,"ColorSpaceConfigFile", sceneInfo.ColorSpaceConfigFile)
         self.subE(jobElement,"Renderer", Layer.renderer)
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
         self.subE(jobElement,"Camera",camera)
