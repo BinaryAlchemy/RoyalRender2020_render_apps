@@ -80,10 +80,18 @@ class rrNode(object):
         Arguments:
             parseData {htorr.rrparser.ParseData} -- [parseData instance which provides needed fuctionality]
         """
+        #logger.debug( "{}: SubnetNode parse {}".format( self._node.path(), self._node.type().name() )  )
         if self._node.isBypassed():
             self.parse_bypassed(parseData)
         else:
-            self.childclass_parse(parseData)
+            isDisabled= False
+            hasDisabled =self._node.parm("rr_disabled")
+            if hasDisabled:
+                isDisabled= self._node.evalParm("rr_disabled")
+            if isDisabled:
+                self.parse_bypassed(parseData)
+            else:
+                self.childclass_parse(parseData)
 
     def parse_bypassed(self, parseData):
         """Parsing behavior when node is bypassed.
@@ -196,6 +204,9 @@ class SubnetNode(rrNode):
     name = "subnet"
 
     def childclass_parse(self, parseData):
+        logger.debug( "{}: SubnetNode parse {}".format( self._node.path(), self._node.type().name() )  )
+        if self._node.isBypassed():
+            return
         for child_node in self._node.children():
             if not child_node.outputs():
                 n = rrNode.create(child_node)
@@ -231,6 +242,22 @@ class FetchNode(rrNode):
         return retNodes
 
 
+def isParentBypassed(node):
+    if not node:
+        return False
+    node=node.parent()
+    if not node:
+        return False
+    if len(node.path()) <= 4: #we stop if this path is /obj or /out
+        return
+    try:
+        if node.isBypassed():
+            return True
+    except:
+        pass
+    return isParentBypassed(node)
+    
+
 class RenderNode(rrNode):
     """Wrapper for Houdini Nodes which generates Jobs when parsed.
 
@@ -262,6 +289,16 @@ class RenderNode(rrNode):
         logger.debug( self._node.path() + ": RenderNode parse() ")
         # check if node is bypassed
         if self._node.isBypassed():
+            return
+            
+        isDisabled= False
+        hasDisabled =self._node.parm("rr_disabled")
+        if hasDisabled:
+            isDisabled= self._node.evalParm("rr_disabled")
+        if isDisabled:
+            return
+            
+        if isParentBypassed(self._node):
             return
 
         if not self.check():
