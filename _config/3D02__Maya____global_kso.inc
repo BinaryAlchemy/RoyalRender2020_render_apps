@@ -28,6 +28,7 @@ licenseFailLine=  License was not obtained
 licenseFailLine=  could not get a license
 #licenseFailLine=  All licenses in use  //not reliable as Arnold RLM sometimes checks 10 times to get a license. Or RLM lic server is used in combination with CLM
 licenseFailLine=  can't find any valid product licenses
+licenseFailLine= abort_on_license_fail option is enabled
 
 
 errorSearchLine=  Error reported, aborting render script
@@ -48,6 +49,7 @@ RealTimeAbortLine= Failed batch render
 #RealTimeAbortLine= All licenses in use   //not reliable as Arnold RLM sometimes checks 10 times to get a license. Or RLM lic server is used in combination with CLM
 RealTimeAbortLine= signal caught: SIGILL
 RealTimeAbortLine= Failed batch render
+RealTimeAbortLine= aborting render because
 
 
 findFrameNoPre= Frame #

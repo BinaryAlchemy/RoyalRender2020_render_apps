@@ -5,6 +5,7 @@ RendererLicense= /Arnold
 IconRenderer=r_arnold.png
 
 licenseFailLine=  abort_on_license_fail enabled
+licenseFailLine=  abort_on_license_fail option is enabled
 licenseFailLine=  aborting render because the abort_on_license_fail option
 
 BrokenImageLine=  render terminating early

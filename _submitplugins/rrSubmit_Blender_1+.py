@@ -6,7 +6,9 @@
 # Authors:  Paolo Acampora (Binary Alchemy), Holger Schoenberger (Binary Alchemy)
 # Last change: %rrVersion%
 #
-# rrInstall_Copy:     \*\scripts\startup\
+# #win:   rrInstall_Copy:     \*\scripts\startup\
+# #linux: rrInstall_Copy:     \*\scripts\startup\
+# #mac:   rrInstall_Copy:     \Resources\*\scripts\startup\
 # 
 ######################################################################
 
