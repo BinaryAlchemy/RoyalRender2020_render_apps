@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MaxMenuTransformations>
+    <CreateTopLevelMenu Id="94b4c1f7-6219-479c-8934-47d48fd44217" Title="RR"/>
+    <DeleteItem Id="94b4c1f7-6219-479c-8934-47d48fd44217"/>
+    <CreateMenu ParentId="b4779ebb-a6f0-4815-9777-57c01c0b584c" MenuId="55b6d1f5-bf6c-4a38-92e3-229c04071e34" Title="RR"/>
+    <MoveItem DestinationId="b4779ebb-a6f0-4815-9777-57c01c0b584c" ItemId="55b6d1f5-bf6c-4a38-92e3-229c04071e34" BeforeId="658724ec-de09-47dd-b723-918c59a28ad1"/>
+    <CreateMenuAction MenuId="55b6d1f5-bf6c-4a38-92e3-229c04071e34" Id="2832af68-e9c4-42ee-a34a-8024fd49d3a0" ActionId="647394-rrSubmit_new`RoyalRender"/>
+    <CreateMenuAction MenuId="55b6d1f5-bf6c-4a38-92e3-229c04071e34" Id="ce983df7-c8a5-4890-9503-20c97b25d1e3" ActionId="647394-rrSubmit_new_subfolder`RoyalRender"/>
+    <CreateMenuAction MenuId="55b6d1f5-bf6c-4a38-92e3-229c04071e34" Id="805585d8-7705-4ec8-84e6-3f924b132850" ActionId="647394-rrSubmit_new_noautoelement`RoyalRender"/>
+</MaxMenuTransformations>

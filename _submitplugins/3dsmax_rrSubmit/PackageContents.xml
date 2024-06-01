@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage 
+    SchemaVersion="1.0" 
+    AutodeskProduct="3ds Max" 
+    ProductType="Application" 
+    Name="Royal Render Submitter"
+    AppVersion="1.0.0"
+    ProductCode="{d1ea9625-fb0e-4ca3-8a4b-054ebbf1f615}" 
+    UpgradeCode="{da883b36-7125-4755-b17a-7fa99b34a3c4}">
+    <CompanyDetails>
+        <Url>http://www.RoyalRender.com</Url>
+        <Name>Binary Alchemy</Name>
+    </CompanyDetails>
+
+    <Components Description="macroscripts parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2030" />
+        <ComponentEntry AppName="Submit_Commands" Version="1.0.0" ModuleName="./pre_startup_scripts/rrSubmit.mcr" />
+    </Components>
+
+    <Components Description="ui schemes parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2030" />
+        <ComponentEntry AppName="Submit_Menu" Version="1.0.0" ModuleName="./menu/rrMenu.mnx" />
+    </Components>
+	
+
+    <Components Description="light icon paths parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2030" />
+        <ComponentEntry AppName="lighticons" Version="1.0.0" ModuleName="./icons/Light" />
+    </Components>
+    <Components Description="dark icon paths parts">
+        <RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2025" SeriesMax="2030" />
+        <ComponentEntry AppName="darkicons" Version="1.0.0" ModuleName="./icons/Dark" />
+    </Components>    
+
+</ApplicationPackage>
