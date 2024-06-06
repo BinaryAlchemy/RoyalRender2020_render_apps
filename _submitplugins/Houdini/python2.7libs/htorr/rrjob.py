@@ -30,7 +30,6 @@ sharedPath= os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../sh
 sys.path.append(sharedPath)
 import royalDefs as rrDefs
 
-
 RR_PARMS = {
     "plugin_version": "rrSubmitterPluginVersion",
     "software": "Software",
@@ -63,6 +62,10 @@ RR_PARMS = {
     "_single_output": "ImageSingleOutputFile",
     "sceneVar_Job": "CustomHoudiniJob",
     "commandPassword": "CommandPassword",
+    "ocio_file": "ColorSpace_File",
+    "ocio_view": "ColorSpace_View",
+    "ocio_config": "ColorSpace_ConfigFile",
+    
 }
 
 RR_OPTIONS = {
@@ -167,6 +170,17 @@ class Job(object):
         self.plugin_version =  rrDefs.plugin_version_str
         self.stereo_r = "_right"
         self.stereo_l = "_left"
+        self.ocio_file = ""
+        self.ocio_view = ""
+        self.ocio_config = ""
+        if ('OCIO' in os.environ):
+            self.ocio_config= os.environ['OCIO']
+        if ("DEBUG" in os.environ):
+            self.ocio_file = "Linear Rec.709 (sRGB)"
+            self.ocio_view = "ACES 1.0 - SDR Video"
+            self.ocio_config = "c:/Program Files/Side Effects Software/Houdini 20.0.506/packages/ocio/houdini-config-v1.0.0_aces-v1.3_ocio-v2.1.ocio"
+
+        
 
     def parm(self, name):
         """Returns Parm with provided name"""

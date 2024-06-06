@@ -6,6 +6,7 @@
 ################################## Identify Render Application ################################## 
 Name= USD_StdA_single
 OverrideClientInstallName= Houdini
+OverridePluginDir= Houdini
 Version=18
 Type=Archive
 TYPEv9=Archive

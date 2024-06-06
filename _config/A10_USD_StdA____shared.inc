@@ -6,6 +6,7 @@
 ################################## Identify Render Application ################################## 
 Name= USD_StdA
 OverrideClientInstallName= Houdini
+OverridePluginDir= Houdini
 Version=18
 Type=Archive
 TYPEv9=Archive
@@ -40,6 +41,7 @@ MultiOSScenes=1~0
 SeqDivMIN= 1~1
 SeqDivMAX= 1~10
 AllowLocalSceneCopy= 0~0
+WaitForJobByFrame=1~1
 
 COSingleRenderProduct= 1 ~ 0
 COAllowProcedurals= 1 ~ 0
