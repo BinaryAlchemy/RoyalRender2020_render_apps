@@ -646,7 +646,7 @@ def rr_kso_start_server(host='localhost', port=7774):
             else:
                 exec(kso_tcp.rrKSONextCommand)
                 kso_tcp.rrKSONextCommand = ""
-    logMessage("Closing TCP")    
+    log_msg("Closing TCP")    
     server.closeTCP()
     log_msg("rrKSO closed")
     
