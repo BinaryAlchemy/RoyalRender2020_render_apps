@@ -143,6 +143,7 @@ class Parm(object):
         return cls(template.name, template.label, template.typ)
 
 
+
 class Job(object):
     """Class to describe Royal Render jobs."""
 
@@ -150,6 +151,28 @@ class Job(object):
         Created from RR_PARMS
     """
     _template_parms = []
+
+    def getOCIOSettingsFromFile(self, fileName):
+        self.ocio_file = ""
+        self.ocio_view = ""
+        with open(fileName, "r") as fp:
+            for line in fp:
+                if (line.find("scene_linear:")>=0):
+                    print(line)
+                    line=line.split(':')[1]
+                    print(line)
+                    line=line.strip()
+                    print(line)
+                    self.ocio_file = line
+                if (line.find("default_view_transform:")>=0):
+                    print(line)
+                    line=line.split(':')[1]
+                    print(line)
+                    line=line.strip()
+                    print(line)
+                    self.ocio_view = line
+                if ( (len(self.ocio_view)>0) and (len(self.ocio_file)>0) ):
+                    return
 
     def __init__(self):
         """Creates a new Job instance. Uses _template_parms list to initialize a new parm dictionary."""
@@ -175,12 +198,31 @@ class Job(object):
         self.ocio_config = ""
         if ('OCIO' in os.environ):
             self.ocio_config= os.environ['OCIO']
-        if ("DEBUG" in os.environ):
-            self.ocio_file = "Linear Rec.709 (sRGB)"
-            self.ocio_view = "ACES 1.0 - SDR Video"
-            self.ocio_config = "c:/Program Files/Side Effects Software/Houdini 20.0.506/packages/ocio/houdini-config-v1.0.0_aces-v1.3_ocio-v2.1.ocio"
+            self.ocio_config = self.ocio_config.replace("\\","/")
 
-        
+            self.getOCIOSettingsFromFile(self.ocio_config)
+
+            #Houdini saves a copy of the ocio file into the users directory...
+            #And we have to revert it to the app path
+            isUserFolderConfirmed= False
+            if ('USERPROFILE' in os.environ):
+                if (self.ocio_config.lower().startswith( os.environ['USERPROFILE'].lower())):
+                    isUserFolderConfirmed= True
+            if ('HOME' in os.environ):
+                if (self.ocio_config.lower().startswith( os.environ['HOME'].lower())):
+                    isUserFolderConfirmed= True
+            if ('USERNAME' in os.environ):
+                userSubFolder ='/' + os.environ['USERNAME'].lower()  + '/'
+                if (self.ocio_config.lower().find( userSubFolder) >0):
+                    isUserFolderConfirmed= True
+            if ('USER' in os.environ):
+                userSubFolder ='/' + os.environ['USER'].lower()  + '/'
+                if (self.ocio_config.lower().find( userSubFolder) >0):
+                    isUserFolderConfirmed= True
+            if (isUserFolderConfirmed):
+                #if the file is in the users prefs, we assume the original is in the Houdini path
+                self.ocio_config= os.path.join("<rrBaseAppPath>", "packages", "ocio", os.path.basename(self.ocio_config))
+
 
     def parm(self, name):
         """Returns Parm with provided name"""
