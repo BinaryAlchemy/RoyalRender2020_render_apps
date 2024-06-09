@@ -103,7 +103,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         except KeyError:
             pass
         
-        default_cfg_file = os.path.join("<rrBaseAppPath><IsMac /Resources>", "<IsMac <rrJobVersion>?<rrExeVersionFull>>", "datafiles", "colormanagement", "config.ocio") #<IsMac must not be a seperate flag on its own (otherwise double // on windows)
+        default_cfg_file = os.path.join("<rrBaseAppPath><IsMac /Resources>", "<IsMac <rrJobVersionMajor>.<rrJobVersionMinor>?<rrExeVersionMajor>.<rrExeVersionMinor>>", "datafiles", "colormanagement", "config.ocio") #<IsMac must not be a seperate flag on its own (otherwise double // on windows)
         return default_cfg_file
     
     @staticmethod
