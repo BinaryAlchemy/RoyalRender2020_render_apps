@@ -116,13 +116,13 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         try:
             has_color_space = image_settings.has_linear_colorspace
         except AttributeError:
-            return ''
+            return 'sRgb'
         
         if not has_color_space:
-            return ''
+            return 'Linear Rec.709'
 
         if image_settings.color_management == 'FOLLOW_SCENE':
-            return ''
+            return 'Linear Rec.709'
         
         return image_settings.linear_colorspace_settings.name
 
@@ -258,6 +258,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         out_colorspace = self.get_out_colorspace_settings(scn)
         if out_colorspace:
             writeNodeStr(fileID, "ColorSpace", out_colorspace)
+            writeNodeStr(fileID, "ColorSpace_View", scn.view_settings.view_transform)
             writeNodeStr(fileID, "ColorSpaceConfigFile", self.get_ocio_config_file())
 
         fileID.write("</Job>\n")

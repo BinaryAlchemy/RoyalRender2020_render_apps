@@ -1393,6 +1393,7 @@ class rrsceneInfo:
         self.DatabaseDir=""
         self.RequiredLicenses=""
         self.ColorSpace = ""
+        self.ColorSpace_View = ""
         self.ColorSpaceConfigFile = ""
             
     def getsceneInfo(self):
@@ -1410,6 +1411,7 @@ class rrsceneInfo:
         
         self.ColorSpace = cmds.colorManagementPrefs(q=True, renderingSpaceName=True)
         self.ColorSpaceConfigFile = cmds.colorManagementPrefs(q=True, configFilePath=True)
+        self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewName=True)
 
         self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace("<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
         self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace(cmds.internalVar(mayaInstallDir=True), "<rrBaseAppPath>") 
@@ -1883,6 +1885,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"SceneName", sceneInfo.SceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
         self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
+        self.subE(jobElement,"ColorSpace_View", sceneInfo.ColorSpace_View)
         self.subE(jobElement,"ColorSpaceConfigFile", sceneInfo.ColorSpaceConfigFile)
         self.subE(jobElement,"Renderer", DPass.renderer)
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
