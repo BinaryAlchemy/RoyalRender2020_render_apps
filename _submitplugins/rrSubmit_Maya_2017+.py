@@ -1930,6 +1930,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"SceneName", sceneInfo.SceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
         self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
+        self.subE(jobElement,"ColorSpace_View", sceneInfo.ColorSpace_View)
         self.subE(jobElement,"ColorSpaceConfigFile", sceneInfo.ColorSpaceConfigFile)
         self.subE(jobElement,"Renderer", Layer.renderer)
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
