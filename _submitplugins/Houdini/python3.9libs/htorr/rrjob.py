@@ -152,7 +152,7 @@ class Job(object):
     """
     _template_parms = []
 
-    def getOCIOSettingsFromFile(self, fileName):
+    def getOCIOSettingsFromFile(self, fileName): #deprecated, we use the ocio python API now
         self.ocio_file = ""
         self.ocio_view = ""
         with open(fileName, "r") as fp:
@@ -200,7 +200,7 @@ class Job(object):
             self.ocio_config= os.environ['OCIO']
             self.ocio_config = self.ocio_config.replace("\\","/")
 
-            self.getOCIOSettingsFromFile(self.ocio_config)
+            #self.getOCIOSettingsFromFile(self.ocio_config) deprecated
 
             #Houdini saves a copy of the ocio file into the users directory...
             #And we have to revert it to the app path
@@ -222,6 +222,15 @@ class Job(object):
             if (isUserFolderConfirmed):
                 #if the file is in the users prefs, we assume the original is in the Houdini path
                 self.ocio_config= os.path.join("<rrBaseAppPath>", "packages", "ocio", os.path.basename(self.ocio_config))
+        try:
+            import PyOpenColorIO as ocio
+            config = ocio.GetCurrentConfig()
+            self.ocio_view = config.getDefaultView(config.getDefaultDisplay())
+            self.ocio_file = config.getColorSpace(ocio.ROLE_SCENE_LINEAR).getName()
+        except:
+            pass
+        
+
 
 
     def parm(self, name):
