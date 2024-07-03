@@ -485,6 +485,59 @@ def applyRendererOptions_comp():
     outFileName=arg.FName
     outFileName= addFrameNumber_and_Log(outFileName)
     setROPValue('output', 'copoutput', outFileName)
+
+def applyRendererOptions_Octane():
+    global arg
+    logMessage("Rendering with Octane")
+    if (argValid(arg.camera)):
+        setROPValue("camera", "HO_renderCamera", arg.camera, True)
+    if (argValid(arg.take)):
+        setROPValue("take", "take", arg.take, True)
+    outFileName=arg.FName
+    flushLog()
+    outFileName= addFrameNumber_and_Log(outFileName)
+    if (arg.rendererExportMode):
+        arg.rop.parm('HO_abc_exportEnabled').set(1)
+        arg.rop.parm('HO_abc_exportFileName').set(outFileName)
+        logMessage("Not touching image output; which is set to "+ str(arg.rop.parm('HO_img_fileName').eval()))
+    else:
+        arg.rop.parm('HO_abc_exportEnabled').set(0)
+        orgDirName0= rrGetDirName( arg.rop.parm('HO_img_fileName').eval() )
+        setROPValue('output', 'HO_img_fileName', outFileName)
+        newDirName0= rrGetDirName( arg.rop.parm('HO_img_fileName').eval() )
+
+        orgDirName0 = rrReplaceUpLevel(orgDirName0)
+        newDirName0 = rrReplaceUpLevel(newDirName0)
+        logMessage(" main output orgDirName was " + orgDirName0)
+        logMessage(" main output newDirName is  " + newDirName0)
+        orgDirName1= rrGetDirName(orgDirName0)
+        orgDirName2= rrGetDirName(orgDirName1)
+        orgDirName3= rrGetDirName(orgDirName2)
+        newDirName1= rrGetDirName(newDirName0)
+        newDirName2= rrGetDirName(newDirName1)
+        newDirName3= rrGetDirName(newDirName2)
+
+        try:
+            layOutput = arg.rop.parm('HO_img_deepFile').unexpandedString()
+            logMessage(layOutput + ": deep layer output was:    " + layOutput)
+            layOutput = layOutput.replace("$F","09876543211")
+            arg.rop.parm('vm_cryptolayeroutput' + layOutput).set(layOutput)
+            layOutput = arg.rop.parm('vm_cryptolayeroutput' + layOutput).eval()
+            layOutput = rrReplaceUpLevel(layOutput) 
+            layOutput = layOutput.replace("09876543211", "$F")
+            logMessage(layOutput + ": deep layer output resolved:  " + layOutput)
+            
+            layOutput = layOutput.replace(orgDirName0,newDirName0)
+            layOutput = layOutput.replace(orgDirName1,newDirName1)
+            layOutput = layOutput.replace(orgDirName2,newDirName2)
+            layOutput = layOutput.replace(orgDirName3,newDirName3)
+            arg.rop.parm('HO_img_deepFile').set(layOutput)
+            logMessage(layOutput + ": deep layer output set to:       " + layOutput)
+            flushLog()
+            
+        except:
+            pass
+
             
 def applyRendererOptions_default():
     global arg
@@ -1098,6 +1151,8 @@ try:
         pass
     elif (arg.renderer=="Comp"):
         applyRendererOptions_comp()
+    elif (arg.renderer=="Octane"):
+        applyRendererOptions_Octane()
     else:
         arg.renderer= "mantra"
         applyRendererOptions_default()
