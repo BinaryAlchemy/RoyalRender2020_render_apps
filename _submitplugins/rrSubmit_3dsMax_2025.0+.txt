@@ -4,7 +4,7 @@
 	-- Copyright (c) Holger Schoenberger - Binary Alchemy
 	-- rrInstall_Copy_Folder:  3dsmax_rrSubmit, <ProgramData>\Autodesk\ApplicationPlugins\
 	-- rrInstall_Delete: \MacroScripts\rrSubmit_3dsMax_2015.0+.mcr
-	-- rrInstall_Delete: \MacroScripts\rrSubmit_3dsMax_2015.0+_MenuInstaller.ms
+	-- rrInstall_Delete: \Scripts\Startup\rrSubmit_3dsMax_2015.0+_MenuInstaller.ms
 	-- rrInstall_Delete: \MacroScripts\rrSubmit_3dsMax_2015.0+_shared.ms
 
 
