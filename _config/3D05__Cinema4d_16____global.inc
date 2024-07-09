@@ -32,9 +32,10 @@ findFrameNoPost=  at
 #permanentErrorSearchLine = Invalid License from License Server
 permanentErrorSearchLine = doesn't support the required sdk
 permanentErrorSearchLine = Please sign into the Maxon App
+permanentErrorSearchLine = Click here to activate the license
 
 
-licenseFailLine=  Missing serial number
+licenseFailLine= Missing serial number
 licenseFailLine= Error: Invalid License
 licenseFailLine= Could not get a license
 licenseFailLine= Error running authentication
