@@ -1411,10 +1411,12 @@ class rrsceneInfo:
         
         self.ColorSpace = cmds.colorManagementPrefs(q=True, renderingSpaceName=True)
         self.ColorSpaceConfigFile = cmds.colorManagementPrefs(q=True, configFilePath=True)
-        self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewName=True)
+        self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewTransformName=True)
 
         self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace("<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
-        self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace(cmds.internalVar(mayaInstallDir=True), "<rrBaseAppPath>") 
+        mayaPath=cmds.internalVar(mayaInstallDir=True)
+        if (len(mayaPath)>0):
+            self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace(cmds.internalVar(mayaInstallDir=True), "<rrBaseAppPath>") 
 
 
 def rrGetRR_Root():
