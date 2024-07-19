@@ -139,6 +139,14 @@ class GeometryRop(RenderNode):
     def licenses(self):
         return "Houdini;geometry"
 
+    @property
+    def single_output(self):
+        f1 = self._node.parm(self.output_parm).evalAtFrame(1)
+        f2 = self._node.parm(self.output_parm).evalAtFrame(2)
+        if f1 == f2:
+            return True
+        else:
+            return False
 
 class GeometryRopOut(RenderNode):
     """Geometry ROP to cache Geo"""
@@ -186,6 +194,12 @@ class Filecache(RenderNode):
     @property
     def licenses(self):
         return "Houdini;geometry"
+        
+    @property
+    def single_output(self):
+        return (not self._node.evalParm("timedependent"))
+            
+         
 
 
 class CompRop(RenderNode):
