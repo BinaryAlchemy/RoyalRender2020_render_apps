@@ -701,7 +701,9 @@ def applyRendererOptions_geometry():
             arg.rop.parm('take').set(arg.take)
         except:
             logMessage("Error: Unable to change take in "+ arg.ropName +" !")
-    outFileName= addFrameNumber_and_Log(arg.FName)
+    outFileName=arg.FName
+    if not arg.FSingleFile:
+        outFileName= addFrameNumber_and_Log(arg.FName)
     if isFileCache:
         if arg.FSingleFile:
             setROPValue("timedependent", 'timedependent' , 0)

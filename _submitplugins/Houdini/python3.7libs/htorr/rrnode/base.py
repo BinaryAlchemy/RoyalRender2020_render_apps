@@ -126,7 +126,8 @@ class rrNode(object):
 
         # node type name as [namespace::]node_name[::version]
         type_ = node.type().nameComponents()[-2]
-
+        logger.debug( "{}: Nodetype {} ".format( node.path(), node.type().name() )  )
+        
         if type_ in rrNode.REGISTRY:
             return rrNode.REGISTRY[type_](node)
 
