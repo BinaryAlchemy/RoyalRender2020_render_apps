@@ -1261,6 +1261,12 @@ def renderFrames(FrStart, FrEnd, FrStep):
                         msg += "User stopped the processing."
                     elif res == c4d.RENDERRESULT_GICACHEMISSING:
                         msg += "GI cache is missing."
+                    elif res == c4d.RENDERRESULT_PROJECTNOTFOUND:
+                        msg += "Project was not found."
+                    elif res == c4d.RENDERRESULT_ERRORLOADINGPROJECT:
+                        msg += "Error while loading project."
+                    elif res == c4d.RENDERRESULT_NOOUTPUTSPECIFIED:
+                        msg += "Output was not specified."
                     else:
                         msg += "Unknown"
                     logMessageError(msg)
