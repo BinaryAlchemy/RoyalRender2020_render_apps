@@ -969,9 +969,11 @@ def executeAnyNode():
         alf_prog_parm.set(1)
 
     # Set the frame range.
-    frame_range = getFrameRange(arg.rop)
-    setParmValueInRopNodeAndInputs(arg.rop, "trange", 1)
-    setParmValueInRopNodeAndInputs(arg.rop, "f", frame_range)
+    trange_parm = arg.rop.parm("trange")
+    if trange_parm is not None:
+        frame_range = getFrameRange(arg.rop)
+        setParmValueInRopNodeAndInputs(arg.rop, "trange", 1)
+        setParmValueInRopNodeAndInputs(arg.rop, "f", frame_range)
 
     beforeFrame = datetime.datetime.now()
     logMessage("Executing node "+ arg.rop.name() +"...")
@@ -983,8 +985,10 @@ def executeAnyNode():
              arg.rop.render(output_progress=True,  method=hou.renderMethod.FrameByFrame)
     elif arg.rop.parm("execute"):
         arg.rop.parm("execute").pressButton()
+    elif arg.rop.parm("export"):
+        arg.rop.parm("export").pressButton()
     else:
-        logMessageError("ERROR: Unable to render node '%s'. No execute or render method available." % arg.rop.name(), True, True)
+        logMessageError("ERROR: Unable to render node '%s'. No execute, export or render method available." % arg.rop.name(), True, True)
 
     nrofFrames = ((frame_range[1] - frame_range[0]) / frame_range[2]) + 1
     nrofFrames = int (nrofFrames)
