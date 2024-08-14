@@ -1967,29 +1967,48 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         is_regular = render_data[c4d.RDATA_SAVEIMAGE] and render_data[c4d.RDATA_PATH]
         is_multipass = render_data[c4d.RDATA_MULTIPASS_SAVEIMAGE] and render_data[c4d.RDATA_MULTIPASS_ENABLE]
         is_mp_single = render_data[c4d.RDATA_MULTIPASS_SAVEONEFILE] and render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT] in MULTILAYER_FORMATS
-
+        
+        job.setImagePadding(name_id=render_data[c4d.RDATA_NAMEFORMAT])
+        
+        reg_out_setting=""
+        
         if is_multipass:
             LOGGER.debug("MultiPass: yes")
             if is_regular:
                 LOGGER.debug("Channel: Reg_Multi")
                 job.channel = "Reg_Multi"
 
+                
                 reg_out = applyPathCorrections(render_data[c4d.RDATA_PATH])
+                reg_out_setting=reg_out
                 reg_out = self.handleRelativeFileOut(reg_out)
                 reg_out = self.replacePathTokens(job, reg_out, render_data)
                 reg_out += "<IMS>"
 
                 # if $pass is present then rgb/rgba should be used
                 reg_out = reg_out.replace("<Channel_intern>", "rgba" if has_alpha else "rgb")
-
+                reg_ext= IMG_FORMATS.get(render_data[c4d.RDATA_FORMAT], ".exr")
+                
+                LOGGER.debug("0 - reg_out is: " + reg_out+ "#" + reg_ext)
+                
+                if not job.Arnold_DriverOut:
+                    reg_out, reg_ext = self.getNameFormat(job, reg_out, reg_ext)
+                LOGGER.debug("1 - reg_out is: " + reg_out+ "#" + reg_ext)
+                
                 job.channelFileName.append(reg_out)
-                job.channelExtension.append(IMG_FORMATS.get(render_data[c4d.RDATA_FORMAT], ".exr"))
+                job.channelExtension.append(reg_ext)
                 job.maxChannels += 1
                 job.imageFormat = IMG_FORMATS.get(render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT], ".exr")
             else:
                 LOGGER.debug("Channel: MultiPass")
                 job.channel = "MultiPass"
+                
             job.imageName = applyPathCorrections(render_data[c4d.RDATA_MULTIPASS_FILENAME], separate_digit=False)
+            LOGGER.debug(" - reg_out_setting is: " + reg_out_setting)
+            LOGGER.debug(" - job.imageName is: " + job.imageName)
+            if (reg_out_setting==job.imageName):
+                job.imageName= job.imageName + "_1"
+            
             if job.renderer == "Arnold" and render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT] == ArnoldSymbols.ARNOLD_DUMMY_BITMAP_SAVER:
                 job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
         else:
@@ -2001,7 +2020,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 job.Arnold_DriverOut = job.setOutputFromArnoldDriver()
 
         job.layerName = ""
-        job.setImagePadding(name_id=render_data[c4d.RDATA_NAMEFORMAT])
+
 
         LOGGER.debug("0 - imageName is: " + job.imageName)
 
