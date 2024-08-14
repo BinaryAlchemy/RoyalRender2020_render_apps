@@ -376,6 +376,68 @@ def GetRedshiftPluginVersion():
         return plug_ver
 
 
+def GetRedshiftVideoPost(render_data):
+    _vp = render_data.GetFirstVideoPost()
+    rs_vp = None  # Redshift VideoPost
+
+    while _vp:
+        if _vp.CheckType(1036219):  # Redshift ID
+            rs_vp = _vp
+            break
+        _vp = _vp.GetNext()
+
+    return rs_vp
+
+
+def GetRedshiftFactoryOcio():
+    # if $OCIO is not defined, use redshift factory config
+    rs_plugin = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
+    if not rs_plugin:
+        return
+    rs_path = os.path.dirname(rs_plugin.GetFilename())
+    
+    ocio_config = os.path.join(rs_path, "res", "core", "Data", "OCIO", "config.ocio")
+
+    if not os.path.isfile(ocio_config):
+        return
+    
+    # TODO: replace path with app dir/render dir
+
+    return ocio_config
+
+
+def GetRedshiftColorManagement(render_data, job):
+    vp = GetRedshiftVideoPost(render_data)
+    if not vp:
+        return
+
+    try:
+        c4d_rs_ocio_attr = c4d.REDSHIFT_RENDERER_COLOR_MANAGEMENT_OCIO_CONFIG
+    except AttributeError:
+        LOGGER.warning("No redshift ocio support found")
+        return
+
+    color_space_configfile = vp[c4d_rs_ocio_attr]
+
+    if color_space_configfile == "$OCIO":
+        try:
+            job.ColorSpaceConfigFile = os.environ['OCIO']
+        except KeyError:
+            # if $OCIO is not defined, redshift's plugin config can be found with GetRedshiftFactoryOcio(), but is not guraranteed to work on the farm
+            LOGGER.warning("Redshift factory OCIO config ignored: to use OCIO on the farm please set the $OCIO variable")
+            return
+    elif os.path.isfile(color_space_configfile):
+        job.ColorSpaceConfigFile = color_space_configfile
+    else:
+        LOGGER.warning("OCIO config file set but not found: " + color_space_configfile)
+        return
+
+    job.ColorSpace = vp[c4d.REDSHIFT_RENDERER_COLOR_MANAGEMENT_OCIO_RENDERING_COLORSPACE]
+    
+    if not vp[c4d.REDSHIFT_RENDERER_COLOR_MANAGEMENT_COMPENSATE_VIEW_TRANSFORM]:
+        job.ColorSpace_View = vp[c4d.REDSHIFT_RENDERER_COLOR_MANAGEMENT_OCIO_VIEW]
+
+
 # Octane
 def GetOctaneVersion(doc):
     versionDocument= ""
@@ -578,6 +640,9 @@ class JobProps(object):
     Redshift_C4DtoRSVersion = ""
     waitForPreID = ""
     linearColorSpace = False
+    ColorSpace = ""
+    ColorSpace_View = ""
+    ColorSpaceConfigFile = ""
 
     def __init__(self):
         self.channelFileName = []
@@ -720,6 +785,9 @@ class rrJob(JobProps):
             self.subE(jobElement, "ChannelFilename", self.channelFileName[c])
             self.subE(jobElement, "ChannelExtension", self.channelExtension[c])
             LOGGER.debug("channel {0}: {1} {2}".format(c, self.channelFileName[c], self.channelExtension[c]))
+        self.subE(jobElement, "ColorSpace", self.ColorSpace)
+        self.subE(jobElement, "ColorSpace_View", self.ColorSpace_View)
+        self.subE(jobElement, "ColorSpaceConfigFile", self.ColorSpaceConfigFile)
 
         # self.subE(jobElement, "preID", self.preID)
         # self.subE(jobElement, "WaitForPreID", self.WaitForPreID)
@@ -1068,6 +1136,55 @@ class RRSubmitBase(object):
 
 def check_trailing_digit(name_format):
     return name_format not in (c4d.RDATA_NAMEFORMAT_2, c4d.RDATA_NAMEFORMAT_5, c4d.RDATA_NAMEFORMAT_6)
+
+
+def get_color_space_configfile(doc):
+    try:
+        color_space_configfile = os.environ['OCIO']
+    except KeyError:
+        color_space_configfile =  doc[c4d.DOCUMENT_OCIO_CONFIG]
+    
+    if color_space_configfile.startswith("./"):
+        color_space_configfile = "<rrBaseAppPath><IsMac /Resources>" + color_space_configfile[1:]
+    
+    return color_space_configfile
+
+
+def get_int_setting_label(ob, id):
+    description = ob.GetDescription(c4d.DESCFLAGS_DESC_0)
+    
+    for bc, paramid, _ in description:
+        if paramid[0].id != id:
+            continue
+        
+        return bc.GetContainer(c4d.DESC_CYCLE)[ob[id]]   
+
+    return "" 
+
+
+def set_color_management(renderdata, job):
+    doc = c4d.documents.GetActiveDocument()
+    try:
+        c4d_ocio_attr = c4d.DOCUMENT_COLOR_MANAGEMENT
+    except AttributeError:
+        # no ocio support on this version
+        LOGGER.warning("No c4d OCIO support found")
+    else: 
+        if doc[c4d_ocio_attr] == c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO:
+            job.ColorSpaceConfigFile = get_color_space_configfile(doc)
+
+            # c4d uses numerals
+            job.ColorSpace = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_RENDER_COLORSPACE)
+            job.ColorSpace_View = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_VIEW_TRANSFORM)
+
+            if not doc[c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO_CONVERTED]:
+                LOGGER.info("Color Management is on but the scene was not converted to OCIO")
+
+            return
+
+    # Look for renderer ocio
+    if job.renderer == 'Redshift':
+        GetRedshiftColorManagement(renderdata, job)
 
 
 class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
@@ -2059,6 +2176,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.objectChannelID = 0
         mainMP = MultipassInfo("", "")  # (usually channelName = getChannelNameMP(MP), channelDescription = MP.GetName())
         post_effects_MP = None  # used for vray multipass
+        
+        set_color_management(render_data, job)
+        
         if is_multipass and not is_mp_single:
             firstPassAdded = False
             ignoreFirstPass = not is_regular
