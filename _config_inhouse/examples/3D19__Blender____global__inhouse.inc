@@ -12,8 +12,7 @@
 #
 #
 # Installation steps:
-# 1) Copy this file into render_apps\_config\
-#     The already existing file 3D19__Blender.inc has a line to include this file
+# 1) Copy this file into render_apps\_config_inhouse\
 # 2) Copy your Blender installation from your workstation c:\Program Files\Blender Foundation\Blender\ into RR\render_apps\renderer_exe\Blender\win_x64\Blender_2.81
 #     Of course you need to modify the version 2.81 with the version you use.
 #     If you use multiple versions, copy all folders that you need. The Clients auto-version change works for shared exe as well

@@ -368,7 +368,7 @@ tooltip:"Submit scene to Server (old)"
 		WriteNodeToFile out_text "Camera" cam 
 		WriteNodeToFile out_text "IsActive" active
 		WriteNodeToFile out_text "Version" rrSI.MaxVersion
-		WriteNodeToFile out_text "SceneName" rrSI.SceneFile
+		WriteNodeToFile out_text "Scenename" rrSI.SceneFile
 		WriteNodeToFile out_text "SceneDatabaseDir" rrSI.projectpath
 		WriteNodeToFile out_text "Renderer" rrSI.Renderer
 		WriteNodeToFile out_text "RequiredLicenses" rrSI.RequiredLicenses
@@ -379,7 +379,7 @@ tooltip:"Submit scene to Server (old)"
 		WriteNodeToFile out_text "SeqFrameSet" rrSI.seqFrameset
 		WriteNodeToFile out_text "ImageWidth" rrSI.imageWidth
 		WriteNodeToFile out_text "ImageHeight" rrSI.imageHeight
-		WriteNodeToFile out_text "ImageFilename" rrSI.imageFileName
+		WriteNodeToFile out_text "Imagefilename" rrSI.imageFileName
 		WriteNodeToFile out_text "ImageExtension" rrSI.imageExt
 		WriteNodeToFile out_text "ImageFramePadding" 4
 		WriteNodeToFile out_text "Channel" rrSI.channelName
@@ -900,7 +900,7 @@ tooltip:"Submit scene with RP-Manager passes to Server"
 		WriteNodeToFile out_text "Camera" rrSI.Cameras[layerNumber]
 		WriteNodeToFile out_text "IsActive" 1
 		WriteNodeToFile out_text "Version" rrSI.MaxVersion
-		WriteNodeToFile out_text "SceneName" rrSI.SceneFile
+		WriteNodeToFile out_text "Scenename" rrSI.SceneFile
 		WriteNodeToFile out_text "SceneDatabaseDir" rrSI.projectpath
 		WriteNodeToFile out_text "Renderer" "RPManager"
 		WriteNodeToFile out_text "RequiredLicenses" rrSI.RequiredLicenses
@@ -911,7 +911,7 @@ tooltip:"Submit scene with RP-Manager passes to Server"
 		WriteNodeToFile out_text "SeqFrameSet" rrSI.seqFrameset[layerNumber]
 		WriteNodeToFile out_text "ImageWidth" rrSI.imageWidth[layerNumber]
 		WriteNodeToFile out_text "ImageHeight" rrSI.imageHeight[layerNumber]
-		WriteNodeToFile out_text "ImageFilename" rrSI.imageFileName[layerNumber]
+		WriteNodeToFile out_text "Imagefilename" rrSI.imageFileName[layerNumber]
 		WriteNodeToFile out_text "ImageExtension" rrSI.imageExtension[layerNumber]
 		WriteNodeToFile out_text "ImageFramePadding" 4
 		for c = 1 to rrSI.channelFileNames[layerNumber].count do (

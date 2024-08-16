@@ -392,7 +392,7 @@ struct rrSubmit_scriptrender
         WriteNodeToFile out_text "Camera" cam 
         WriteNodeToFile out_text "IsActive" active
         WriteNodeToFile out_text "Version" rrJob.MaxVersion
-        WriteNodeToFile out_text "SceneName" rrJob.SceneFile
+        WriteNodeToFile out_text "Scenename" rrJob.SceneFile
         WriteNodeToFile out_text "SceneDatabaseDir" rrJob.projectpath
         WriteNodeToFile out_text "Renderer" rrJob.Renderer
         WriteNodeToFile out_text "RequiredLicenses" rrJob.RequiredLicenses
@@ -403,7 +403,7 @@ struct rrSubmit_scriptrender
         WriteNodeToFile out_text "SeqFrameSet" rrJob.seqFrameset
         WriteNodeToFile out_text "ImageWidth" rrJob.imageWidth
         WriteNodeToFile out_text "ImageHeight" rrJob.imageHeight
-        WriteNodeToFile out_text "ImageFilename" rrJob.outimageFileName
+        WriteNodeToFile out_text "Imagefilename" rrJob.outimageFileName
         WriteNodeToFile out_text "ImageExtension" rrJob.outimageExt
         WriteNodeToFile out_text "ImageFramePadding" 4
         WriteNodeToFile out_text "Channel" rrJob.outimageChannelName

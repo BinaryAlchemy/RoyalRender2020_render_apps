@@ -152,14 +152,14 @@ function exportPassToXML(nr,passes,sceneInfo,fil,CameraName)
     writeNode(fil,"rrSubmitterPluginVersion", "%rrVersion%");
     writeNode(fil,"Software", "AFX");
     writeNode(fil,"Version", sceneInfo.version);
-    writeNode(fil,"SceneName", sceneInfo.filename);
+    writeNode(fil,"Scenename", sceneInfo.filename);
     writeNode(fil,"Layer", passes.p[nr].name);
     writeNode(fil,"IsActive",passes.p[nr].selected);
     writeNode(fil,"SeqStart",passes.p[nr].seqStart);
     writeNode(fil,"SeqEnd",passes.p[nr].seqEnd);
     writeNode(fil,"SeqStep",passes.p[nr].seqStep);
     writeNode(fil,"SeqFileOffset",passes.p[nr].seqFileOffset);
-    writeNode(fil,"ImageFilename",passes.p[nr].imageFilename);
+    writeNode(fil,"Imagefilename",passes.p[nr].imageFilename);
     fil.writeln("</Job>");
 }
 

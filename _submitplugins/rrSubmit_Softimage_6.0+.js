@@ -563,7 +563,7 @@ function exportPassToXML(nr,passes,sceneInfo,fil,CameraName,LocalTextureFile)
     writeNode(fil,"SendAppBit", sceneInfo.appBit);
     writeNode(fil,"Renderer", passes.p[nr].renderer);
     writeNode(fil,"RequiredLicenses", passes.p[nr].RequiredLicenses);
-    writeNode(fil,"SceneName", sceneInfo.filename);
+    writeNode(fil,"Scenename", sceneInfo.filename);
     writeNode(fil,"SceneDatabaseDir", sceneInfo.database);
     writeNode(fil,"Layer", passes.p[nr].name);
     writeNode(fil,"Camera",CameraName);
@@ -575,7 +575,7 @@ function exportPassToXML(nr,passes,sceneInfo,fil,CameraName,LocalTextureFile)
     writeNode(fil,"SeqFrameSet",passes.p[nr].frameSet);
     writeNode(fil,"ImageWidth",passes.p[nr].imageWidth);
     writeNode(fil,"ImageHeight",passes.p[nr].imageHeight);
-    writeNode(fil,"ImageFilename",passes.p[nr].imageFilename);
+    writeNode(fil,"Imagefilename",passes.p[nr].imageFilename);
     writeNode(fil,"ImageFramePadding",passes.p[nr].framePadding);    
     if ((passes.p[nr].imageFilename.charAt(passes.p[nr].imageFilename.length-1)=='_')) {
         writeNode(fil,"ImagePreNumberLetter","_");    

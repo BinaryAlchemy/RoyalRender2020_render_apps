@@ -7,7 +7,7 @@
 # Copyright (c)  Holger Schoenberger - Binary Alchemy
 # #win:     rrInstall_Env: MAYA_PLUG_IN_PATH, Directory
 # #linux:   rrInstall_Env: MAYA_PLUG_IN_PATH, Directory
-# #mac:     rrInstall_Copy:         ../MacOS/plug-ins/
+# #mac:     rrInstall_Copy:         /MacOS/plug-ins
 # 
 ######################################################################
 
@@ -1884,7 +1884,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.subE(jobElement,"SceneOS", "lx")
         self.subE(jobElement,"Software", "Maya")
         self.subE(jobElement,"Version", sceneInfo.MayaVersion)
-        self.subE(jobElement,"SceneName", sceneInfo.SceneName)
+        self.subE(jobElement,"Scenename", sceneInfo.SceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
         self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
         self.subE(jobElement,"ColorSpace_View", sceneInfo.ColorSpace_View)

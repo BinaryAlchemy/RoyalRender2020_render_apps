@@ -2,10 +2,15 @@
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
 # Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
-# rrInstall_Copy: \plugins\
-# rrInstall_Change_File_delete: \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_5'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
-# rrInstall_Change_File_delete: \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
-# rrInstall_Change_File:        \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Copycat\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Copycat()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+# #win: rrInstall_Copy: \plugins\
+# #win: rrInstall_Change_File:        \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Copycat\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Copycat()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+
+# #linux: rrInstall_Copy: \plugins\
+# #linux: rrInstall_Change_File:        \plugins\menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Copycat\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Copycat()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+
+# #mac: rrInstall_Copy: /MacOS/plugins/
+# #mac: rrInstall_Change_File:        /MacOS/plugins/menu.py, before "# Help menu", "m =  menubar.addMenu(\"RRender\");\nm.addCommand(\"Submit Comp\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke()\")\nm.addCommand(\"Submit Copycat\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Copycat()\")\nm.addCommand(\"Submit Shotgun Nodes (convert at render time)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun()\")\nm.addCommand(\"Submit Shotgun Nodes (convert local)\", \"nuke.load('rrSubmit_Nuke_13'), rrSubmit_Nuke_Shotgun_convert()\")\n\n"
+
 
 
 import nuke
@@ -120,7 +125,7 @@ class rrJob(object):
         self.subE(jobElement, "Renderer", self.renderer)
         self.subE(jobElement, "RequiredLicenses", self.RequiredLicenses)
         self.subE(jobElement, "Version", self.version)
-        self.subE(jobElement, "SceneName", self.sceneName)
+        self.subE(jobElement, "Scenename", self.sceneName)
         self.subE(jobElement, "SceneDatabaseDir", self.sceneDatabaseDir)
         self.subE(jobElement, "IsActive", self.isActive)
         self.subE(jobElement, "SeqStart", self.seqStart)
@@ -131,7 +136,7 @@ class rrJob(object):
         self.subE(jobElement, "ImageWidth", int(self.imageWidth))
         self.subE(jobElement, "ImageHeight", int(self.imageHeight))
         self.subE(jobElement, "ImageDir", self.imageDir)
-        self.subE(jobElement, "ImageFilename", self.imageFileName)
+        self.subE(jobElement, "Imagefilename", self.imageFileName)
         self.subE(jobElement, "ImageFramePadding", self.imageFramePadding)
         self.subE(jobElement, "ImageExtension", self.imageExtension)
         self.subE(jobElement, "ImageSingleOutput", self.imageSingleOutput)

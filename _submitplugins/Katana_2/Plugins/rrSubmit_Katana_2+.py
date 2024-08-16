@@ -512,7 +512,7 @@ class JobFileExport(object):
             self._sub_e(jobElement, "Version", rr_job.version)
             if len(rr_job.rendererVersionName) > 0:
                 self._sub_e(jobElement, "customRenVer_" + rr_job.rendererVersionName, rr_job.rendererVersion)
-            self._sub_e(jobElement, "SceneName", rr_job.sceneName)
+            self._sub_e(jobElement, "Scenename", rr_job.sceneName)
             self._sub_e(jobElement, "SceneDatabaseDir", rr_job.sceneDatabaseDir)
             self._sub_e(jobElement, "IsActive", rr_job.isActive)
             self._sub_e(jobElement, "SeqStart", rr_job.seqStart)
@@ -524,7 +524,7 @@ class JobFileExport(object):
                 self._sub_e(jobElement, "ImageWidth", int(rr_job.imageWidth))
                 self._sub_e(jobElement, "ImageHeight", int(rr_job.imageHeight))
             self._sub_e(jobElement, "ImageDir", rr_job.imageDir)
-            self._sub_e(jobElement, "ImageFilename", rr_job.imageFileName)
+            self._sub_e(jobElement, "Imagefilename", rr_job.imageFileName)
             self._sub_e(jobElement, "ImageFramePadding", rr_job.imageFramePadding)
             self._sub_e(jobElement, "ImageExtension", rr_job.imageExtension)
             self._sub_e(jobElement, "ImageSingleOutput", rr_job.imageSingleOutput)
