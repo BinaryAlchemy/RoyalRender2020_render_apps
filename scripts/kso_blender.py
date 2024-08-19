@@ -14,7 +14,7 @@ import addon_utils
 
 
 # Global values used in kso functions
-GPU_RENDERERS = ("redshift", "Octane", "Eevee")
+GPU_RENDERERS = ("redshift", "Octane", "Eevee", "Eevee_Next")
 CURRENT_RENDERER = ""
 
 AV_FRAME_TIME = 0
@@ -685,7 +685,7 @@ def multiply_render_samples(renderer, factor):
 
     scene = bpy.data.scenes[RENDER_SCENE]
 
-    if renderer == "Eevee":
+    if renderer in ("Eevee", "Eevee_Next"):
         previous = scene.eevee.taa_render_samples
         scene.eevee.taa_render_samples = round(factor * scene.eevee.taa_render_samples)
         log_msg(f"{renderer} samples changed from {previous} to {scene.eevee.taa_render_samples}")
