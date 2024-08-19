@@ -1145,7 +1145,7 @@ def get_color_space_configfile(doc):
         color_space_configfile =  doc[c4d.DOCUMENT_OCIO_CONFIG]
     
     if color_space_configfile.startswith("./"):
-        color_space_configfile = "<rrBaseAppPath><IsMac /Resources>" + color_space_configfile[1:]
+        color_space_configfile = "<rrBaseAppPath><IsMac <../>>" + color_space_configfile[1:]
     
     return color_space_configfile
 
