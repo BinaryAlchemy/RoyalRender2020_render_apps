@@ -81,6 +81,9 @@ class rrJob(object):
         self.CustomB  = ""
         self.CustomC  = ""
         self.LocalTexturesFile  = ""
+        self.ColorSpaceConfigFile = ""
+        self.ColorSpace = ""
+        self.ColorSpace_View = ""
 
     # from infix.se (Filip Solomonsson)
     def indent(self, elem, level=0):
@@ -154,6 +157,9 @@ class rrJob(object):
         self.subE(jobElement, "CustomB", self.CustomB)
         self.subE(jobElement, "CustomC", self.CustomC)
         self.subE(jobElement, "LocalTexturesFile", self.LocalTexturesFile)
+        self.subE(jobElement, "ColorSpaceConfigFile", self.ColorSpaceConfigFile)
+        self.subE(jobElement, "ColorSpace", self.ColorSpace)
+        self.subE(jobElement, "ColorSpace_View", self.ColorSpace_View)
         for c in range(0,self.maxChannels):
            self.subE(jobElement,"ChannelFilename",self.channelFileName[c])
            self.subE(jobElement,"ChannelExtension",self.channelExtension[c])
@@ -253,6 +259,7 @@ def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=False):
         commandline=getRRSubmitterconsolePath() + "  \"" + tmpFile.name + "\"" + ' -Wait'
     else:
         commandline= getRRSubmitterPath()+"  \""+tmpFile.name+"\""
+        commandline= r"E:\programmierung\RoyalRender2020\project\_debug\bin\win64\rrSubmitter.exe"+"  \""+tmpFile.name+"\""
 
     if own_terminal:
         if sys.platform.lower().startswith("win"):
@@ -264,19 +271,57 @@ def submitJobsToRR(jobList, submitOptions, nogui=False, own_terminal=False):
 
 
 ###########################################
+# OpenColorIO                             #
+###########################################
+
+def get_ocio_config_file(root_node):
+    try:
+        return os.environ['OCIO']
+    except KeyError:
+        pass
+
+    current_config = root_node['OCIO_config'].value()
+
+    if  current_config == 'custom':
+        return root_node['customOCIOConfigPath'].value()
+
+    nuke_exe_dir = os.path.dirname(sys.executable)
+
+    config_path = os.path.join(nuke_exe_dir, "plugins", "OCIOConfigs", "configs", current_config)
+
+    if os.path.isdir(config_path):
+        config_file = os.path.join(config_path, "config.ocio")
+        if os.path.isfile(config_file):
+            return config_file.replace(nuke_exe_dir, "<rrBaseAppPath><isMac /MacOS>")
+
+    config_file = config_path + ".ocio"
+    if os.path.isfile(config_file):
+        return config_file.replace(nuke_exe_dir, "<rrBaseAppPath><isMac /MacOS>")
+
+    return ""
+
+
+
+
+###########################################
 # Read Nuke file                          #
 ###########################################
 
 def rrSubmit_fillGlobalSceneInfo(newJob):
+    root_node = nuke.root()
+
     newJob.version = nuke.NUKE_VERSION_STRING
     newJob.software = "Nuke"
     newJob.sceneOS = getOSString()
-    newJob.sceneName = nuke.root().name()
-    newJob.sceneDatabaseDir = nuke.root().knob("project_directory").getValue()
-    newJob.seqStart = nuke.root().firstFrame()
-    newJob.seqEnd = nuke.root().lastFrame()
+    newJob.sceneName = root_node.name()
+    newJob.sceneDatabaseDir = root_node.knob("project_directory").getValue()
+    newJob.seqStart = root_node.firstFrame()
+    newJob.seqEnd = root_node.lastFrame()
     newJob.imageFileName = ""
 
+    if nuke.usingOcio():
+        newJob.ColorSpaceConfigFile = get_ocio_config_file(root_node)
+        newJob.ColorSpace_View = root_node['monitorOutLUT'].value()
 
 def rrSubmit_NukeXRequired():
     n = nuke.allNodes()
@@ -403,6 +448,16 @@ def rrSubmit_CreateAllJob(jobList, noLocalSceneCopy):
                     newJob.imageStereoL=newJob.imageStereoL[0]
                 else:
                     useStereoFlag=False
+
+            try:
+                data_type = writeNode['datatype'].value()
+            except NameError:
+                # No OCIO format
+                pass
+            else:
+                if not writeNode['raw'].value() and writeNode['transformType'].value() == 'colorspace' and data_type in ('16 bit half', '32 bit float'):
+                    newJob.ColorSpace = writeNode['colorspace'].value()
+
             mainNode = False
         else:
             newJob.maxChannels= newJob.maxChannels + 1
@@ -573,6 +628,16 @@ def rrSubmit_CreateSingleJobs(jobList,noLocalSceneCopy, submitSelectedOnly):
             newJob.imageFileName = newJob.imageFileName.replace("%v",nViews[0][0]).replace("%V",nViews[0])
         newJob.layer= writeNodeName
         newJob.isActive = False
+
+        try:
+            data_type = writeNode['datatype'].value()
+        except NameError:
+            # No OCIO format
+            pass
+        else:
+            if not writeNode['raw'].value() and writeNode['transformType'].value() == 'colorspace' and data_type in ('16 bit half', '32 bit float'):
+                newJob.ColorSpace = writeNode['colorspace'].value()
+
         jobList.append(newJob)
 
 def getAllCopycatNodes():
@@ -813,3 +878,4 @@ def rrSubmit_Nuke_Node(node, startFrame=-1, endFrame=-1, nogui=False, own_termin
             job.seqEnd=endFrame
             writeInfo ("rrSubmit - override job sequence to " + str(job.seqStart) + "-" + str(job.seqEnd))
     submitJobsToRR(jobList, submitOptions, nogui=nogui, own_terminal=own_terminal)
+
