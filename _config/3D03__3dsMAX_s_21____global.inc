@@ -4,11 +4,11 @@ ImageSizeCommandline= 	"*ResX*;;<Width>"  "*ResY*;;<Height>"
 
 
 
-FlagsVerbose0= -v 2 
-FlagsVerbose1= -v 0
-FlagsVerbose2= -v 2
-FlagsVerbose3= -v 4
-FlagsVerbose4= -v 5
+FlagsVerboseDefault= -v 2 
+FlagsVerboseNone= -v 0
+FlagsVerboseWarning= -v 2
+FlagsVerboseInformation= -v 4
+FlagsVerboseProgress= -v 5
 
 
 

@@ -1,5 +1,9 @@
 # Last change: %rrVersion%
 
+REZ_EXE_WIN=   Nuke<rrExeVersionNuke>.exe
+REZ_EXE_LX=    Nuke<rrExeVersionNuke>
+REZ_EXE_MAC=    Nuke<rrExeVersionNuke>
+
 IconApp=C13__Nuke.png
 
 ################################## Submitter Settings ################################## 

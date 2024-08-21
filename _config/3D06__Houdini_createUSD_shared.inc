@@ -8,7 +8,7 @@
 Name= Houdini
 rendererName= createUSD
 Version=18
-Type=3D
+
 TYPEv9=FileExport
 
 

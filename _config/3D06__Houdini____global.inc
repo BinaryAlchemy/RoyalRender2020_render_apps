@@ -1,3 +1,10 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   hython.exe
+REZ_EXE_LX=    hython
+REZ_EXE_MAC=   hython-bin
+
+
 
 IconApp=3D06__Houdini.png
 

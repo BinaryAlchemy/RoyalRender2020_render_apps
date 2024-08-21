@@ -8,23 +8,13 @@ Name= USD_StdA_single
 OverrideClientInstallName= Houdini
 OverridePluginDir= Houdini
 Version=18
-Type=Archive
+
 TYPEv9=Archive
 
 
 
 
 ################################## Render Settings ################################## 
-
-
-#Deprecated settings
-FlagsVerbose0= <AvFrameTimeMin10 -V3a ? -V2>
-FlagsVerbose1= -V0
-FlagsVerbose2= -V1
-FlagsVerbose3= -V4a
-FlagsVerbose4= -V7a
-
-
 FlagsVerboseDefault= <AvFrameTimeMin10 -V3a ? -V2>
 FlagsVerboseNone=        -V0
 FlagsVerboseWarning=     -V1
@@ -32,7 +22,9 @@ FlagsVerboseInformation= -V4a
 FlagsVerboseProgress=    -V7a
 FlagsVerboseDebug=       -V9ap
 
-
+REZ_EXE_WIN=   husk.exe
+REZ_EXE_LX=    husk
+REZ_EXE_MAC=   husk
 
 ################################## Submitter Settings ################################## 
 SequenceDivide= 0~1

@@ -1,3 +1,9 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   modo_cl.exe
+REZ_EXE_LX=    modo_cl
+REZ_EXE_MAC=   modo_cl
+
 
 IconApp=3D08__Modo.png
 

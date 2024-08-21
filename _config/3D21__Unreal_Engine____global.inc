@@ -1,3 +1,8 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   UnrealEditor-Cmd.exe
+REZ_EXE_LX=    UnrealEditor-Cmd
+REZ_EXE_MAC=   UnrealEditor-Cmd
 
 
 IconApp=3D21__UnrealEngine.png

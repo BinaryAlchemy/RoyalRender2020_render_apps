@@ -1,9 +1,13 @@
 #
-# Author: Friedrich Wessel, Callisto FX GmbH
-# Updated: Holger Schoenberger and Paolo Acampora, Binary Alchemy
+# Author: Holger Schoenberger and Paolo Acampora, Binary Alchemy
 # %rrVersion%
 #
 #
+
+REZ_EXE_WIN=   blender.exe
+REZ_EXE_LX=    blender
+REZ_EXE_MAC=   Blender
+
 
 
 ################################## Submitter Settings ################################## 

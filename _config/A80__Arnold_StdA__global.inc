@@ -1,13 +1,26 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   kick.exe
+REZ_EXE_LX=    kick
+REZ_EXE_MAC=   kick
+
+
+ExeCopyFromDir = <rrSharedExeDir>
+ExeCopyToDir   = <rrLocalExeDir>
+
+ExeCopiedWin=  <rrLocalExeDir>Arnold-*\bin\kick.exe
+ExeCopiedLx=  <rrLocalExeDir>Arnold-*\bin\kick
+
 
 
 ################################## Render Settings ################################## 
 sceneIsMultiFrame= 1
 
-FlagsVerbose0= -v 1
-FlagsVerbose1= -v 0
-FlagsVerbose2= -v 1
-FlagsVerbose3= -v 2
-FlagsVerbose4= -v 3
+FlagsVerboseDefault= -v 1
+FlagsVerboseNone= -v 0
+FlagsVerboseWarning= -v 1
+FlagsVerboseInformation= -v 2
+FlagsVerboseProgress= -v 3
 
 FlagsRenderQuality0= 
 FlagsRenderQuality1= -as 1 -idisp

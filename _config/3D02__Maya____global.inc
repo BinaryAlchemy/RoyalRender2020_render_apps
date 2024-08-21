@@ -1,4 +1,8 @@
+# Last change: %rrVersion%
 
+REZ_EXE_WIN=   mayabatch.exe
+REZ_EXE_LX=   maya
+REZ_EXE_MAC=  maya
 
 MarkStandardErrorOutput= 0
 IconApp=3D02__Maya.png

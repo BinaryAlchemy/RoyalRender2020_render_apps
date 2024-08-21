@@ -1,3 +1,8 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   Commandline.exe
+REZ_EXE_LX=    Commandline
+REZ_EXE_MAC=   Commandline
 
 IconApp=3D05__Cinema4d.png
 LicenseFlags=<LicenseFlags>

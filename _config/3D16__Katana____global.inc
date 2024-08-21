@@ -1,3 +1,10 @@
+# Last change: %rrVersion%
+
+REZ_EXE_WIN=   katanaBin.exe
+REZ_EXE_LX=    katana
+REZ_EXE_MAC=   katana
+
+
 
 AddPluginLicense=/Yeti
 
