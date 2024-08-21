@@ -321,7 +321,10 @@ def rrSubmit_fillGlobalSceneInfo(newJob):
 
     if nuke.usingOcio():
         newJob.ColorSpaceConfigFile = get_ocio_config_file(root_node)
-        newJob.ColorSpace_View = root_node['monitorOutLUT'].value()
+        current_view = root_node['monitorOutLUT'].value()
+
+        # Nuke format for view setting is "view (display)", e.g "Standard (sRGB)"
+        newJob.ColorSpace_View = current_view.split(" (", 1)[0]
 
 def rrSubmit_NukeXRequired():
     n = nuke.allNodes()
