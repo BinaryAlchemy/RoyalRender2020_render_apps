@@ -1145,7 +1145,7 @@ def get_color_space_configfile(doc):
         color_space_configfile =  doc[c4d.DOCUMENT_OCIO_CONFIG]
     
     if color_space_configfile.startswith("./"):
-        color_space_configfile = "<rrBaseAppPath><IsMac /Resources>" + color_space_configfile[1:]
+        color_space_configfile = "<rrBaseAppPath><IsMac <../>>" + color_space_configfile[1:]
     
     return color_space_configfile
 
@@ -1956,7 +1956,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 if aov_file.startswith("./"):
                     aov_file = "<SceneFolder>" + aov_file[1:]
 
-                if mainMP.isValid() or direct_only:
+                if mainMP.isValid() or direct_only or not multipass:
                     job.channelExtension.append(aov_ext)
                     job.channelFileName.append(aov_file)
                     job.maxChannels += 1
@@ -2228,6 +2228,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 if job.renderer == "Redshift":
                     # add direct save AOVs
                     self.addChannelsRedshift(job, mainMP, render_data, direct_only=True)
+            elif job.maxChannels > 0:
+                # probably only directsave are used, take the first one as Main Output
+                job.imageName = job.channelFileName.pop(0)
+                job.imageFormat = job.channelExtension.pop(0)
+                job.maxChannels -= 1
             else:
                 # Apparently, this scene has no Multipass available, no need to set the channel for the kso plugin
                 job.channel = ""

@@ -1243,7 +1243,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                     logMessageDebug("bmp MultipassBitmap rgb")
                     bmp = c4d.bitmaps.MultipassBitmap(int(arg.width), int(arg.height), c4d.COLORMODE_RGB)
 
-                res = c4d.documents.RenderDocument(doc, rd.GetData(), bmp, rflags)
+                res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
                 bmp.FlushAll()
                 del bmp
 
@@ -1301,7 +1301,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                         #bmp = c4d.bitmaps.BaseBitmap()
                         #bmp.Init(x=int(arg.width), y=int(arg.height))
 
-                    res = c4d.documents.RenderDocument(doc, rd.GetData(), bmp, rflags)
+                    res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
 
                     bmp.FlushAll()
                     del bmp
@@ -1341,7 +1341,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
             rd[c4d.RDATA_FRAMESTEP] = FrStep
             flushLog()
             beforeFrame=datetime.datetime.now()
-            res = c4d.documents.RenderDocument(doc, rd.GetData(), bmp, rflags)
+            res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
 
             if res == c4d.RENDERRESULT_OK:
                 pass
