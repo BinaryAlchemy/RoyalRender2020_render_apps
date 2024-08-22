@@ -11,7 +11,7 @@ IconApp=3D21__UnrealEngine.png
 ################################## Submitter Settings ##################################
 SequenceDivide= 0~1
 SeqDivMIN=0~0
-GPUrequired=0~1
+GPUrequired=1~1
 AllowLocalSceneCopy= 0~0
 
 ################################## Client Settings ##################################

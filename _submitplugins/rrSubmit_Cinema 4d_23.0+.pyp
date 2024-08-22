@@ -2612,6 +2612,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             1029988: "Arnold",
             1019782: "vray",
             1035287: "cycles",
+            1030480: "Corona",
         }
 
         try:
