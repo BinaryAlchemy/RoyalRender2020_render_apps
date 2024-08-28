@@ -1,1 +1,0 @@
-"C:\Program Files\mentalRay3.7.1\bin\ray.exe" %* 

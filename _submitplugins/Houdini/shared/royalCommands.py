@@ -168,13 +168,7 @@ def rrModule_createLocalCache(rrBinFolder):
         rrSyncTree(rrBinFolder, tempFolder)
         modPath= tempFolder
         if (sys.platform.lower() == "darwin"):
-            if (sys.version_info.major == 2):
-                modPath=modPath + '/python/27'
-            else:
-                if (sys.version_info.minor == 7):
-                    modPath=modPath + '/python/37'
-                else: 
-                    modPath=modPath + '/python/39'
+            modPath=modPath + '/python/any'
     if modPath not in sys.path:
         sys.path.append(modPath)
         logger.debug("added module path "+modPath)
@@ -216,6 +210,22 @@ def loadRRmodule():
             elif (sys.version_info.minor == 10):
                 import libpyRR310_submit as rrSubmitLib
                 logger.debug("libpyRR310_submit loaded ({})".format(rrSubmitLib.__file__))
+                rrsched__pyRR_submit_loaded= True
+            elif (sys.version_info.minor == 11):
+                import libpyRR311_submit as rrSubmitLib
+                logger.debug("libpyRR311_submit loaded ({})".format(rrSubmitLib.__file__))
+                rrsched__pyRR_submit_loaded= True
+            elif (sys.version_info.minor == 12):
+                import libpyRR312_submit as rrSubmitLib
+                logger.debug("libpyRR312_submit loaded ({})".format(rrSubmitLib.__file__))
+                rrsched__pyRR_submit_loaded= True
+            elif (sys.version_info.minor == 13):
+                import libpyRR313_submit as rrSubmitLib
+                logger.debug("libpyRR313_submit loaded ({})".format(rrSubmitLib.__file__))
+                rrsched__pyRR_submit_loaded= True
+            elif (sys.version_info.minor == 14):
+                import libpyRR314_submit as rrSubmitLib
+                logger.debug("libpyRR314_submit loaded ({})".format(rrSubmitLib.__file__))
                 rrsched__pyRR_submit_loaded= True
         if (not rrsched__pyRR_submit_loaded):
             logger.warning("\n Unable to load libpyRR_submit for python version {}.{}.\n"

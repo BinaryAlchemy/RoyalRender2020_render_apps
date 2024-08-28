@@ -1,5 +1,0 @@
-//Maya Preference 2009 (Release 1)
-//
-//
-evalDeferred("autoLoadPlugin(\"\", \"VectorRender\", \"VectorRender\")");
-evalDeferred("autoLoadPlugin(\"\", \"vrayformaya\", \"vrayformaya\")");
