@@ -173,6 +173,22 @@ def  loadModule_libpyRR2():
                 import libpyRR310 as rrLib
                 logger.debug("libpyRR310 loaded ({})".format(rrLib.__file__))
                 htorr__pyRR_loaded= True
+            elif (sys.version_info.minor == 11):
+                import libpyRR311 as rrLib
+                logger.debug("libpyRR311 loaded ({})".format(rrLib.__file__))
+                htorr__pyRR_loaded= True
+            elif (sys.version_info.minor == 12):
+                import libpyRR312 as rrLib
+                logger.debug("libpyRR312 loaded ({})".format(rrLib.__file__))
+                htorr__pyRR_loaded= True
+            elif (sys.version_info.minor == 13):
+                import libpyRR313 as rrLib
+                logger.debug("libpyRR313 loaded ({})".format(rrLib.__file__))
+                htorr__pyRR_loaded= True
+            elif (sys.version_info.minor == 14):
+                import libpyRR314 as rrLib
+                logger.debug("libpyRR314 loaded ({})".format(rrLib.__file__))
+                htorr__pyRR_loaded= True
         if (not htorr__pyRR_loaded):
             logger.warning("\n    Unable to load libpyRR for python version {}.{}.\n    Buttons to get client names do not work.\n".format(sys.version_info.major,sys.version_info.minor))
     except:

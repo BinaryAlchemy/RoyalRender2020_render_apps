@@ -40,7 +40,16 @@ def detectRenderEngine(renderer_parm):
         return _NAME_Karma
         
     ren = ren.lower()
-    if (len(ren)==0) or ren == ("Karma").lower() or ren == ("BRAY_HdKarma").lower():
+    
+    if (len(ren)==0):
+        return _NAME_Karma
+    if (ren == ("Karma").lower()):
+        return _NAME_Karma
+    if (ren == ("BRAY_HdKarma").lower()):
+        return _NAME_Karma
+    if (ren == ("KarmaXPU").lower()):
+        return _NAME_Karma
+    if (ren == ("BRAY_HdKarmaXPU").lower()):
         return _NAME_Karma
         
     if (ren == ("Arnold").lower()):
@@ -98,6 +107,13 @@ def addRenderman_Renderer(renderer):
             return "PrmanRenderer=XpuGpu"
         return "PrmanRenderer=Xpu"
 
+    return ""
+
+
+def addKarma_Renderer(renderer):
+    renderer = renderer.lower()
+    if ("xpu" in renderer):
+        return "KarmaRenderer=XPU"
     return ""
 
 
@@ -163,6 +179,8 @@ class UsdRop(RenderNode):
             renderer= detectRenderEngine(self._node.parm("renderer"))
             if renderer==_NAME_Renderman:
                 return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            if renderer==_NAME_Karma:
+                return addKarma_Renderer(self._node.parm("renderer").eval() )
         except:
             pass
         return ""
@@ -327,6 +345,9 @@ class UsdStandalone(UsdRop):
             renderer= detectRenderEngine(self._node.parm("renderer"))
             if renderer==_NAME_Renderman:
                 return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            if renderer==_NAME_Karma:
+                return addKarma_Renderer(self._node.parm("renderer").eval() )
+                
         except:
             pass
         return ""
@@ -496,6 +517,9 @@ class UsdRenderRop(RenderNode):
             renderer= detectRenderEngine(self._node.parm("renderer"))
             if renderer==_NAME_Renderman:
                 return addRenderman_Renderer(self._node.parm("renderer").eval() )
+            if renderer==_NAME_Karma:
+                return addKarma_Renderer(self._node.parm("renderer").eval() )
+                
         except:
             pass
         return ""
