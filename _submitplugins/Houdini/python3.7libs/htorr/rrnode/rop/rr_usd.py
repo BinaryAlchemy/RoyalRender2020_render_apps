@@ -368,7 +368,7 @@ class UsdStandalone(UsdRop):
         if (len(allproducts)==1):
             jobParams= jobParams +  'COSingleRenderProduct=1~1; '
         else:
-            jobParams= jobParams +  'AllowLocalRenderOut=0~0; '
+            jobParams= jobParams +  'AllowLocalRenderOut=0~0; COSingleRenderProduct=0~0; '
 
         try:
             ren = renderer_parm.eval() 
@@ -379,7 +379,9 @@ class UsdStandalone(UsdRop):
                 ren = ren.lower()
                 if "xpugpu" in ren:
                     jobParams= jobParams + 'GPUrequired=0~1; '
-                    
+
+        logger.debug("{}: rr_jobsettingsFunc: {} ".format(self._node.path(), jobParams)) 
+        
         return jobParams
 
     @property

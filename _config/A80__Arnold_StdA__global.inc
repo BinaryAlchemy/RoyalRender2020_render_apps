@@ -1,15 +1,10 @@
-# Last change: %rrVersion%
+    # Last change: %rrVersion%
 
 REZ_EXE_WIN=   kick.exe
 REZ_EXE_LX=    kick
 REZ_EXE_MAC=   kick
 
 
-ExeCopyFromDir = <rrSharedExeDir>
-ExeCopyToDir   = <rrLocalExeDir>
-
-ExeCopiedWin=  <rrLocalExeDir>Arnold-*\bin\kick.exe
-ExeCopiedLx=  <rrLocalExeDir>Arnold-*\bin\kick
 
 
 
@@ -44,6 +39,7 @@ SeqDivMIN= 1~1
 SeqDivMAX= 1~10
 AllowLocalSceneCopy= 0~0
 
+COSingleRenderProduct= 1 ~ 1
 
 
 ################################## Client Settings ################################## 

@@ -15,23 +15,28 @@
 # Installation steps:
 # 1) Copy this file into render_apps\_config_inhouse\
 # 2) Send a "restart rrClient app" command via rrControl to all active clients. (To reload the config)
-# 3) Copy your Blender installation from your workstation c:\Program Files\Blender Foundation\Blender\ into RR\render_apps\renderer_exe\Blender\win_x64\Blender_2.81
-#     Of course you need to modify the version 2.81 with the version you use.
+# 3) Copy your application installation 
+#      from your workstation c:\Program Files\Side Effects Software\Houdini 20.5.332\ 
+#      into RR\render_apps\renderer_exe\houdini\win_x64\Houdini 20.5.332
 #
 #     Note that it is possible to get an information from the rrClient about the right path.
 #     If you skip this step, then the renderlog in step 5 will tell you the right path.
 #
 # 4) Optional: Reduce app size
+#    In case of Houdini we have not seen folder that you can easily remove
+#    Perhaps you can delete the Python folder if you use husk/mantra only. (If you have not setup Houdini itself as shared exe)
+#
 # 5) Send a job. 
 #    The first start will take some time as the clients have to copy a lot of files.
+
 
 
 ExeCopyFromDir = <rrSharedExeDir>
 ExeCopyToDir   = <rrLocalExeDir>
 
-ExeCopiedWin=  <rrLocalExeDir>Blender_*/blender.exe
-ExeCopiedLx=   <rrLocalExeDir>Blender_*/blender
-ExeCopiedMac=   <rrLocalExeDir>Blender_*/blender
+ExeCopiedWin=  <rrLocalExeDir>Houdini*/hython.exe
+ExeCopiedLx=   <rrLocalExeDir>Houdini*/hython
+ExeCopiedMac=   <rrLocalExeDir>Houdini*/Resources/bin/hython-bin
 
 
 

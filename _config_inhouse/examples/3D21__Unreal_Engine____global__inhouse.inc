@@ -3,11 +3,12 @@
 #
 # Last change: %rrVersion%
 #
-# This include file changes Unreal from a per-Client Installation into a RR shared Executable installation.
+# This include file changes this app from a per-Client Installation into a RR shared Executable installation.
 # RR Shared Executables work this way:
-#     If the client gets a Unreal job, then it will sync all files from the <ExeCopyFromDir> to a <ExeCopyToDir> folder on the local drive.
-#     It copies the files as applications have a lot of files. And x machines accessing the same files over and over for each function can slow down the network pretty much.
-#     The sync is executed each time the client starts a Unreal job. If the files have not been changed, then no file is copied. If a file was removed, it is removed on the local drive as well.
+#     If the client gets a job, then it will sync the application to the local drive.
+#     It copies the app to the local drive as many machines accessing the same files over and over for each function can slow down the network pretty much.
+#     The sync is executed each time the client starts a  job. 
+#     If the files have not been changed, then no file is copied. If a file was removed, it is removed on the local drive as well.
 #
 #
 #
@@ -17,11 +18,12 @@
 # 3) Copy your Blender installation from your workstation 
 #   c:\Program Files\Epic Games\UE_5.3   into   RR\render_apps\renderer_exe\unreal engine\win_x64\UE_5.3
 #     Of course you need to modify the version 5.3 and the os "win64" with the version you use.
-#     If you use multiple versions, copy all folders that you need. The Clients auto-version change works for shared exe as well.
-#     Note that it is possible to get an information from the rrClient about the right path.
-#     If you skip this step, then the renderlog in step 4 will tell you the right search path.
 #
-#     Note: If you like, you can reduce the size of the folder.   
+#     Note that it is possible to get an information from the rrClient about the right path.
+#     If you skip this step, then the renderlog in step 5 will tell you the right path.
+#
+# 4) Optional: Reduce app size
+#     If you like, you can reduce the size of the folder.   
 #        -   *.pdb files are development files required for finding the source location of a crash.
 #        -   *.cpp.obj, *.cc.obj and *.lib files are required if you want to develop (compile) a new application/plugin
 #        -   There are some /Debug and /Release folders. Again required for development only
@@ -35,7 +37,7 @@
 #             If you do not use them, remove it: \Plugins\Experimental\PythonFoundationPackages\Content\Python\Lib\Win64\site-packages\torch
 #        On Windows with UE version 5.3.2, this reduced the application from  233430 files, 39.4GB   to 151971 files, 17,7GB
 #
-# 4) Send an Unreal job. 
+# 5) Send a job. 
 #    The first start will take some time as the clients have to copy a lot of files.
 
 

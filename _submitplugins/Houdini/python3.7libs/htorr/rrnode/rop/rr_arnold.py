@@ -171,4 +171,16 @@ class ArnoldStandalone(ArnoldRop):
 
     @property
     def renderer_version(self):
+        return super(ArnoldRop, self).software_version
         return
+        
+    @property
+    def rr_jobsettingsFunc(self):
+        jobParams=""
+        #It does not matter if there are multiple AOV outputs.
+        #kick uses the commandline flag -o for the main output only
+        
+        jobParams= jobParams +  'COSingleRenderProduct=0~1; '
+                    
+        return jobParams
+        

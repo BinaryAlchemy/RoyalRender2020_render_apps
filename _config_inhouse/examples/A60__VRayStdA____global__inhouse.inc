@@ -12,10 +12,12 @@
 #
 #
 # Installation steps:
-# 1) Copy this file into render_apps\_config\
-# 2) Copy VRay to RR\render_apps\renderer_exe\VRay_StdA\win_x64\vray_*
+# 1) Copy this file into render_apps\_config_inhouse\
+# 2) Send a "restart rrClient app" command via rrControl to all active clients. (To reload the config)
+# 3) Copy VRay to RR\render_apps\renderer_exe\VRay_StdA\win_x64\vray_*
 #     Replace * with the vray version.
-# 3) Send a restart rrClient app to all clients
+# 5) Send a job. 
+#    The first start will take some time as the clients have to copy a lot of files.
 
 
 ExeCopyFromDir = <rrSharedExeDir>
