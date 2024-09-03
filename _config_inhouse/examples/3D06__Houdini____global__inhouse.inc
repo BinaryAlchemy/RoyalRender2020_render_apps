@@ -31,8 +31,8 @@
 ExeCopyFromDir = <rrSharedExeDir>
 ExeCopyToDir   = <rrLocalExeDir>
 
-ExeCopiedWin=  <rrLocalExeDir>Houdini*/hython.exe
-ExeCopiedLx=   <rrLocalExeDir>Houdini*/hython
+ExeCopiedWin=  <rrLocalExeDir>Houdini*/bin/hython.exe
+ExeCopiedLx=   <rrLocalExeDir>Houdini*/bin/hython
 ExeCopiedMac=   <rrLocalExeDir>Houdini*/Resources/bin/hython-bin
 
 

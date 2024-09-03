@@ -110,6 +110,12 @@ RR_HTOA_VERSION=<RR_HTOA_VERSION>
         RR_HTOA_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]
+[If] <rrJobRenderer>  [==]  HtoA
+    [If] <RR_HTOA_VERSION>  [==] 
+        echo * Rendering with Arnold
+        RR_HTOA_VERSION  =  <rrJobRendererVersion>
+    [EndIf]
+[EndIf]
 [If] <rrJobRenderer>  [contains] createASS
     [If] <RR_HTOA_VERSION>  [==] 
         echo * Creating with Arnold
