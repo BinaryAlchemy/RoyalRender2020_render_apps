@@ -13,6 +13,7 @@ SequenceDivide= 0~1
 SeqDivMIN=0~0
 GPUrequired=1~1
 AllowLocalSceneCopy= 0~0
+DistributeStartToEnd=0~1
 
 ################################## Client Settings ##################################
 
