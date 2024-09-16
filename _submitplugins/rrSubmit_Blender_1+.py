@@ -103,7 +103,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         except KeyError:
             pass
         
-        default_cfg_file = os.path.join("<rrBaseAppPath><IsMac /Resources>", "<IsMac <rrJobVersionMajor>.<rrJobVersionMinor>?<rrExeVersionMajor>.<rrExeVersionMinor>>", "datafiles", "colormanagement", "config.ocio") #<IsMac must not be a seperate flag on its own (otherwise double // on windows)
+        default_cfg_file = os.path.join("<rrBaseAppPath><IsMac /Resources>", "<IsMac <rrJobVersionMajor>.<rrJobVersionMinor>?<rrExeVersion>>", "datafiles", "colormanagement", "config.ocio") #<IsMac must not be a seperate flag on its own (otherwise double // on windows)
         return default_cfg_file
     
     @staticmethod
@@ -191,7 +191,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         # file_format and file_codec are used in the render script
         file_format = scn.render.image_settings.file_format
         
-        v_major, v_minor, _ = bpy.app.version
+        v_major, v_minor, v_release = bpy.app.version
         is_single_output = file_format == 'FFMPEG' or file_format.startswith('AVI_')
 
         # cmd_frame_format is different in blender 2.79 commandline -F
@@ -239,7 +239,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeStr(fileID, "Software", "Blender")
         writeNodeStr(fileID, "Renderer", self._renderer_name)
         writeNodeStr(fileID, "rendererVersion", self._renderer_version)
-        writeNodeStr(fileID, "Version",  "{0}.{1}".format(v_major, v_minor))
+        writeNodeStr(fileID, "Version",  "{0}.{1}.{2}".format(v_major, v_minor, v_release))
         writeNodeStr(fileID, "SceneState", scene_state)
         writeNodeBool(fileID, "IsActive", is_active)
         writeNodeStr(fileID, "Scenename", bpy.data.filepath)
