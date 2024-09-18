@@ -389,6 +389,7 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
     REDSHIFT_MAYAEXTENSIONSPATH  =  <RR_YETI_BASE_LOCAL>\plug-ins;<REDSHIFT_MAYAEXTENSIONSPATH>
     MAYA_PLUG_IN_PATH  =  <RR_YETI_BASE_LOCAL>\plug-ins;<MAYA_PLUG_IN_PATH>
     MAYA_SCRIPT_PATH  =  <RR_YETI_BASE_LOCAL>\scripts;<MAYA_SCRIPT_PATH>
+    RFM_PLUGINS_PATH = <RR_YETI_BASE_LOCAL>\bin;<RFM_PLUGINS_PATH>
     echo + pgYetiMaya any <RR_YETI_BASE_LOCAL> > <RR_YETI_BASE_LOCAL>/pgYetiMaya.mod
     PATH  =  <RR_YETI_BASE_LOCAL>\bin;<RR_YETI_BASE_LOCAL>\plug-ins;<PATH>
     LD_LIBRARY_PATH  =  <RR_YETI_BASE_LOCAL>\bin;<LD_LIBRARY_PATH>
@@ -397,6 +398,9 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
 [If] <rrJobRenderer>  [contains] vray
 	[If] <RR_YETI_NETWORK>  [==] 1
 	VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
+    VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64 = =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
+    VRAY_FOR_MAYA<ExeVersionMinReqUS>_TRANSLATORS_PATH = <RR_YETI_BASE_LOCAL>\plug-ins;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_TRANSLATORS_PATH>
+    VRAY_PLUGINS = <RR_YETI_BASE_LOCAL>\bin;<VRAY_PLUGINS>
 	[EndIf]
 [EndIf]
 
