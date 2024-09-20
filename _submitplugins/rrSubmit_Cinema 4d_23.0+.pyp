@@ -53,7 +53,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-# LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -2025,7 +2025,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
     def replacePathTokens(self, job, image_name, render_data, separate_digit=True):
         # replace c4d tokens with RR tokens
-        image_name = image_name.replace("$camera", "<Camera>")
+        if self.multiCameraMode:
+            image_name = image_name.replace("$camera", "<Camera>")
         # image_name = image_name.replace("$prj", "<Scene>")  # do not need tokens that cannot be changed in rrSubmitter
         image_name = image_name.replace("$pass", "<Channel_intern>")
         image_name = image_name.replace("$userpass", "<Channel_name>")
@@ -2527,15 +2528,15 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
     def addCameras(self, doc):
         ob = doc.GetFirstObject()
-
         newcams = []
         while ob:
             type_id = ob.GetType()
+            LOGGER.debug(f"Obj Type: {type_id} Name: {ob.GetName()}")
             if type_id == c4d.OBJECT_STAGE:
                 # if stage object is selecting a camera
                 if ob[c4d.STAGEOBJECT_CLINK]:
                     self.job[0].camera = ob.GetName()
-            elif type_id == c4d.OBJECT_CAMERA:
+            elif type_id in [c4d.OBJECT_CAMERA, 1057516, 5140]:
                 newcam = ob.GetName()
                 if newcam != self.job[0].camera:
                     newcams.append(newcam)
