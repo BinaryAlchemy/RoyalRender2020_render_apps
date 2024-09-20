@@ -81,11 +81,19 @@ class KS_RenderManager(object):
 
     def set_cores(self, cores):
         self.render_ops.setThreads(cores)
+    
+    def set_camera(self, camera):
+        lux.setCamera(camera)
+    
+    def set_modelset(self, modelsets):
+        set_list = modelsets.split(":")
+        return lux.setModelSets(set_list)
 
     def set_region(self, start_x, start_y, end_x, end_y):
         self.render_ops.setRegion((start_x, start_y, end_x, end_y))
 
     def render_scene(self):
+        # renderFrames() is not available in headless mode
         for frame_num in range(self.frame_start, self.frame_end + 1, self.frame_step):
             lux.setAnimationFrame(frame_num)
             fr_num = str(frame_num).zfill(self.frame_padding)
@@ -129,6 +137,9 @@ if __name__ == '__main__':
     parser.add_argument("--RegionRight", help="right pixel of image region", type=int, default=-1)
     parser.add_argument("--RegionBtm", help="bottom pixel of image region", type=int, default=-1)
     parser.add_argument("--RegionTop", help="top pixel of image region", type=int, default=-1)
+    
+    parser.add_argument("--ModelSets", help="Sets of visible objects", default='')
+    parser.add_argument("--Camera", help="Render Camera", default='')
 
     parser.add_argument("--python_path", help="helper python scripts", default='')
 
@@ -162,6 +173,12 @@ if __name__ == '__main__':
 
     if args.cores:
         render_manager.set_cores(args.cores)
+    
+    if args.Camera:
+        render_manager.set_camera(args.Camera)
+    
+    if args.ModelSets:
+        render_manager.set_modelset(args.ModelSets)
 
     if any((args.RegionLeft > 0, args.RegionTop > 0, args.RegionRight > 0, args.RegionBtm > 0)):
         render_manager.set_region(args.RegionLeft, args.RegionTop, args.RegionRight + 1, args.RegionBtm + 1)
