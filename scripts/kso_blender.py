@@ -469,12 +469,9 @@ OUT_FORMATS = OrderedDict(
 
 
 def open_blend_file(blend_file):
-    norm_path = os.path.normcase(blend_file)
-    norm_path = os.path.normpath(norm_path)
+    bpy.ops.wm.open_mainfile(filepath=blend_file)
 
-    bpy.ops.wm.open_mainfile(filepath=norm_path)
-
-    if bpy.data.filepath != norm_path:
+    if bpy.data.filepath != blend_file:
         raise RRFilepathMismatchException
 
 
