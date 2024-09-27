@@ -140,6 +140,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
     PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<PATH>
     PATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\bin\hostbin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<PATH>
     LD_LIBRARY_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_root\bin;<RR_VRAY_BASE_LOCAL>\maya_vray\bin;<RR_VRAY_BASE_LOCAL>\vray\bin;<RR_VRAY_BASE_LOCAL>\maya_root\lib;<RR_VRAY_BASE_LOCAL>\maya_vray\lib;<MAYA_APP_DIR>\lib;<LD_LIBRARY_PATH>
+    [dir] <RR_VRAY_BASE_LOCAL>/maya_root/modules
     echo + VRayForMaya any <RR_VRAY_BASE_LOCAL>/maya_vray > <RR_VRAY_BASE_LOCAL>/maya_root/modules/VRayForMaya.module
 [EndIf]
 
@@ -234,6 +235,7 @@ ARNOLD_PLUGIN_PATH  =  <RR_MTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
 # [copy] SyncCreate <RR_MTOA_BASE_LOCAL>\procedurals\xgen_procedural.dll   =>   <RR_MTOA_BASE_LOCAL>\shaders\xgen_procedural.dll
 #.mod files have to contain the path to the plugin files
 [If] <RR_MTOA_NETWORK>  [==] 1
+    [dir] <RR_MTOA_BASE_LOCAL>
     echo + mtoa any <RR_MTOA_BASE_LOCAL> > <RR_MTOA_BASE_LOCAL>/mtoa.mod
 [EndIf]
 
@@ -390,18 +392,18 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
     MAYA_PLUG_IN_PATH  =  <RR_YETI_BASE_LOCAL>\plug-ins;<MAYA_PLUG_IN_PATH>
     MAYA_SCRIPT_PATH  =  <RR_YETI_BASE_LOCAL>\scripts;<MAYA_SCRIPT_PATH>
     RFM_PLUGINS_PATH = <RR_YETI_BASE_LOCAL>\bin;<RFM_PLUGINS_PATH>
+    [dir] <RR_YETI_BASE_LOCAL>
     echo + pgYetiMaya any <RR_YETI_BASE_LOCAL> > <RR_YETI_BASE_LOCAL>/pgYetiMaya.mod
     PATH  =  <RR_YETI_BASE_LOCAL>\bin;<RR_YETI_BASE_LOCAL>\plug-ins;<PATH>
     LD_LIBRARY_PATH  =  <RR_YETI_BASE_LOCAL>\bin;<LD_LIBRARY_PATH>
 [EndIf]
 
 [If] <rrJobRenderer>  [contains] vray
-	[If] <RR_YETI_NETWORK>  [==] 1
-	VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
-    VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64 = =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
+    [If] <RR_YETI_NETWORK>  [==] 1
+    VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <RR_YETI_BASE_LOCAL>\bin;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
     VRAY_FOR_MAYA<ExeVersionMinReqUS>_TRANSLATORS_PATH = <RR_YETI_BASE_LOCAL>\plug-ins;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_TRANSLATORS_PATH>
     VRAY_PLUGINS = <RR_YETI_BASE_LOCAL>\bin;<VRAY_PLUGINS>
-	[EndIf]
+    [EndIf]
 [EndIf]
 
 YETI_TMP  =  <TEMP>
@@ -421,6 +423,7 @@ YETI_TMP  =  <TEMP>
     echo * Golaem source path is set to <RR_GOLAEM_BASE>
     echo * Golaem cache path is set to <RR_GOLAEM_BASE_LOCAL>
     [copy] SyncCreateDir <RR_GOLAEM_BASE>   =>   <RR_GOLAEM_BASE_LOCAL>
+    [dir] <RR_GOLAEM_BASE_LOCAL>
     echo + glmCrowd any <RR_GOLAEM_BASE_LOCAL> > <RR_GOLAEM_BASE_LOCAL>\glmCrowd.mod
 
     MAYA_MODULE_PATH  =  <RR_GOLAEM_BASE_LOCAL>;<MAYA_MODULE_PATH>
@@ -442,7 +445,6 @@ YETI_TMP  =  <TEMP>
 [If] <rrJobRenderer>  [contains] vray
 	[If] <RR_GOLAEM_NETWORK>  [==] 1
         VRAY_PLUGINS = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_PLUGINS>
-        VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64 = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS_x64>
         VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS = <RR_GOLAEM_BASE_LOCAL>\procedurals;<VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS>
         VRAY_FOR_MAYA_SHADERS = <RR_GOLAEM_BASE_LOCAL>\shaders;<VRAY_FOR_MAYA_SHADERS>
 	[EndIf]
