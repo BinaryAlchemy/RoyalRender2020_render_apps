@@ -17,7 +17,6 @@ AllowImageNameChange= 1
 AllowImageDirChange= 1
 SequenceDivide= 0~1
 AllowLocalSceneCopy= 1~0
-RenderVerbose=0~0
 
 
 
@@ -38,10 +37,12 @@ findFrameNoPre= <ImageFilenameSlash>
 findFrameNoPost= <ImageExtensionSlash>
 
 
-RemoveFromLog= Contains ~ | Synchronizing object |
-RemoveFromLog= Contains ~ | Updating Images |
-RemoveFromLog= Contains ~ | Building OptiX acceleration structure |
-RemoveFromLog= Contains ~ | Building BVH |
+RemoveFromLog_NotDebugVerbose= Contains ~ | Updating
+RemoveFromLog_NotDebugVerbose= Contains ~ | Synchronizing object |
+RemoveFromLog_NotDebugVerbose= Contains ~ | Building OptiX acceleration structure |
+RemoveFromLog_NotDebugVerbose= Contains ~ | Updating Images |
+
+
 
 
 RenderAppWindow_WIN= Error ~ Unable to locate valid BLENDER_APP_DIR ~ 1 ~ Button ~ OK 

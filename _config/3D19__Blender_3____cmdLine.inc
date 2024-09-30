@@ -52,6 +52,7 @@ CommandLine=   "<Exe>"
 	-rAA <AAsamplesMultiply>
 	<AdditionalCommandlineParam>
     -rPyModPath <rrLocalRenderScripts><EL<PD>>
+    <NoFramebyFrameLoop -NoFramebyFrameLoop>
 
 CommandLine=
 	<CheckExitCode> <FN>

@@ -18,7 +18,8 @@ GPU_RENDERERS = ("redshift", "Octane", "Eevee", "Eevee_Next")
 CURRENT_RENDERER = ""
 
 AV_FRAME_TIME = 0
-LOCAL_FRAME_LOOP = False
+global NO_FRAME_LOOP
+NO_FRAME_LOOP = False
 
 RENDER_SCENE = ""
 RENDER_LAYER = ""
@@ -249,6 +250,7 @@ class RRArgParser(object):
         self.enable_gpu_cpu = False
         self.enable_gpu_optix = False
         
+        self.NoFramebyFrameLoop= False
 
         self.error = ""
         self.parse(args)
@@ -319,6 +321,10 @@ class RRArgParser(object):
             if arg == "-rLoadRS":
                 self.load_redshift = True
                 continue
+
+            if arg == "-NoFramebyFrameLoop":
+                self.NoFramebyFrameLoop = True
+                
 
             # Keyword/Value Flags
 
@@ -442,7 +448,6 @@ class RRArgParser(object):
             if arg == "-rPyModPath":
                 self.PyModPath = value
 
-
 # Errors
 
 class RRArgParseException(Exception):
@@ -487,8 +492,9 @@ def render_frame_range(start, end, step, movie=False):
 
     scene = bpy.data.scenes[RENDER_SCENE]
     Path(os.path.dirname(scene.render.filepath)).mkdir(parents=True, exist_ok=True)
-
-    if not (movie or LOCAL_FRAME_LOOP):
+    
+    global NO_FRAME_LOOP
+    if not (movie or NO_FRAME_LOOP):
         log_msg(f"Rendering Frames: {start} - {end}")
         for fr in range(start, end + 1, step):
             if scene.render.use_overwrite:
@@ -505,7 +511,7 @@ def render_frame_range(start, end, step, movie=False):
             scene.frame_end = fr
             bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
     else:
-        log_msg(f"Rendering Frames (no frame loop): {start} - {end}")
+        log_msg(f"Rendering Frames: {start} - {end}   (no 'frame by frame' loop)")
         set_frame_range(start, end, step)
         flush_log()
         bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
@@ -604,8 +610,8 @@ def set_output_format(file_ext, file_format='', scene=None):
 def set_single_file_frame_loop(out_format):
     if out_format == 'FFMPEG' or out_format.startswith('AVI'):
         # Video: single output
-        global LOCAL_FRAME_LOOP
-        LOCAL_FRAME_LOOP = True
+        global NO_FRAME_LOOP
+        NO_FRAME_LOOP = True
 
 # KSO connection
 
@@ -662,18 +668,18 @@ def set_average_frame_time(frame_time):
     global AV_FRAME_TIME
     AV_FRAME_TIME = frame_time
 
-    global LOCAL_FRAME_LOOP
-    if not LOCAL_FRAME_LOOP:
+    global NO_FRAME_LOOP
+    if not NO_FRAME_LOOP:
         if AV_FRAME_TIME == 0:
-            LOCAL_FRAME_LOOP = CURRENT_RENDERER in GPU_RENDERERS
+            NO_FRAME_LOOP = CURRENT_RENDERER in GPU_RENDERERS
             return
 
         if AV_FRAME_TIME < 60:
-            LOCAL_FRAME_LOOP = True
+            NO_FRAME_LOOP = True
             return
 
         if AV_FRAME_TIME < 140:
-            LOCAL_FRAME_LOOP = CURRENT_RENDERER in GPU_RENDERERS
+            NO_FRAME_LOOP = CURRENT_RENDERER in GPU_RENDERERS
 
 
 def multiply_render_samples(renderer, factor):
@@ -797,6 +803,8 @@ if __name__ == "__main__":
         if args.renderer.lower() == "luxcore":          
             set_luxcore_CUDA()
             
+    if args.NoFramebyFrameLoop != None:
+        NO_FRAME_LOOP= True
 
     adjust_resolution(args.res_x, args.res_y)
     if args.is_tiled():
