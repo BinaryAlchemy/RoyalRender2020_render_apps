@@ -250,8 +250,6 @@ ARNOLD_ADP_OPTIN = 0
 #enables a license test if RR_MTOA_LICTEST is set in __inhouse file
 [If] <RR_USE_ARNOLD_RENDERER>  [==] 1
     [If] <RR_MTOA_LICTEST>  [==] 1
-        #echo * ARNOLD license check RLM 
-        #[Exec] <RR_MTOA_BASE_LOCAL>\bin\kick -licensecheck
         echo * ARNOLD Autodesk CLM , RLM license check
         [If] <rrExeOS>  [==] win
             [Exec] "<RR_MTOA_BASE_LOCAL>\bin\kick" -i NUL
