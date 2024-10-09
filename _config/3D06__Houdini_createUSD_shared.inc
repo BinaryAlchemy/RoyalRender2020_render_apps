@@ -35,7 +35,7 @@ CommandLine=
 
 CommandLine= 
     "<Exe>"
-    "<PD/ <rrLocalRenderScripts>kso_houdini.py" >
+    <PD/ "<rrLocalRenderScripts>kso_houdini.py" >
     -scene "<PD/<Scene>>"
     -renderer "createUSD"
     -exportmode true
