@@ -2,9 +2,12 @@ echo * ------ cinema 4d__inhouse.rrEnv ------
 
 # #######################  C4D license variables ########################
 # # Uncomment the following lines to set your Maxon Account credentials
+#
 # 			username must be in quotes:
 # g_licenseusername="MAXON_USERNAME"
-# 			password does not have quotes:
+#
+#           Note: Env vars (your password) must NOT contain these 5 characters:  ! | & < >
+# 			password does NOT have quotes:
 # g_licensepassword=MAXON_PASSWORD
 
 # Similarly for RLM you can use (with quotes)

@@ -34,11 +34,11 @@ Frozen_MinCoreUsage=1.90
 findFrameNoPre= Rendering frame  
 findFrameNoPost=  at
 
-#permanentErrorSearchLine = Invalid License from License Server
 permanentErrorSearchLine = doesn't support the required sdk
 permanentErrorSearchLine = Please sign into the Maxon App
 permanentErrorSearchLine = Click here to activate the license
-
+#permanentErrorSearchLine = Invalid License from License Server
+permanentErrorSearchLine = Error running authentication
 
 licenseFailLine= Missing serial number
 licenseFailLine= Error: Invalid License
