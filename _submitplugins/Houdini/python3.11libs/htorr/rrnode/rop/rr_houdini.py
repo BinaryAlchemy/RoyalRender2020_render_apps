@@ -109,7 +109,17 @@ class SwitchNode(rrNode):
     name = "switch"
 
     def childclass_parse(self, parseData):
+    
         index = self._node.parm("index").eval()
+        
+        try:
+            switchType = self._node.parm("chooseinputbyname").eval()
+            if (switchType=="on"):
+                inputName = self._node.parm("selectinputname").eval()
+                index= self._node.inputIndex(inputName)
+        except:
+            pass
+        
         if index < len(self._node.inputs()):
             n = rrNode.create(self._node.inputs()[index])
             n.parse(parseData)
