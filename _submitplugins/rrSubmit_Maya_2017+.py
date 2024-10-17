@@ -1810,6 +1810,31 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         return True
 
 
+    def arnoldUsd(self):
+        #Read USD export filename
+        
+    
+    
+        #remove all non-arnold Render Layer
+        for L in reversed(range(0, self.maxLayer)):
+            if self.layer[L].renderer == "arnold":
+                continue
+            self.layer.remove(self.layer[L])                
+            self.maxLayer= self.maxLayer-1
+            
+        if (self.maxLayer==0):
+            return False
+            
+        #dublicate all jobs
+        layerCount= self.maxLayer
+        for L in range(0, layerCount):
+            self.layer.append(self.layer[L])
+        
+        
+        
+        return True
+
+
 
 
 
@@ -2099,6 +2124,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.alembicSelection= False
         self.bakeSelection= False
         self.pickPythonFile= False
+        self.exportArnoldUsd= False
         if ((arglist.length()>0) and arglist.asBool(0)):
             self.multiCameraMode= True
         if ((arglist.length()>1) and arglist.asBool(1)):
@@ -2111,6 +2137,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.bakeSelection= True
         if ((arglist.length()>5) and arglist.asBool(5)):
             self.pickPythonFile= True
+        if ((arglist.length()>6) and arglist.asBool(6)):
+            self.exportArnoldUsd= True
 
         #get all layers:
         if (self.phoenixFD):
@@ -2130,6 +2158,10 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             if (not self.getAllLayers()):
                 #print ("rrSubmit - unable to get render/layer information")
                 return False
+            if (self.exportArnoldUsd):
+                if (!arnoldUsd()):
+                    return False
+                
 
         # frameset
         use_frameset = cmds.menuItem(FR_SET_OPTION, query=True, checkBox=True)
@@ -2171,11 +2203,11 @@ def initializePlugin(mobject):
         maya.mel.eval('$RRMenuCtrl = `menu -p $gMainWindow -to true -l "RRender"`;')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene..." -c "rrSubmit";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Select camera..." -c "rrSubmit true";')
-        #maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Local Textures" -c "rrSubmit false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Simulate PhoenixFD object" -c "rrSubmit false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export selected object as alembic cache" -c "rrSubmit false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - VRay Bake Textures" -c "rrSubmit false false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Pick python script to execute on scene file" -c "rrSubmit false false false false false true";')
+        maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export .usd and render with kick" -c "rrSubmit false false false false false false true";')
 
         global FR_SET_OPTION
         FR_SET_OPTION = maya.mel.eval('menuItem -p $RRMenuCtrl -l "Ask for Frameset" -checkBox off;')
