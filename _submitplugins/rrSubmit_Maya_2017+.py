@@ -16,6 +16,7 @@ import sys
 import re
 import tempfile
 import subprocess
+import copy
 
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
@@ -30,6 +31,7 @@ if sys.version_info.major == 2:
     range = xrange
     FileNotFoundError = OSError
 else:
+    from pathlib import Path
     def unichr(x):
         return str(x)
 
@@ -134,7 +136,57 @@ def initGlobalVars():
     _rrGL_RenderLayer_MasterOverrides= cmds.listConnections( "defaultRenderLayer.adjustments", p=True, c=True)    
     
     
+       
+def rrOptions_GetValue(name, typeName, defaultValue, askForValue):
+    if not cmds.objExists('RoyalRender_Options'):
+        cmds.spaceLocator(n='RoyalRender_Options')
+        cmds.setAttr("RoyalRender_Options.visibility", False)
         
+    if not cmds.objExists( 'RoyalRender_Options.' + name):
+        if (typeName == "filename"):
+            cmds.addAttr("RoyalRender_Options", shortName=name, longName=name, dataType="string")
+        else:
+            cmds.addAttr("RoyalRender_Options", shortName=name, longName=name, dataType=typeName)
+            
+        if ((typeName == "filename") or (typeName == "string")):
+            cmds.setAttr('RoyalRender_Options.' + name, defaultValue, type="string")
+        else:
+            cmds.setAttr('RoyalRender_Options.' + name, defaultValue, type=typeName)                
+                        
+        if (askForValue):
+            res = cmds.promptDialog(title=name, message="Please enter " + name,
+                                    button=['OK', 'Cancel'], defaultButton='OK',
+                                    cancelButton="Cancel", dismissString='Cancel',
+                                    text= str(defaultValue) )
+            if res == "OK":
+                newValue = cmds.promptDialog(query=True, text=True)
+                if ((typeName == "filename") or (typeName == "string")):
+                    cmds.setAttr('RoyalRender_Options.' + name, newValue, type="string")
+                else:
+                    cmds.setAttr('RoyalRender_Options.' + name, int(newValue), type=typeName)                
+            
+    return cmds.getAttr('RoyalRender_Options.' + name)
+
+
+def rrOptions_SetValue(name, typeName, value):
+    if not cmds.objExists('RoyalRender_Options'):
+        cmds.spaceLocator(n='RoyalRender_Options')
+        cmds.setAttr("RoyalRender_Options.visibility", False)
+        
+    if not cmds.objExists( 'RoyalRender_Options.' + name):
+        if (typeName == "filename"):
+            cmds.addAttr("RoyalRender_Options", shortName=name, longName=name, dataType="string")
+        else:
+            cmds.addAttr("RoyalRender_Options", shortName=name, longName=name, dataType=typeName)
+            
+    if ((typeName == "filename") or (typeName == "string")):
+        cmds.setAttr('RoyalRender_Options.' + name, value, type="string")
+    else:
+        cmds.setAttr('RoyalRender_Options.' + name, value)                
+                    
+    return cmds.getAttr('RoyalRender_Options.' + name)
+            
+ 
         
         
 
@@ -154,9 +206,13 @@ class rrDelightRenderPass:
         self.imagePreNumberLetter=""
         self.ImageSingleOutputFile=False
         self.tmpId = 0
+        self.preID = 0
+        self.version= 0
+        self.waitForPreID = 0
         self.channelFilenames = []
         self.channelExts = []
         self.renderer = "_3delight"
+        self.software= "Maya"
         self.shortcodeAttrs = {'<ext>':self.getExtension,
                                '<scene>':self.getScene,
                                '<project>':self.getProject,
@@ -482,6 +538,11 @@ class rrMayaLayer:
         self.nbRenderableCams=0
         self.rendererVersion=""
         self.customScriptFile=""
+        self.preID = 0
+        self.waitForPreID = 0
+        self.sceneName=""
+        self.software= "Maya"
+        self.version= 0
         return
 
 
@@ -1561,6 +1622,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 continue
             self.maxLayer+=1
             self.layer.append(rrMayaLayer())
+            self.layer[self.maxLayer-1].sceneName= self.sceneInfo.SceneName
+            self.layer[self.maxLayer-1].version= self.sceneInfo.MayaVersion
             self.layer[self.maxLayer-1].name=sel[i]
             self.layer[self.maxLayer-1].renderer="PhoenixFD"
             self.layer[self.maxLayer-1].IsActive=True
@@ -1589,6 +1652,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         for i in range(0, len(sel)):
             self.maxLayer+=1
             self.layer.append(rrMayaLayer())
+            self.layer[self.maxLayer-1].sceneName= self.sceneInfo.SceneName
+            self.layer[self.maxLayer-1].version= self.sceneInfo.MayaVersion
             self.layer[self.maxLayer-1].name=sel[i]
             self.layer[self.maxLayer-1].renderer="Alembic"
             self.layer[self.maxLayer-1].IsActive=True
@@ -1673,6 +1738,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
             self.maxLayer += 1
             self.layer.append(rrMayaLayer())
+            self.layer[self.maxLayer-1].sceneName= self.sceneInfo.SceneName
+            self.layer[self.maxLayer-1].version= self.sceneInfo.MayaVersion
             self.layer[self.maxLayer-1].name = node.name()
             self.layer[self.maxLayer-1].renderer = "VrayBake"
             self.layer[self.maxLayer-1].IsActive = True
@@ -1737,6 +1804,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         #Get MasterLayer Info
         self.maxLayer=1
         self.layer.append(rrMayaLayer())
+        self.layer[0].sceneName= self.sceneInfo.SceneName
+        self.layer[0].version= self.sceneInfo.MayaVersion
         self.layer[0].name="masterLayer"
         self.layer[0].IsActive= (cmds.getAttr('defaultRenderLayer.renderable')==True)
 
@@ -1764,7 +1833,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 
                 self.maxLayer+=1
                 self.layer.append(rrMayaLayer())
-                
+                self.layer[self.maxLayer-1].sceneName= self.sceneInfo.SceneName
+                self.layer[self.maxLayer-1].version= self.sceneInfo.MayaVersion
                 self.layer[self.maxLayer-1].name= layerName
                 self.layer[self.maxLayer-1].renderSetupObj= renderSetupObj
                 
@@ -1810,10 +1880,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         return True
 
 
-    def arnoldUsd(self):
-        #Read USD export filename
-        
-    
+    def arnoldUsd(self):      
     
         #remove all non-arnold Render Layer
         for L in reversed(range(0, self.maxLayer)):
@@ -1824,17 +1891,77 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             
         if (self.maxLayer==0):
             return False
-            
-        #dublicate all jobs
+        
+        #Read USD export filename
+        usdFileName= rrOptions_GetValue("USD_exportFileName", "filename", "<MayaProject>/USD/<Scene>_<Layer><Version>/<Scene>_<Layer><Version>.####.usdz", True)
+        
+        dbDir=  self.sceneInfo.DatabaseDir
+        sceneName=  Path(self.sceneInfo.SceneName).stem
+        usdFileName= usdFileName.replace("<MayaProject>",dbDir)
+        usdFileName= usdFileName.replace("<mayaproject>",dbDir)
+        usdFileName= usdFileName.replace("<Scene>",sceneName)
+        usdFileName= usdFileName.replace("<scene>",sceneName)
+        
+        
+        #Dublicate all jobs
         layerCount= self.maxLayer
         for L in range(0, layerCount):
-            self.layer.append(self.layer[L])
-        
-        
-        
+            self.layer[L].renderSetupObj= None
+            self.layer.append(copy.deepcopy(self.layer[L]))
+            self.maxLayer= self.maxLayer +1
+             
+            usdFileName_Layer= usdFileName;
+            usdFileName_Layer= usdFileName_Layer.replace("<layer>", self.layer[L].name)
+            usdFileName_Layer= usdFileName_Layer.replace("<Layer>", self.layer[L].name)
+            usdFileName_Layer= usdFileName_Layer.replace("<version>", self.layer[L].tempVersionTag)
+            usdFileName_Layer= usdFileName_Layer.replace("<Version>", self.layer[L].tempVersionTag)
+ 
+            #Export USD job:
+            self.layer[L].imageDir=""
+            self.layer[L].imageExtension=""
+            self.layer[L].imageFileName= usdFileName_Layer
+            self.layer[L].renderer="arnold-CreateUSD"
+            self.layer[L].preID=L
+            
+            #Render USD Job:
+            usdFileName_Layer= usdFileName_Layer.replace("######","<FN6>")
+            usdFileName_Layer= usdFileName_Layer.replace("#####","<FN5>")
+            usdFileName_Layer= usdFileName_Layer.replace("####","<FN4>")
+            usdFileName_Layer= usdFileName_Layer.replace("###","<FN3>")
+            usdFileName_Layer= usdFileName_Layer.replace("##","<FN2>")
+            usdFileName_Layer= usdFileName_Layer.replace("#","<FN1>")
+            
+            jID= self.maxLayer -1
+            self.layer[jID].preID=jID
+            self.layer[jID].waitForPreID=L
+            self.layer[jID].sceneName= usdFileName_Layer
+            self.layer[jID].software= "Arnold"
+            self.layer[jID].renderer= ""
+            self.layer[jID].version= self.layer[jID].rendererVersion
+            self.layer[jID].rendererVersion= self.sceneInfo.MayaVersion
+ 
         return True
 
 
+
+    def askFrameset(self, message="Enter Frames:"):
+        defaultValue="{0:.0f}-{1:.0f}".format(cmds.getAttr("defaultRenderGlobals.startFrame"),
+                                              cmds.getAttr("defaultRenderGlobals.endFrame"))
+        frameSet= rrOptions_GetValue("FrameSet", "string", defaultValue, False);
+        res = cmds.promptDialog(title="RR Frameset", message=message,
+                                button=['OK', 'Cancel'], defaultButton='OK',
+                                cancelButton="Cancel", dismissString='Cancel',
+                                text= frameSet )
+
+        if res == "OK":
+            frameSet = cmds.promptDialog(query=True, text=True)
+            match = re.match("[0-9]+([,\-][0-9]+)*", frameSet)
+            if match and match.span()[-1] == len(frameSet):
+                self.frameSet = frameSet
+                rrOptions_SetValue("FrameSet", "string", frameSet)
+            else:
+                self.askFrameset(message="Enter Frames: only numbers separated by dash or commas allowed"
+                                         "\ni.e. 1-5,10,20")
 
 
 
@@ -1952,14 +2079,15 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.subE(jobElement,"SceneOS", "mac")
         else:
             self.subE(jobElement,"SceneOS", "lx")
-        self.subE(jobElement,"Software", "Maya")
-        self.subE(jobElement,"Version", sceneInfo.MayaVersion)
-        self.subE(jobElement,"SceneName", sceneInfo.SceneName)
+        self.subE(jobElement,"Software", Layer.software)
+        self.subE(jobElement,"Version", Layer.version)
+        self.subE(jobElement,"SceneName", Layer.sceneName)
         self.subE(jobElement,"SceneDatabaseDir", sceneInfo.DatabaseDir)
         self.subE(jobElement,"ColorSpace", sceneInfo.ColorSpace)
         self.subE(jobElement,"ColorSpace_View", sceneInfo.ColorSpace_View)
         self.subE(jobElement,"ColorSpaceConfigFile", sceneInfo.ColorSpaceConfigFile)
         self.subE(jobElement,"Renderer", Layer.renderer)
+        self.subE(jobElement,"rendererVersion",Layer.rendererVersion)
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
         self.subE(jobElement,"Camera",camera)
         self.subE(jobElement,"Layer", Layer.name)
@@ -1982,9 +2110,12 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.subE(jobElement,"ChannelFilename",Layer.channelFileName[c])
             self.subE(jobElement,"ChannelExtension",Layer.channelExtension[c])
         self.subE(jobElement,"LocalTexturesFile",LocalTextureFile)
-        self.subE(jobElement,"rendererVersion",Layer.rendererVersion)
         if (len(Layer.customScriptFile)>0):
             self.subE(jobElement,"CustomScriptFile",Layer.customScriptFile)
+        if (Layer.preID >0):
+            self.subE(jobElement,"PreID", Layer.preID)
+        if (Layer.waitForPreID >0):
+            self.subE(jobElement,"WaitForPreID", Layer.waitForPreID)
 
     #write all information (layer/passes) into RR job file
     def writeAllLayers(self, UIMode):
@@ -2074,21 +2205,6 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
 
         
             
-    def askFrameset(self, message="Enter Frames:"):
-        res = cmds.promptDialog(title="RR Frameset", message=message,
-                                button=['OK', 'Cancel'], defaultButton='OK',
-                                cancelButton="Cancel", dismissString='Cancel',
-                                text="{0:.0f}-{1:.0f}".format(cmds.getAttr("defaultRenderGlobals.startFrame"),
-                                                              cmds.getAttr("defaultRenderGlobals.endFrame")))
-
-        if res == "OK":
-            frameSet = cmds.promptDialog(query=True, text=True)
-            match = re.match("[0-9]+([,\-][0-9]+)*", frameSet)
-            if match and match.span()[-1] == len(frameSet):
-                self.frameSet = frameSet
-            else:
-                self.askFrameset(message="Enter Frames: only numbers separated by dash or commas allowed"
-                                         "\ni.e. 1-5,10,20")
 
     ########################################
     #      Main function 
@@ -2159,7 +2275,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                 #print ("rrSubmit - unable to get render/layer information")
                 return False
             if (self.exportArnoldUsd):
-                if (!arnoldUsd()):
+                if (not self.arnoldUsd()):
                     return False
                 
 
@@ -2207,7 +2323,7 @@ def initializePlugin(mobject):
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export selected object as alembic cache" -c "rrSubmit false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - VRay Bake Textures" -c "rrSubmit false false false false true";')
         maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Pick python script to execute on scene file" -c "rrSubmit false false false false false true";')
-        maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export .usd and render with kick" -c "rrSubmit false false false false false false true";')
+        maya.mel.eval('menuItem -p $RRMenuCtrl -l "Submit scene - Export .usd and render with Arnold" -c "rrSubmit false false false false false false true";')
 
         global FR_SET_OPTION
         FR_SET_OPTION = maya.mel.eval('menuItem -p $RRMenuCtrl -l "Ask for Frameset" -checkBox off;')
