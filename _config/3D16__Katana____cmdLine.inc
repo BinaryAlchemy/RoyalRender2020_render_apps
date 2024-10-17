@@ -23,6 +23,7 @@ CommandLine=
      -t <SeqStart>-<SeqEnd>
      --threads2d=<Cores>
      --threads3d=<Cores>
+    <customGSV>
 	<AdditionalCommandlineParam>
 	<ClientConfigParam>
 

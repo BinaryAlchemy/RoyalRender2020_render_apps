@@ -1,0 +1,12 @@
+######################################################################
+#
+# Royal Render Plugin installer for Katana 
+# Last change: %rrVersion%
+# #win:     rrInstall_RemoveEnv: KATANA_RESOURCES, Directory\Katana_2
+# #linux:   rrInstall_RemoveEnv: KATANA_RESOURCES, Directory/Katana_2
+# #mac:     rrInstall_RemoveEnv: KATANA_RESOURCES, Directory/Katana_2
+# #win:     rrInstall_Env: KATANA_RESOURCES, Directory\Katana_6
+# #linux:   rrInstall_Env: KATANA_RESOURCES, Directory/Katana_6
+# #mac:     rrInstall_Env: KATANA_RESOURCES, Directory/Katana_6
+# 
+######################################################################
