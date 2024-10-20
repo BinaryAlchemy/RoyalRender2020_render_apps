@@ -598,7 +598,7 @@ def set_output_format(file_ext, file_format='', scene=None):
                 scene.render.ffmpeg.format = out_container
     elif out_format == 'JPEG2000':
         scene.render.image_settings.jpeg2k_codec = 'JP2' if file_ext.lower() == '.jp2' else 'J2K'
-        log_msg(f"jpeg2k codec set to", scene.render.image_settings.jpeg2k_codec)
+        log_msg(f"jpeg2k codec set to: " + scene.render.image_settings.jpeg2k_codec)
 
     out_extension = scene.render.file_extension
     if out_extension != file_ext:
