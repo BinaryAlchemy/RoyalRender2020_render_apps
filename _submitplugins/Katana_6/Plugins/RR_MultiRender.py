@@ -484,6 +484,12 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
         globalGSVsPanelWidget.getListWidget().setStyleSheet('background-color: %s' % lineEditPaletteShadowColor.name())
 
         # Create an action for setting the frame range line edit text to the
+        # nodes settings
+        nodeSettingsPresetAction = QtWidgets.QAction('Use nodes "farmSettings"', self)
+        nodeSettingsPresetAction.setObjectName('nodeSettingsPresetAction')
+
+
+        # Create an action for setting the frame range line edit text to the
         # current frame
         currentFramePresetAction = QtWidgets.QAction('Current Frame', self)
         currentFramePresetAction.setObjectName('currentFramePresetAction')
@@ -508,11 +514,12 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
         # the frame range line edit text
         frameRangeMenuButton = UI4.Widgets.MenuButton(self, 'Presets')
         frameRangeMenu = frameRangeMenuButton.menu()
+        frameRangeMenu.addAction(nodeSettingsPresetAction)
         frameRangeMenu.addAction(workingInOutFramePresetAction)
         frameRangeMenu.addAction(workingInOut_step5_FramePresetAction)
         frameRangeMenu.addAction(currentFramePresetAction)
         frameRangeMenu.addAction(firstMiddleLastFramePresetAction)
-        self.on_workingInOutFramePresetAction_triggered()
+        self.on_nodeSettingsPresetAction_triggered()
 
         # Create a layout for the frame range controls
         frameRangeLayout = QtWidgets.QHBoxLayout()
@@ -525,7 +532,7 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
         formLayout = QtWidgets.QFormLayout()
         formLayout.setLabelAlignment(QtCore.Qt.AlignRight)
         formLayout.setVerticalSpacing(self.style().pixelMetric(QtWidgets.QStyle.PM_LayoutVerticalSpacing))
-        formLayout.addRow('Frame Range:', frameRangeLayout)
+        formLayout.addRow('Override Frame Range:', frameRangeLayout)
 
         # Create a status label to be displayed at the bottom of the dialog
         self.__statusLabel = QtWidgets.QLabel(self)
@@ -594,6 +601,13 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
         """
         # pylint: disable=unused-argument
         self.__updateState()
+
+    @QtCore.pyqtSlot(bool)
+    def on_nodeSettingsPresetAction_triggered(self, checked=False):
+        """
+        Sets the text of the frame range line edit widget to the current frame.
+        """
+        self.__frameRangeLineEdit.setText("Use RenderNodes 'farmSettings'")
 
     @QtCore.pyqtSlot(bool)
     def on_currentFramePresetAction_triggered(self, checked=False):
@@ -729,12 +743,13 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
             nodeRenderSettings= FarmAPI.GetSortedDependencies(renderNode)[-1]
             
             newJob= rrSubmitJob.createSubmitJob(nodeRenderSettings, False)
-            if len(retFrameSet)>0:
-                newJob.seqFrameSet=retFrameSet
-            else:
-                newJob.seqStart=retStart
-                newJob.seqEnd=retEnd
-                newJob.seqStep=retStep
+            if (retStep > 0): # a value of -1 means keep render nodes settings
+                if len(retFrameSet)>0:
+                    newJob.seqFrameSet=retFrameSet
+                else:
+                    newJob.seqStart=retStart
+                    newJob.seqEnd=retEnd
+                    newJob.seqStep=retStep
                 
             if len(gsv_commandline)>0:
                 newJob.customGSV=gsv_commandline
@@ -991,6 +1006,9 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
                 self.__statusLabel.setStyleSheet( RR_StartMultipleRendersDialog.kStatusLabelWarningStyleSheet)
             return errorMessage, retStart, retEnd, retStep, retFrameSet
 
+        if (frameRangeText.find("farmSettings")>0):
+            retStep=-1
+            return errorMessage, retStart, retEnd, retStep, retFrameSet
         # Parse the frame range text, stopping at the first part of the frame range text that is invalid (if any)
         parts = frameRangeText.split(',')
         for part in parts:
@@ -1025,7 +1043,7 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
                     match = RR_StartMultipleRendersDialog.kSingleFramePattern.match(part)
                     if match:
                         retStart = int(match.group())
-                        retEnd=retStart
+                        retEnd= retStart
                         retStep=1
                     else:
                         errorMessage = 'Invalid frame range: "%s"' % part
