@@ -34,6 +34,28 @@ def _getOctaneVersion():
 
     return octaneVersion
             
+def getFilename_convertFrameNr(parm):
+    #there is no function in Houdini that evals all variables and expressions, but keeps the frame number
+    #this one does
+    fr1= parm.evalAtFrame(1)
+    fr9= parm.evalAtFrame(9999999)
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr1))
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr9))
+    #There are Python expressions that return $F4 even after eval()
+    fr1= hou.text.expandStringAtFrame(fr1, 1)
+    fr9= hou.text.expandStringAtFrame(fr9, 9999999)
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr1))
+    logger.debug("getFilename_convertFrameNr: {} ".format(fr9))
+    if (fr1==fr9):
+        return fr1
+    padding=len(fr1)-len(fr9)+7
+    posFr= fr9.find("9999999")
+    posFrEnd=posFr+7
+    newName= "$F" + str(padding)
+    newName=fr9[:posFr] + newName + fr9[posFrEnd:]
+    logger.debug("getFilename_convertFrameNr: {} ".format(newName))
+
+    return newName            
 
 class OctaneRop(RenderNode):
 
@@ -46,6 +68,40 @@ class OctaneRop(RenderNode):
     @property
     def output_parm(self):
         return "HO_img_fileName"
+                
+    @property
+    def outext(self):
+        rrout = Output(self._node.parm("HO_img_fileName"), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+        if len(rrout.extension) < 1:
+            formatIndex= self._node.parm('HO_img_fileFormat').eval()
+            if (formatIndex == 0):
+                return ".png"
+            if (formatIndex == 1):
+                return ".png"
+            if (formatIndex == 2):
+                return ".exr"
+            if (formatIndex == 3):
+                return ".exr"
+            if (formatIndex == 4):
+                return ".tif"
+            if (formatIndex == 5):
+                return ".tif"
+            if (formatIndex == 6):
+                return ".jpg"
+        return rrout.extension
+
+    @property
+    def rr_job_variablesFunc(self):
+        formatIndex= self._node.parm('HO_img_fileFormat').eval()
+        if (formatIndex == 0):
+            return "RR_OC_EXT_FLAG=png"
+        if (formatIndex == 1):
+            return "RR_OC_EXT_FLAG=png16"
+        if (formatIndex == 2):
+            return "RR_OC_EXT_FLAG=exr16"
+        if (formatIndex == 3):
+            return "RR_OC_EXT_FLAG=exr32"
+        return ""
                 
     @property
     def renderer(self):
@@ -107,7 +163,13 @@ class OctaneRop(RenderNode):
         self.__class__ = OctaneArchiveROP
 
     def to_standalone(self):
-        self.__class__ = OctaneStandalone
+        archiveName=getFilename_convertFrameNr(self._node.parm("HO_abc_exportFileName"))
+        isSingleArchive= (archiveName.find("$F") < 0)
+        if (isSingleArchive):
+            self.__class__ = OctaneStandalone_singlefile
+        else:
+            self.__class__ = OctaneStandalone
+
 
 
 class OctaneArchiveROP(OctaneRop):
@@ -122,6 +184,17 @@ class OctaneArchiveROP(OctaneRop):
     def output_parm(self):
         # HO_abc_exportMode   expold expnew
         return "HO_abc_exportFileName"
+
+    @property
+    def outext(self):
+        rrout = Output(self._node.parm("HO_abc_exportFileName"), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+        if len(rrout.extension) < 1:
+            logger.info("'{}': ABC export ? {}".format(self.path, self._node.parm('HO_abc_exportMode').eval()))
+            if self._node.parm('HO_abc_exportMode').eval()==0:
+                return ".abc"
+            else: 
+                return ".orbx"
+        return rrout.extension
 
     @property
     def aovs(self):
@@ -139,7 +212,11 @@ class OctaneArchiveROP(OctaneRop):
     
     @property
     def single_output(self):
-        return False
+        archiveName=getFilename_convertFrameNr(self._node.parm("HO_abc_exportFileName"))
+        isSingleArchive= (archiveName.find("$F") < 0)
+        return isSingleArchive
+        
+        
 
 class OctaneStandalone_singlefile(OctaneRop):
 

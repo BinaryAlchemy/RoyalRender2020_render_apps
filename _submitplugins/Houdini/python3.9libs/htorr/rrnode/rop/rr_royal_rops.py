@@ -15,6 +15,8 @@ except ImportError:
 
         
 def getFilename_convertFrameNr(parm):
+    #there is no function in Houdini that evals all variables and expressions, but keeps the frame number
+    #this one does
     fr1= parm.evalAtFrame(1)
     fr9= parm.evalAtFrame(9999999)
     logger.debug("getFilename_convertFrameNr: {} ".format(fr1))

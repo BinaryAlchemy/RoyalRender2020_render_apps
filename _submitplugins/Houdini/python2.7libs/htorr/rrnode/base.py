@@ -779,6 +779,10 @@ class RenderNode(rrNode):
             job.padding = productout.padding         
         
         rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+        if (not self.single_output_eval) and (len(rrout.extension) < 2) :
+            msg = "'{}': Output name missing extension: '{}'".format(self._node.path(), self.output_evalAtFrameA)
+            logger.warning(msg)
+
         return rrout.extension
 
     @property
