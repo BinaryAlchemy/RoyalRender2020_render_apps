@@ -1924,6 +1924,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.layer[L].preID=L
             
             #Render USD Job:
+            usdHasFrameNumber= (usdFileName_Layer.find("#") > 0)
             usdFileName_Layer= usdFileName_Layer.replace("######","<FN6>")
             usdFileName_Layer= usdFileName_Layer.replace("#####","<FN5>")
             usdFileName_Layer= usdFileName_Layer.replace("####","<FN4>")
@@ -1935,7 +1936,10 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.layer[jID].preID=jID
             self.layer[jID].waitForPreID=L
             self.layer[jID].sceneName= usdFileName_Layer
-            self.layer[jID].software= "Arnold"
+            if (usdHasFrameNumber)
+                self.layer[jID].software= "Arnold"
+            else: 
+                self.layer[jID].software= "Arnold-singlefile"
             self.layer[jID].renderer= ""
             self.layer[jID].version= self.layer[jID].rendererVersion
             self.layer[jID].rendererVersion= self.sceneInfo.MayaVersion

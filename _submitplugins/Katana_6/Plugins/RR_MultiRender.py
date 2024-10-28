@@ -1021,7 +1021,7 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
                 retStart = int(match.group('start'))
                 retEnd = int(match.group('end')) + 1
                 retStep = int(match.group('step'))
-                if retStart < retEnd:
+                if retStart <= retEnd:
                     if retStep<=0:
                         errorMessage = ('Invalid frame step: "%s" ' % part)
                         break
