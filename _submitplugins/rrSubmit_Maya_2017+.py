@@ -1936,7 +1936,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.layer[jID].preID=jID
             self.layer[jID].waitForPreID=L
             self.layer[jID].sceneName= usdFileName_Layer
-            if (usdHasFrameNumber)
+            if (usdHasFrameNumber):
                 self.layer[jID].software= "Arnold"
             else: 
                 self.layer[jID].software= "Arnold-singlefile"
