@@ -400,7 +400,7 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
     kWarningColor = QtGui.QColor(255, 155, 0)
     kErrorColor = QtGui.QColor(235, 32, 32)
     kFrameRangePattern = re.compile(r'^(?P<start>\-?\d+)\-(?P<end>\-?\d+)$')
-    kFrameRangeStepPattern = re.compile(r'^(?P<start>\-?\d+)\-(?P<end>\-?\d+)x(?P<step>\-?\d+)$')
+    kFrameRangeStepPattern = re.compile(r'^(?P<start>\-?\d+)\-(?P<end>\-?\d+)+(?P<step>\-?\d+)$')
     kSingleFramePattern = re.compile(r'^(\-?\d+)$')
     kDefaultStatusLabelStyleSheet = 'font-size: 12pt;'
     kStatusLabelErrorStyleSheet = ('color: %s; %s'
@@ -664,7 +664,7 @@ class RR_StartMultipleRendersDialog(QtWidgets.QDialog):
         first = int(NodegraphAPI.GetWorkingInTime())
         last = int(NodegraphAPI.GetWorkingOutTime())
 
-        frameRange = '%(first)s-%(last)sx5' % locals()
+        frameRange = '%(first)s-%(last)s+5' % locals()
 
         self.__frameRangeLineEdit.setText(frameRange)
 
