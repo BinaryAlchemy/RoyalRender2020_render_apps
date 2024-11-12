@@ -50,9 +50,9 @@ def logMessageError(msg, doRaise, printTraceback):
             traceBack_str= traceBack_str.replace("OperationFailed", "Operation  Failed")
         logMessageGen("ERR","-------------------------------- Traceback --------------------------------:\n"+ traceBack_str +"---------------------------------------------------------------------------\n")    
     
-    if 'rrJobVersion' in os.environ:    
+    if 'rrJobVersionFull' in os.environ:    
         houVersion= hou.applicationVersionString()
-        submitVersion= os.environ['rrJobVersion']
+        submitVersion= os.environ['rrJobVersionFull']
         if not houVersion.startswith(submitVersion):
             if len(houVersion)>len(submitVersion):
                 submitVersion= submitVersion + "0"
@@ -150,6 +150,7 @@ class argParser:
         logMessage("FSCODING is "+str(FSCODING))
         self.renderer= self.getParam("-renderer")
         self.rendererExportMode=self.getParam("-exportmode")
+        self.exportPlusOneFrame=self.getParam("-exportPlusOneFrame")
         self.sceneFile=self.getParam("-scene")
         self.FrStart=self.getParam("-FrStart")
         self.FrEnd=self.getParam("-FrEnd")
@@ -321,6 +322,9 @@ def renderFrames(FrStart,FrEnd,FrStep):
             localAllFramesAtOnce = True
         elif (arg.avFrameTime < 140):
             localAllFramesAtOnce = arg.renderer in ("redshift", "Octane", "opengl")
+        if (arg.renderer in ("Octane")) and arg.rendererExportMode:
+            localAllFramesAtOnce=False
+        
 
     try:
         imgRes = ()
@@ -353,12 +357,19 @@ def renderFrames(FrStart,FrEnd,FrStep):
                 localFrEnd= fr
                 if (localFrStep < 1.0):
                     localFrEnd= float(localFrEnd + 1) - localFrStep
+                    
                 if (arg.subFrames>1):
                     logMessage( "Rendering Frames #" + str(fr) + " - #" + str(localFrEnd) + ", " + str(arg.subFrames) + " subFrames ...")
+                elif (arg.exportPlusOneFrame):
+                    localFrEnd= localFrEnd + 1.0
+                    logMessage( "Rendering Frame #" + str(fr) + " (+1) ...")
                 else:
                     logMessage( "Rendering Frame #" + str(fr) + " ...")
- 
-                renderFrames_sub(fr,localFrEnd,localFrStep,imgRes)
+                
+                if (arg.exportPlusOneFrame):
+                    renderFrames_sub(fr,localFrEnd, localFrStep,imgRes)
+                else:
+                    renderFrames_sub(fr,localFrEnd,localFrStep,imgRes)
 
     except Exception as e:
         logMessageError(str(e), True, True)
@@ -1061,8 +1072,11 @@ try:
     kso_tcp.USE_LOGGER= False
     kso_tcp.USE_DEFAULT_PRINT= True        
     kso_tcp.rrKSO_logger_init()
+    if (not argValid(arg.exportPlusOneFrame)):
+        arg.exportPlusOneFrame=False
     if (not argValid(arg.rendererExportMode)):
         arg.rendererExportMode=False
+        arg.exportPlusOneFrame=False
     if (not argValid(arg.FPadding)):
         arg.FPadding=1
     if (not argValid(arg.FRefName)):

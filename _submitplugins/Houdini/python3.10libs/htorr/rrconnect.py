@@ -239,10 +239,7 @@ def get_client_groups():
 
     logger.debug("List of groups loaded ("+str(groupList.count)+" groups)")
     groups = [groupList.clientGroup(gi).getName() for gi in range(groupList.count)]
-    for gi in range(groupList.count):
-        grp= groupList.clientGroup(gi)
-        logger.debug("    " + grp.getName()) 
-
+    logger.debug(str(groups)) 
     return groups
 
 def get_clients():
@@ -275,6 +272,7 @@ def get_clients():
 
     ### --------------------------------------------------------------------- CLIENTS
     logger.debug("\nCheck clients")
+    nbClients=0
     if not tcp.clientGetList():
       logger.error("Error getting clients: " + tcp.errorMessage())
     else:
@@ -285,5 +283,8 @@ def get_clients():
         #cl = clients.at(i)
         #logger.error("\tCpuUsage %6.2f name: %s" %(cl.CPU_Usage,cl.name) )
 
-    return [clients.at(i).name for i in range(nbClients)]
+    logger.debug("List of clients loaded ("+str(nbClients)+" clients)")
+    clientList = [clients.at(i).name() for i in range(nbClients)]
+    logger.debug(str(clientList)) 
+    return clientList
 
