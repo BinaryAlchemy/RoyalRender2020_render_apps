@@ -1893,7 +1893,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             return False
         
         #Read USD export filename
-        usdFileName= rrOptions_GetValue("USD_exportFileName", "filename", "<MayaProject>/USD/<Scene>_<Layer><Version>/<Scene>_<Layer><Version>.####.usdz", True)
+        usdFileName= rrOptions_GetValue("USD_exportFileName", "filename", "<MayaProject>/USD/<Scene>_<Layer><Version>/<Scene>_<Layer><Version>.usd", True)
         
         dbDir=  self.sceneInfo.DatabaseDir
         sceneName=  Path(self.sceneInfo.SceneName).stem
@@ -1901,6 +1901,10 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         usdFileName= usdFileName.replace("<mayaproject>",dbDir)
         usdFileName= usdFileName.replace("<Scene>",sceneName)
         usdFileName= usdFileName.replace("<scene>",sceneName)
+        usdFileName= usdFileName.replace("#","") # file per frame not supported by Arnold
+        usdFileNameLower= usdFileName.lower()
+        if (not usdFileNameLower.endswith(".usd")) and  (not usdFileNameLower.endswith(".usda")):
+            usdFileName=usdFileName + ".usd"
         
         
         #Dublicate all jobs
@@ -1915,16 +1919,17 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             usdFileName_Layer= usdFileName_Layer.replace("<Layer>", self.layer[L].name)
             usdFileName_Layer= usdFileName_Layer.replace("<version>", self.layer[L].tempVersionTag)
             usdFileName_Layer= usdFileName_Layer.replace("<Version>", self.layer[L].tempVersionTag)
- 
+            usdHasFrameNumber= (usdFileName_Layer.find("#") > 0)
+             
             #Export USD job:
             self.layer[L].imageDir=""
             self.layer[L].imageExtension=""
             self.layer[L].imageFileName= usdFileName_Layer
-            self.layer[L].renderer="arnold-CreateUSD"
-            self.layer[L].preID=L
+            self.layer[L].renderer="arnold-ExportUSD"
+            self.layer[L].preID=L+1
+            self.layer[L].ImageSingleOutputFile=not usdHasFrameNumber
             
             #Render USD Job:
-            usdHasFrameNumber= (usdFileName_Layer.find("#") > 0)
             usdFileName_Layer= usdFileName_Layer.replace("######","<FN6>")
             usdFileName_Layer= usdFileName_Layer.replace("#####","<FN5>")
             usdFileName_Layer= usdFileName_Layer.replace("####","<FN4>")
@@ -1933,8 +1938,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             usdFileName_Layer= usdFileName_Layer.replace("#","<FN1>")
             
             jID= self.maxLayer -1
-            self.layer[jID].preID=jID
-            self.layer[jID].waitForPreID=L
+            self.layer[jID].preID=jID+1
+            self.layer[jID].waitForPreID=L+1
             self.layer[jID].sceneName= usdFileName_Layer
             if (usdHasFrameNumber):
                 self.layer[jID].software= "Arnold"

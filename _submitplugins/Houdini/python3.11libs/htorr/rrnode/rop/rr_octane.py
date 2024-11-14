@@ -214,6 +214,8 @@ class OctaneArchiveROP(OctaneRop):
     def single_output(self):
         archiveName=getFilename_convertFrameNr(self._node.parm("HO_abc_exportFileName"))
         isSingleArchive= (archiveName.find("$F") < 0)
+        #single archive files do NOT work as the standalone renderer has no frame commandline flag
+        return False
         return isSingleArchive
         
         

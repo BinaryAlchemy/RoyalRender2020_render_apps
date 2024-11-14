@@ -376,9 +376,7 @@ def render_KSO(arg):
 def render_default(arg):
     renderFrames (arg,arg.FrStart,arg.FrEnd,arg.FrStep,arg.FrOffset,arg.Renderer,arg.Layer)
 
-
-def render_overwrite(arg):
-    cmdline=arg.OverwriteRenderCmd
+def replaceVars(arg, cmdline):
     cmdline=cmdline.replace("aFrStart",str(arg.FrStart))
     cmdline=cmdline.replace("aFrEnd",str(arg.FrEnd))
     cmdline=cmdline.replace("aFrStep",str(arg.FrStep))
@@ -396,7 +394,37 @@ def render_overwrite(arg):
         cmdline=cmdline.replace("aLayer",str(arg.Layer))
     if (argValid(arg.Camera)):
         cmdline=cmdline.replace("aCamera",str(arg.Camera))
+    return cmdline
+
+
+def render_archiveExport(arg):
+    cmdline=""
+    if (arg.Renderer == "arnold"):
+        nameLower=arg.ArchiveExportName
+        nameLower=nameLower.lower()
+        cmdline="arnoldExportAss -f aArchiveExportName  -startFrame aFrStart -endFrame aFrEnd -frameStep aFrStep -mask 65535 "
+        if (nameLower.endswith(".ass") or nameLower.endswith(".ass.gz")):
+            cmdline= cmdline + " -lightLinks 1"
+        if (nameLower.endswith(".ass.gz")):
+            cmdline= cmdline + " -compressed"
+        #does not work, prints error: [mtoa] Setting camera persp1Shape failed
+        #if (argValid(arg.Camera)): 
+        #    cmdline= cmdline + " -cam aCamera" 
+         
+    if (len(cmdline)==0):
+        logMessageError("No export commandline set!")
+        return    
+    cmdline=replaceVars(arg, cmdline)    
+    logMessage("Executing custom mel line: "+cmdline)
+    flushLog()
+    ret=maya.mel.eval(cmdline)
+    print(ret)
+
+def render_overwrite(arg):
+    cmdline=arg.OverwriteRenderCmd
+    cmdline=replaceVars(arg, cmdline)    
     logMessage("Executing custom mel line "+cmdline)
+    flushLog()
     ret=maya.mel.eval(cmdline)
     print(ret)
     
@@ -1351,6 +1379,8 @@ def rrStart(argAll):
 
         if (argValid(arg.customScriptFile)):
             execute_scriptfile(arg)
+        elif (argValid(arg.ArchiveExportEnabled)):
+            render_archiveExport(arg)
         elif (argValid(arg.OverwriteRenderCmd)):
             render_overwrite(arg)
         elif (argValid(arg.KSOMode) and arg.KSOMode): 
