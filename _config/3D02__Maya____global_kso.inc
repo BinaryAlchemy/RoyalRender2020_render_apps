@@ -81,6 +81,8 @@ RemoveFromLog= Contains ~ This file contains legacy render layers and Maya is cu
 RemoveFromLog= StartsWith ~ Warning: Unknown object type: pgYeti
 RemoveFromLog= Contains ~ ERROR   | there is no camera!
 
+RemoveFromLog_NotDebugVerbose= Contains ~  is already defined. Using the original rather than creating
+
 
 
 
