@@ -5,31 +5,41 @@ import datetime
 import os
 import sys
 
+import logging
+
 
 # LOGGING
 
-def log_message(msg, lvl=""):
-    if lvl:
-        print(datetime.datetime.now().strftime("' %H:%M.%S") + " KeyShot - " + str(lvl) + ": " + str(msg))
-    else:
-        print(datetime.datetime.now().strftime("' %H:%M.%S") + " KeyShot      : " + str(msg))
+def create_logger(level=logging.INFO, name="RR"):
+    logger = logging.Logger(name)
+    logger.setLevel(level)
+    s_handler = logging.StreamHandler(sys.stdout)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    
+    s_handler.setFormatter(formatter)
+    logger.addHandler(s_handler)
+
+    return logger
+
+
+LOGGER = create_logger()
+
 
 def log_debug(msg):
-    log_message("DBG", msg)
-    pass
+    LOGGER.debug(msg)
 
 def log_info(msg):
-    log_message("", msg)
+    LOGGER.info(msg)
 
 def log_set(msg):
-    log_message("SET", msg)
+    LOGGER.info(f"SET{msg}")
 
 def log_warning(msg):
-    log_message("WRN", msg)
+    LOGGER.warning(msg)
 
 def log_error(msg):
-    log_message("ERR", str(msg) + "\n\n")
-    log_message("ERR", "Error reported, aborting render script")
+    LOGGER.error(f"{msg}\n\nError reported, aborting render script")
     exit(1)
 
 def flush_log():
@@ -38,6 +48,7 @@ def flush_log():
 
 
 ###
+
 
 class ImageFormat(Enum):
     jpg = lux.RENDER_OUTPUT_JPEG
@@ -58,6 +69,28 @@ def load_scene(scene_path):
     load_time = datetime.datetime.now() - time_start
     log_info("Scene load time: {0} h:m:s.ms".format(load_time))
     flush_log()
+
+
+def search_missing_textures(project_dir):
+    tex_dir = os.path.join(project_dir, "Textures")
+
+    for mat_name in lux.getSceneMaterials():
+        for node in lux.getMaterialGraph(mat_name).getNodes():
+            try:
+                tex_param = node.getParameter("texture")
+            except Exception:
+                continue
+
+            tex_path = tex_param.getValue()
+            if not os.path.exists(tex_path):
+                tex_file_dir, tex_filename = os.path.split(tex_path)
+                net_path = os.path.join(tex_dir, tex_file_dir.split("Textures", 1)[-1], tex_filename)
+
+                if os.path.isfile(net_path):
+                    tex_param.setValue(net_path)
+                    log_info(f"Replaced missing texture '{tex_path}' with '{net_path}'")
+                else:
+                    log_warning(f"Missing texture: '{tex_path}'")
 
 
 class KS_RenderManager(object):
@@ -93,7 +126,19 @@ class KS_RenderManager(object):
         self.render_ops.setRegion((start_x, start_y, end_x, end_y))
 
     def render_scene(self):
+        # Background starts rendering and returns immediatly
+        self.render_ops.setBackgroundRendering(False)
+        
         # renderFrames() is not available in headless mode
+        if self.output_ext == "_":  # single file
+            writeRenderPlaceholder(self.output_path)
+            lux.renderImage(path=self.output_path, opts=self.render_ops)
+
+            log_info("Rendered single file" + self.output_path)
+            flush_log()
+
+            return
+
         for frame_num in range(self.frame_start, self.frame_end + 1, self.frame_step):
             lux.setAnimationFrame(frame_num)
             fr_num = str(frame_num).zfill(self.frame_padding)
@@ -128,6 +173,7 @@ if __name__ == '__main__':
     parser.add_argument("seq_end", help="last frame", type=int)
     parser.add_argument("seq_step", help="frame step", type=int)
     parser.add_argument("seq_padding", help="frame padding", type=int)
+    parser.add_argument("prj_path", help="Network project path")
 
     parser.add_argument("--samples", help="max render samples", type=int, default=-1)
     parser.add_argument("--max_time", help="max render time in seconds. Not used if the option --samples is provided", type=int, default=-1)
@@ -160,6 +206,7 @@ if __name__ == '__main__':
     flush_log()
 
     load_scene(args.scene)
+    search_missing_textures(os.path.dirname(args.prj_path))
 
     render_manager = KS_RenderManager(
         args.out_path, args.out_ext,
