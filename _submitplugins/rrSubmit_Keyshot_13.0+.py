@@ -67,15 +67,10 @@ def queue_file_to_dicts(queue_file):
             line = f.readline()
 
 
-def get_local_dir():
-    local_dir = os.path.join(os.path.expanduser('~/rrKeyshotQWatch'))
-    os.makedirs(local_dir, exist_ok=True)
-    
-    return local_dir
-
-
 def get_lock_path():
-    return os.path.join(get_local_dir(), "ks_qwatch.lock")
+    ks_dir = os.path.join(lux.getKeyShotFolder(lux.FOLDER_RESOURCE_ROOT), "__rrKSwatch__")
+    os.makedirs(ks_dir, exist_ok=True)
+    return os.path.join(ks_dir, "ks_qwatch.lock")
 
 
 class rrJob:
@@ -162,7 +157,7 @@ def search_render_start(scene_file, max_lines=1000):
 
 
 class QueueParser:
-    def __init__(self, version_str, project_path, logger: logging.Logger):
+    def __init__(self, version_str, project_path, logger: logging.Logger, overwrite=False):
         self.version_str = version_str
         self.version = version_str.split(".")
 
@@ -170,9 +165,10 @@ class QueueParser:
         self.project_path = project_path
         self._parse_bip_func = bin_search_render_start if int(self.version[0]) > 11 else search_render_start
         self._logger = logger
+        self._overwrite_shared = overwrite
         self.processed_scenes = []
 
-    def copy_to_net_path(self, local_file, type_dir="Scenes", add_timestamp=True, overwrite=False):
+    def copy_queued_to_netpath(self, local_file, type_dir="Scenes", add_timestamp=True, overwrite=False):
         scene_dir = os.path.normpath(self.project_path)
         current_dir = os.path.normpath(os.path.dirname(os.path.dirname(local_file)))
 
@@ -207,7 +203,7 @@ class QueueParser:
 
         return sc_copy
 
-    def copy_to_net_project(self, local_file, fallback_dir, overwrite=True):
+    def copy_to_net_project(self, local_file, fallback_dir):
         local_file = os.path.normpath(local_file)
         res_root = os.path.normpath(lux.getKeyShotFolder(lux.FOLDER_RESOURCE_ROOT))
 
@@ -217,7 +213,7 @@ class QueueParser:
             new_path = os.path.join(self.project_path, fallback_dir, os.path.split(local_file)[-1].lstrip('/\\'))
 
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
-        if os.path.isfile(new_path) and not overwrite:
+        if os.path.isfile(new_path) and not self._overwrite_shared:
             return new_path
 
         return shutil.copyfile(local_file, new_path)
@@ -263,7 +259,7 @@ class QueueParser:
             new_job.imageDir = self.replace_resource_root(render_dir)
             new_job.sceneDatabaseDir = self.project_path
 
-            new_job.sceneName = self.copy_to_net_path(ks_queue_scene)
+            new_job.sceneName = self.copy_queued_to_netpath(ks_queue_scene)
             new_job.isActive = True if ks_job['enabled'] == "true" else False
 
             new_job.imageWidth = ks_job['resolution_x']
@@ -329,7 +325,7 @@ class rrJobsToXml():
         for job in jobs:
             self.temp_file.write("<Job>\n")
             if job.gpuRequired:
-                self.writeNodeStr('<SubmitterParameter> "GPUrequired=0~1" </SubmitterParameter>')
+                self.temp_file.write('<SubmitterParameter> "GPUrequired=0~1" </SubmitterParameter>')
 
             self.writeNodeStr("rrSubmitterPluginVersion", "%rrVersion%")
             self.writeNodeStr("Software", job.software)
@@ -549,8 +545,8 @@ def main():
     if ks_gui:
         logger = create_logger(name="rrSubmit", level=logging.DEBUG)
         values = [
-            ("rr_net_prj_path", lux.DIALOG_FOLDER, "Render Path:", None),
-            ("rr_show_ui", lux.DIALOG_CHECK, "Show UI", True),
+            ("rr_net_prj_path", lux.DIALOG_FOLDER, "Shared Project Path:", None),
+            ("rr_overwrite", lux.DIALOG_CHECK, "Overwrite shared assets", False),
             ]
 
         if os.path.isfile(lock_file):
@@ -563,11 +559,17 @@ def main():
         opts = lux.getInputDialog(title = "RR Submission",
                                   desc = desc,
                                   values = values,
-                                  id = "submit_queue.py.rr")
+                                  id = "submit_queue.py.rr12")
         
         if not opts:
             logger.info("User cancelled")
             return
+        if not opts['rr_net_prj_path']:
+            lux.getMessageBox("Please, specify a network path")
+            raise RR_Submission_Error("No project path selected")
+        if not opts['rr_net_prj_path']:
+            lux.getMessageBox(f"Cannot find network path {opts['rr_net_prj_path']}, please make sure it exists")
+            raise RR_Submission_Error(f"Can't find network path: {opts['rr_net_prj_path']}")
         
         scenes_folder = lux.getKeyShotFolder(lux.FOLDER_SCENES)
         queue_file = os.path.join(scenes_folder, "q.xml")
@@ -602,36 +604,34 @@ def main():
                 else:
                     ie= ie+1
 
-            subprocess.Popen([cmd_exe, "-script",
-                              os.path.realpath(__file__), "-w",
-                              "-q", queue_file,
-                              "-p", opts['rr_net_prj_path'],
-                              "-v", version_str,
-                              "--loglevel", "debug"
-                            ], close_fds=True, env=rr_env)
-        elif action == "Submit (UI)":
-            # one-shot submission, UI
-            qparser = QueueParser(version_str, opts['rr_net_prj_path'], logger)
-            Watcher(queue_file, logger, qparser, show_submitter=True).on_queue_file_changed()
-        elif action == "Submit (No UI)":
-            # one-shot submission, UI
-            qparser = QueueParser(version_str, opts['rr_net_prj_path'], logger)
-            Watcher(queue_file, logger, qparser, show_submitter=False).on_queue_file_changed()
+            cmds = [cmd_exe, "-script",
+                    os.path.realpath(__file__), "-w",
+                    "-q", queue_file,
+                    "-p", opts['rr_net_prj_path'],
+                    "-v", version_str]
+            
+            if opts['rr_overwrite']:
+                cmds.append("-o")
+
+            subprocess.Popen(cmds, close_fds=True, env=rr_env)
         elif action == "Stop":
             kill_watcher(logger, get_lock_path())
             clean_up()
+        else:
+            qparser = QueueParser(version_str, opts['rr_net_prj_path'], logger, overwrite=opts['rr_overwrite'])
+            Watcher(queue_file, logger, qparser, show_submitter=action == "Submit (UI)").on_queue_file_changed()
     else:
         # running from command line
         import argparse
         import atexit
 
         atexit.register(clean_up)
-
         parser = argparse.ArgumentParser()
 
         parser.add_argument("-k", "--kill", help="Kill watcher if found", action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument("-w", "--watch", help="Start watching", action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument("-p", "--project_folder", help="Shared folder for Keyshot's render project")
+        parser.add_argument("-o", "--overwrite", help="Overwrite assets on shared folder (e.g. Textures)", default=False)
         
         parser.add_argument("-q", "--queue_file", help="file containing queue jobs", default="auto")
         parser.add_argument("-v", "--version", help="Keyshot version, e.g. 13.1. 'auto' for getting it from the lux module", default="auto")
