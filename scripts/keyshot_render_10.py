@@ -1,3 +1,8 @@
+#  Render script for KeyShot
+#  Last Change: %rrVersion%
+#  Author: Paolo Acampora
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 import lux
 
 from enum import Enum
@@ -106,8 +111,29 @@ class KS_RenderManager(object):
 
         self.render_ops = lux.getRenderOptions()
 
+    def multiply_AA_samples(self, factor: float):
+        r_items = self.render_ops.getDict()
+        if r_items['render_mode'] != lux.RENDER_MODE_ADVANCED:
+            log_warning(f"Setting AntiAliasing on render mode {'Maximum Time' if r_items == 1 else 'Maximum Samples'}")
+        
+        self.render_ops.setAntiAliasing(r_items['engine_anti_aliasing'] * factor)
+        log_info(f"Changed 'engine_anti_aliasing' from {r_items['engine_anti_aliasing']} to {self.render_ops.getDict()['engine_anti_aliasing']}")
+
     def set_max_samples(self, samples):
-        self.render_ops.setMaxSamplesRendering(samples)
+        r_items = self.render_ops.getDict()
+        if r_items['render_mode'] == lux.RENDER_MODE_TIME:
+            log_warning(f"Render Mode is set to Time, cannot set samples to f{str(samples)}")
+            return
+
+        if r_items['render_mode'] == lux.RENDER_MODE_SAMPLES:
+            self.render_ops.setMaxSamplesRendering(samples)
+            log_info(f"Changed 'progressive_max_samples' from {r_items['progressive_max_samples']} to {self.render_ops.getDict()['progressive_max_samples']}")
+            return
+        
+        previous = r_items['advanced_samples']
+        r_items['advanced_samples'] = samples
+        self.render_ops = lux.RenderOptions(r_items)
+        log_info(f"Changed 'advanced_samples' from {previous} to {self.render_ops.getDict()['advanced_samples']}")
 
     def set_max_time(self, seconds):
         self.render_ops.setMaxTimeRendering(seconds)
@@ -160,7 +186,7 @@ def add_py_path(additional_path):
 
 
 if __name__ == '__main__':
-    log_info("Render Plugin Starting")
+    log_info("Render Plugin Starting - last change: %rrVersion%")
     flush_log()
 
     import argparse
@@ -176,6 +202,7 @@ if __name__ == '__main__':
     parser.add_argument("prj_path", help="Network project path")
 
     parser.add_argument("--samples", help="max render samples", type=int, default=-1)
+    parser.add_argument("--rAA", help="Samples Multiply", type=float, default=1.0)
     parser.add_argument("--max_time", help="max render time in seconds. Not used if the option --samples is provided", type=int, default=-1)
     parser.add_argument("--cores", help="number of cores to be used", type=int, default=-1)
 
@@ -217,6 +244,8 @@ if __name__ == '__main__':
         render_manager.set_max_samples(args.samples)
     elif args.max_time and args.max_time > 0:
         render_manager.set_max_time(args.max_time)
+    elif args.rAA and args.rAA != 1.0:
+        render_manager.multiply_AA_samples(args.rAA)
 
     if args.cores:
         render_manager.set_cores(args.cores)

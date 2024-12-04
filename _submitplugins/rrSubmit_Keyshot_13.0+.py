@@ -247,6 +247,10 @@ class QueueParser:
                 self._logger.debug(f"Skipping {ks_queue_scene}")
                 continue
 
+            if not os.path.isfile(ks_queue_scene):
+                self._logger.warning(f"Scene not found, probably deleted {ks_queue_scene}")
+                continue
+
             self.processed_scenes.append(ks_queue_scene)
 
             if no_submission:
