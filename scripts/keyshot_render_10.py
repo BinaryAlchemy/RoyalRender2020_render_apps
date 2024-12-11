@@ -215,7 +215,6 @@ if __name__ == '__main__':
     parser.add_argument("--Camera", help="Render Camera", default='')
 
     parser.add_argument("--python_path", help="helper python scripts", default='')
-
     args = parser.parse_args()
 
     if args.python_path:
@@ -247,7 +246,7 @@ if __name__ == '__main__':
     elif args.rAA and args.rAA != 1.0:
         render_manager.multiply_AA_samples(args.rAA)
 
-    if args.cores:
+    if args.cores and args.cores > 1:
         render_manager.set_cores(args.cores)
     
     if args.Camera:
