@@ -5,8 +5,8 @@
 ################################## Submitter Settings ################################## 
 StartMultipleInstances= 0~0
 SceneFileExtension= *.bat;*.sh;
-AllowImageNameChange= 0
-AllowImageDirChange= 0
+#AllowImageNameChange= 0
+#AllowImageDirChange= 0
 SequenceDivide= 0~1
 
 
