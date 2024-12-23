@@ -489,7 +489,6 @@ def set_frame_range(start, end, step):
 
 
 def render_frame_range(start, end, step, movie=False):
-
     scene = bpy.data.scenes[RENDER_SCENE]
     Path(os.path.dirname(scene.render.filepath)).mkdir(parents=True, exist_ok=True)
     
@@ -497,12 +496,7 @@ def render_frame_range(start, end, step, movie=False):
     if not (movie or NO_FRAME_LOOP):
         log_msg(f"Rendering Frames: {start} - {end}")
         for fr in range(start, end + 1, step):
-            if scene.render.use_overwrite:
-                # if blender does not overwrite, creating placeholder files will prevent from rendering
-                # not considering the case when blender creates its own placeholders via scene.render.use_placeholder.
-                # They would overwrite RR placeholders before the render starts.
-
-                kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
+            kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
 
             log_msg(f"Rendering Frame #{fr} ...")
             flush_log()
@@ -790,6 +784,11 @@ if __name__ == "__main__":
     flush_log()
 
     ensure_scene_and_layer()
+    
+    scn = bpy.data.scenes[RENDER_SCENE]
+    if not scn.render.use_overwrite:
+        log_msg_wrn(f"Enabling frame overwrite for {RENDER_SCENE}")
+        scn.render.use_overwrite = True
 
     if args.enable_gpu:
         enable_gpu_devices(use_CPU=args.enable_gpu_cpu, use_optix= args.enable_gpu_optix )
