@@ -1446,6 +1446,24 @@ def render_default():
     renderFrames(arg.FrStart,arg.FrEnd,arg.FrStep)
 
 
+def printRedshiftVersion():
+    try:
+      import redshift
+      logMessage("Redshift version is: " + str(redshift.GetCoreVersion()))
+      return
+    except:
+      logMessage("Error getting RedShift version, perhaps <2.6.23")
+
+      rs_prefs = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
+      if not rs_prefs:
+          logMessage("Error getting RedShift version, plugin 1036220 not found")
+          return
+
+      rs_ver = rs_prefs[c4d.PREFS_REDSHIFT_REDSHIFT_VERSION]
+
+      logMessage("Redshift version is: " + str(rs_ver))
+
+
 # Init
 def init_c4d():
     """Parse command line arguments, setup logging, load scene, setup render
@@ -1465,6 +1483,10 @@ def init_c4d():
         arg.avFrameTime = 0
     else:
         arg.avFrameTime= int(arg.avFrameTime)
+        
+    if arg.renderer.lower() == "redshift":
+        printRedshiftVersion()
+    
 
     if argValid(arg.sceneFile):
         logMessage("loading scene file...")

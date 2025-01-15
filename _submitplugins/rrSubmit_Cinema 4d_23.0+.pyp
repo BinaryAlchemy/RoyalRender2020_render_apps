@@ -2589,7 +2589,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         self.job[0].sceneFilename = doc.GetDocumentPath() + os.sep + doc.GetDocumentName()
         self.job[0].width = round(self.renderSettings[c4d.RDATA_XRES], 3)
         self.job[0].height = round(self.renderSettings[c4d.RDATA_YRES], 3)
-        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000))+"."+str(int(c4d.GetC4DVersion() % 1000)).zfill(3)
+        self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000))+"."+str(int(c4d.GetC4DVersion()/100 % 10))+"."+str(int(c4d.GetC4DVersion() % 100)).zfill(2)
 
         if isWin():
             self.job[0].osString = "win"
