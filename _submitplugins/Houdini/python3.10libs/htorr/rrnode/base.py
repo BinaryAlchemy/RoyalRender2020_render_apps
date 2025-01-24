@@ -708,8 +708,15 @@ class RenderNode(rrNode):
         """Property for the output file.
         If applicable try to override output_parm.
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
@@ -726,8 +733,15 @@ class RenderNode(rrNode):
         """Property for the output file.
         If applicable try to override output_parm.
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
@@ -744,8 +758,15 @@ class RenderNode(rrNode):
         """Property for the output directory
         If applicable override output_parm
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
@@ -760,8 +781,15 @@ class RenderNode(rrNode):
         """Property for the output name
         If applicable override output_parm
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
@@ -777,8 +805,15 @@ class RenderNode(rrNode):
         """Property for the output extension
         If applicable override output_parm
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
@@ -799,8 +834,15 @@ class RenderNode(rrNode):
         """Property for the output padding count
         If applicable override output_parm
         """
+        hasOutput= True
         parmName= self.output_parm
-        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+        if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
+            hasOutput=False
+        if (hasOutput):
+            fName= self._node.parm(self.output_parm).eval()
+            if (len(fName) == 0): # parameter exist, but is empty 
+                hasOutput=False
+        if (not hasOutput): 
             if (self.cached_renderproductCount is None):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
