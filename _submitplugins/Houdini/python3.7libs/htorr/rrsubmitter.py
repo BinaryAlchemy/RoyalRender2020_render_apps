@@ -153,6 +153,8 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
                    + " -sameTerminal rrSubmitterconsole  \"" + subm_file_path
                    + "\"" )
         logger.debug("Submit cmd: {}".format(command))   
+        
+        #RR uses Qt Framework, but breaks if some incompatible Qt plugins are set by the calling app (or a loaded plugin)
         rr_env=os.environ.copy()
         if 'QT_PLUGIN_PATH' in rr_env:
             del rr_env['QT_PLUGIN_PATH']
@@ -162,7 +164,6 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
             del rr_env['QT_QPA_FONTDIR']
         if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
             del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
-            
         envCount= len(list(rr_env))
         ie=0
         while (ie<envCount):
@@ -216,6 +217,8 @@ class RrGuiSubmitter(RrCmdSubmitter):
         Using subprocess to create another process for submission.
         """
         logger.debug("Submit: \n {}".format(submission))
+        
+        #RR uses Qt Framework, but that breaks if some incompatible Qt plugins are set by the calling app (or a loaded plugin)
         rr_env=os.environ.copy()
         if 'QT_PLUGIN_PATH' in rr_env:
             del rr_env['QT_PLUGIN_PATH']
@@ -225,6 +228,17 @@ class RrGuiSubmitter(RrCmdSubmitter):
             del rr_env['QT_QPA_FONTDIR']
         if 'QT_QPA_PLATFORM_PLUGIN_PATH' in rr_env:
             del rr_env['QT_QPA_PLATFORM_PLUGIN_PATH']
+        envCount= len(list(rr_env))
+        ie=0
+        while (ie<envCount):
+            envVar= list(rr_env)[ie]
+            if envVar.startswith("QT_"):
+                del rr_env[envVar]
+                envCount= envCount -1
+            else:
+                ie= ie+1     
+                
+                
         
         subm_text = serialize_to_xml(submission)
         subm_file_path = self.write_submission_file(subm_text)

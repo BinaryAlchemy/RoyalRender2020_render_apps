@@ -63,12 +63,13 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 [EndIf]    
 
 
-[If] <CustomHPyHPyVerP>  [==]
+[If] <CustomHPyVerP>  [==]
     [If] <rrExeVersionMajor>  [<] 19
         HPyVerP=2.7
         HPyVer=27
     [Else]
         [If] <rrExeVersionMajor>  [<] 20
+        
             [If] <rrExeVersionMinor>  [<] 5000
                 HPyVerP=3.7
                 HPyVer=37
@@ -76,9 +77,17 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
                 HPyVerP=3.9
                 HPyVer=39
             [EndIf]
+            
         [Else]
-            HPyVerP=3.10
-            HPyVer=310
+
+            [If] <rrExeVersionMinor>  [<] 5000
+                HPyVerP=3.10
+                HPyVer=310
+            [Else]
+                HPyVerP=3.11
+                HPyVer=311
+            [EndIf]
+            
         [EndIf]
     [EndIf]    
 [Else]

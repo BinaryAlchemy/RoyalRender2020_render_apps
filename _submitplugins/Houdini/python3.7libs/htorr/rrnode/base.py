@@ -298,21 +298,20 @@ class RenderNode(rrNode):
             isDisabled= self._node.evalParm("rr_disabled")
         if isDisabled:
             return
-            
+
         if isParentBypassed(self._node):
             return
 
         if not self.check():
             return
-        
 
         # if node has renderproducts
-        #if (self.renderproductCount > 0):
-            # Parse Archive
+        # if (self.renderproductCount > 0):
+        # Parse Archive
         #    self.to_archive()
         #    archive_job = self.childclass_parse(parseData)
 
-            # Render Jobs
+        # Render Jobs
         #    self.to_standalone()
         #    joblist = self.renderproduct_childclass_parse(parseData)
         #    logger.debug("Renderproduct jobs: {}".format(joblist))
@@ -397,12 +396,12 @@ class RenderNode(rrNode):
         job.single_output = self.single_output_eval
         job.sceneVar_Job = self.sceneVar_Job
 
-#       This does not work for USD as the camera path in Solaris is different than the camera node in Houdini
-#        if self.camera and not hou.node(self.camera):
-#            camExist= False            
-#            if (not camExist):
-#                msg = "'{}': No valid camera at '{}'".format(self.path, self.camera)
-#                logger.warning(msg)
+        # This does not work for USD as the camera path in Solaris is different than the camera node in Houdini
+        # if self.camera and not hou.node(self.camera):
+        # camExist= False            
+        # if (not camExist):
+        #     msg = "'{}': No valid camera at '{}'".format(self.path, self.camera)
+        #     logger.warning(msg)
 
         if len(self.outdir) == 0:
             msg = "'{}': No output name set".format(self._node.path())
@@ -413,15 +412,15 @@ class RenderNode(rrNode):
             f2 = self.output_evalAtFrameB
             fcount = (self.frange[1] - self.frange[0]) / self.frange[2]
             if (f1 == f2) and (fcount > 1) and ((self.cached_renderproductCount is None) or (self.cached_renderproductCount == 0)):
-                #self.cached_renderproductCount condition has to be set in case frame range was not set before renderproduct node.
+                # self.cached_renderproductCount condition has to be set in case frame range was not set before renderproduct node.
                 msg = "'{}': Output name missing frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
                 logger.warning(msg)
-                #logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
+                # logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
 
         msg = "'{}': Output name frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
         logger.debug(msg)
 
-        #always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
+        # always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
         pythonVer= str(sys.version_info.major) + "." +  str(sys.version_info.minor)
         job.add_custom_option("CustomHPyVerP", pythonVer, "custom")
         pythonVer= str(sys.version_info.major) + str(sys.version_info.minor)
@@ -456,9 +455,9 @@ class RenderNode(rrNode):
                         settingname= settingname.strip()
                         settingvalues= settingvalues.strip()
                         values = settingvalues.split("~")
-                        #logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
+                        # logger.debug("Found custom job option: {} Value: {}".format(settingname, values))
                         job.add_custom_option(settingname, values)
-                        #logger.debug("Submitoptions: {}".format(job.options))
+                        # logger.debug("Submitoptions: {}".format(job.options))
             except:
                 logger.info("wrong fromat: rr_jobsettings\n"+traceback.format_exc())
 
@@ -474,7 +473,7 @@ class RenderNode(rrNode):
                         varvalue= varvalue.strip()
                         if len(varvalue)>0:
                             customvarname = "Custom{}".format(varname)
-                            #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                            # logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                             job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())
@@ -490,7 +489,7 @@ class RenderNode(rrNode):
                         varname= varname.strip()
                         varvalue= varvalue.strip()
                         customvarname = "Custom{}".format(varname)
-                        #logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
+                        # logger.debug("Found custom job variable: '{}'  Value: '{}'".format(customvarname, varvalue))
                         job.add_custom_option(customvarname, varvalue, "custom")
             except:
                 logger.info("wrong format: rr_job_variables\n"+traceback.format_exc())
@@ -602,7 +601,7 @@ class RenderNode(rrNode):
             start = int(hou.frame())
             end = int(hou.frame())
             inc = 1
-        #logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
+        # logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
         return (start, end, inc)
 
     @property
@@ -709,11 +708,13 @@ class RenderNode(rrNode):
         """Property for the output file.
         If applicable try to override output_parm.
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameA"]
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameA"]
         
         fName= self._node.parm(self.output_parm).evalAtFrame(1)
         #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
@@ -725,11 +726,13 @@ class RenderNode(rrNode):
         """Property for the output file.
         If applicable try to override output_parm.
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameB"]        
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameB"]        
         
         fName= self._node.parm(self.output_parm).evalAtFrame(2)
         #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
@@ -741,12 +744,14 @@ class RenderNode(rrNode):
         """Property for the output directory
         If applicable override output_parm
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
-            return productout.dir
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+                return productout.dir
         rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
         return rrout.dir
 
@@ -755,12 +760,14 @@ class RenderNode(rrNode):
         """Property for the output name
         If applicable override output_parm
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
-            return productout.name
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+                return productout.name
         
         rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
         return rrout.name
@@ -770,13 +777,15 @@ class RenderNode(rrNode):
         """Property for the output extension
         If applicable override output_parm
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
-            return productout.extension
-            job.padding = productout.padding         
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+                return productout.extension
+                job.padding = productout.padding         
         
         rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
         if (not self.single_output_eval) and (len(rrout.extension) < 2) :
@@ -790,12 +799,14 @@ class RenderNode(rrNode):
         """Property for the output padding count
         If applicable override output_parm
         """
-        if (self.cached_renderproductCount is None):
-            self.cached_renderproductList= self.renderproductList
-            self.cached_renderproductCount= len(self.cached_renderproductList)         
-        if (self.cached_renderproductCount>0):
-            productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
-            return productout.padding         
+        parmName= self.output_parm
+        if (len(parmName) == 0): # No spare parameter to override the output name in the USD ROP.
+            if (self.cached_renderproductCount is None):
+                self.cached_renderproductList= self.renderproductList
+                self.cached_renderproductCount= len(self.cached_renderproductList)         
+            if (self.cached_renderproductCount>0):
+                productout = ProductOutput(self.cached_renderproductList[self.cached_renderproductCount-1]["attrib"], self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
+                return productout.padding         
         rrout = Output(self._node.parm(self.output_parm), self._node.evalParm("f1"), self._node.evalParm("f2"), self.single_output_eval)
         return rrout.padding
 
