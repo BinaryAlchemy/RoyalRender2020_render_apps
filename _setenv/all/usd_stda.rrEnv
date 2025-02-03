@@ -307,21 +307,22 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
 
     VFH_HOME  =  <RR_VRAY_BASE_LOCAL>\vfh_home
     VRAY_APPSDK  =  <RR_VRAY_BASE_LOCAL>\appsdk
-[EndIf]
-[If] <RR_VRAY_IS_USED>  [==] TRUE     
     VRAY_SDK  =  <RR_VRAY_BASE_LOCAL>\appsdk
+    VRAY_UI_DS_PATH  =  <RR_VRAY_BASE_LOCAL>\ui
+[EndIf]
+#Has to be seperated on Windows as it uses <VFH_HOME> and <VRAY_APPSDK>
+[If] <RR_VRAY_IS_USED>  [==] TRUE     
+    VRAY_FOR_HOUDINI_AURA_LOADERS  =  <VFH_HOME>\libs
+
     VRAY_FOR_HOUDINI_APPSDK_BIN = <VRAY_APPSDK>\bin
     VRAY_OSL_PATH  =  <VRAY_APPSDK>\bin
-    VRAY_UI_DS_PATH  =  <RR_VRAY_BASE_LOCAL>\ui
-
-    VRAY_FOR_HOUDINI_AURA_LOADERS  =  <VFH_HOME>\libs
     VFH_PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_FOR_HOUDINI_AURA_LOADERS>
 [EndIf]
 
 [If] <RR_VRAY_IS_USED>  [==] TRUE 
     HOUDINI_PATH  =  <VFH_HOME>;<HOUDINI_PATH>
-    LD_LIBRARY_PATH  =  <VRAY_APPSDK>\bin;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
-    PATH  =  <VRAY_APPSDK>\bin;<VFH_HOME>\bin;<VRAY_APPSDK>\bin\compat;<VFH_PATH>;<PATH>
+    LD_LIBRARY_PATH  =  <VRAY_FOR_HOUDINI_APPSDK_BIN>;<RR_VRAY_BASE_LOCAL>\bin;<RR_VRAY_BASE_LOCAL>\lib;<LD_LIBRARY_PATH>
+    PATH  =  <VRAY_FOR_HOUDINI_APPSDK_BIN>;<VFH_HOME>\bin;<VRAY_FOR_HOUDINI_APPSDK_BIN>\compat;<VFH_PATH>;<PATH>
     PYTHONPATH = <VRAY_APPSDK>\python<HPyVer>;<VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>\python;<PYTHONPATH>
     VFH_DSO_PATH = <VFH_HOME>\dso_py<HPyVer>\<ExeVersionFull>
 
@@ -338,7 +339,7 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
     [EndIf]
     VFU_PLUGINS=<VFH_DSO_PATH>/usd_plugins/hdVRay/plugins
 [EndIf]
-#Has to be seperated as it uses <VFH_DSO_PATH>
+#Has to be seperated on Windows as it uses <VFH_DSO_PATH>
 [If] <RR_VRAY_IS_USED>  [==] TRUE        
     HOUDINI_DSO_PATH=<VFH_DSO_PATH>;<HOUDINI_DSO_PATH>
     HOUDINI13_VOLUME_COMPATIBILITY  =  1
