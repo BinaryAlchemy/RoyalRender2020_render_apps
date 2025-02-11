@@ -62,14 +62,25 @@ def set_custom_seq_range(configuration, start, end):
     raise Exception("Settings Not Found")
 
 
-def get_shot_tracks(ue_job):
+def get_job_sequence(ue_job):
     seq_asset_path = ue_job.sequence.to_tuple()[0]
     package_path_seq = seq_asset_path.rsplit('.', 1)[0]
 
     asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
     asset = asset_data.get_asset()
 
-    return asset.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+    return asset
+
+
+def get_seq_tracks(sequence, track_type=unreal.MovieSceneCinematicShotTrack):
+    try:
+        return sequence.find_master_tracks_by_type(track_type)
+    except AttributeError:
+        return sequence.find_tracks_by_type(track_type)
+
+
+def get_shot_tracks(ue_job, track_type=unreal.MovieSceneCinematicShotTrack):
+    return get_seq_tracks(get_job_sequence(ue_job))
 
 
 def seq_range_matches(job, start, end):

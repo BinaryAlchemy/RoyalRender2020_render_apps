@@ -325,9 +325,15 @@ def get_job_sequence(ue_job):
     return asset
 
 
-def get_shot_tracks(ue_job):
-    sequence = get_job_sequence(ue_job)
-    return sequence.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+def get_seq_tracks(sequence, track_type=unreal.MovieSceneCinematicShotTrack):
+    try:
+        return sequence.find_master_tracks_by_type(track_type)
+    except AttributeError:
+        return sequence.find_tracks_by_type(track_type)
+
+
+def get_shot_tracks(ue_job, track_type=unreal.MovieSceneCinematicShotTrack):
+    return get_seq_tracks(get_job_sequence(ue_job))
 
 
 def get_shot_sequences(ue_job):
@@ -533,7 +539,8 @@ def submit_ue_jobs(queue):
             split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
 
         job_sequence = get_job_sequence(ue_job)
-        shot_tracks = job_sequence.find_master_tracks_by_type(unreal.MovieSceneCinematicShotTrack)
+        shot_tracks = get_seq_tracks(job_sequence)
+
         if len(shot_tracks) > 1:
             unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
 
@@ -584,7 +591,10 @@ def submit_ue_jobs(queue):
                         continue
 
                     sequence = section.get_sequence()
-                    camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                    try:
+                        camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                    except AttributeError:
+                        camera_track = next((t for t in sequence.get_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
                     if camera_track:
                         cam_start, cam_end = get_track_range(camera_track)
                         cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
