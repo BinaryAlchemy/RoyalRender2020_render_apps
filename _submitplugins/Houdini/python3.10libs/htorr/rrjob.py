@@ -222,6 +222,9 @@ class Job(object):
             if (isUserFolderConfirmed):
                 #if the file is in the users prefs, we assume the original is in the Houdini path
                 self.ocio_config= os.path.join("<rrBaseAppPath>", "packages", "ocio", os.path.basename(self.ocio_config))
+            elif (self.ocio_config.lower().find("/packages/ocio/houdini-config") >0 or self.ocio_config.lower().find("\\packages\\ocio\\houdini-config") >0):
+                self.ocio_config= os.path.join("<rrBaseAppPath>", "packages", "ocio", os.path.basename(self.ocio_config))
+              
         try:
             import PyOpenColorIO as ocio
             config = ocio.GetCurrentConfig()
