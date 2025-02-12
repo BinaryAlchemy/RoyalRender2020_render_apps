@@ -8,7 +8,7 @@ Name= USD_StdA_single
 OverrideClientInstallName= Houdini
 OverridePluginDir= Houdini
 Version=18
-
+SameLicenseAs=USD_StdA
 TYPEv9=Archive
 
 
