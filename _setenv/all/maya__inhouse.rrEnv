@@ -28,7 +28,7 @@ echo * ------ maya__inhouse.rrEnv ------
 
 # ###################  VRay environment variables ###################
 # Uncomment the following line to set the license server. The first you need the VRay license config file.
-# It is named vrlclient.xml and located in your user home folder or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"
+# It is named vrlclient.xml and located in your user home folder (e.g. /home/YourUsername/.ChaosGroup/) or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"
 # Copy it to RR\render_apps\renderer_prefs\maya\[os]_x64\vrlclient.xml, then uncomment the next line:
 # VRAY_AUTH_CLIENT_FILE_PATH  =  <rrPrefs>
 
