@@ -39,12 +39,10 @@ permanentErrorSearchLine = Please sign into the Maxon App
 permanentErrorSearchLine = Click here to activate the license
 #permanentErrorSearchLine = Invalid License from License Server
 permanentErrorSearchLine = Error running authentication
+permanentErrorSearchLine = Missing serial number
 
-licenseFailLine= Missing serial number
-licenseFailLine= Error: Invalid License
 licenseFailLine= Could not get a license
-licenseFailLine= Error running authentication
-licenseFailLine= Invalid License from License Server
+#licenseFailLine= Invalid License
 
 RealTimeAbortLine= Missing serial number
 RealTimeAbortLine= Render failure detected
@@ -57,7 +55,9 @@ RealTimeAbortLine= Error running authentication
 RealTimeAbortLine= Invalid License from License Server
 
 
-
+ErrorSearchLine = Error running authentication
+ErrorSearchLine = Invalid License from License Server
+ErrorSearchLine = Error: Invalid License
 ErrorSearchLine = Error rendering document
 ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed

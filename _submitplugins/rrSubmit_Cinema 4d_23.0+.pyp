@@ -53,7 +53,7 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-LOGGER.setLevel(logging.DEBUG)
+#LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -407,6 +407,7 @@ def GetRedshiftFactoryOcio():
 
 
 def GetRedshiftColorManagement(render_data, job):
+    LOGGER.debug("GetRedshiftColorManagement()")
     vp = GetRedshiftVideoPost(render_data)
     if not vp:
         return
@@ -420,9 +421,9 @@ def GetRedshiftColorManagement(render_data, job):
     color_space_configfile = vp[c4d_rs_ocio_attr]
 
     if color_space_configfile == "$OCIO":
-        try:
+        if 'OCIO' in os.environ:
             job.ColorSpaceConfigFile = os.environ['OCIO']
-        except KeyError:
+        else:
             # if $OCIO is not defined, redshift's plugin config can be found with GetRedshiftFactoryOcio(), but is not guraranteed to work on the farm
             LOGGER.warning("Redshift factory OCIO config ignored: to use OCIO on the farm please set the $OCIO variable")
             return
@@ -640,6 +641,7 @@ class JobProps(object):
     Redshift_C4DtoRSVersion = ""
     waitForPreID = ""
     linearColorSpace = False
+    bakeOCIO = False
     ColorSpace = ""
     ColorSpace_View = ""
     ColorSpaceConfigFile = ""
@@ -780,7 +782,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "SceneOS", self.osString)
         self.subE(jobElement, "Camera", self.camera)
         if self.linearColorSpace:
-            self.subE(jobElement, "SubmitterParameter", "PreviewGamma2.2=1~1")
+            self.subE(jobElement, "SubmitterParameter", "Linearcolor=1~1")
         for c in range(0, self.maxChannels):
             self.subE(jobElement, "ChannelFilename", self.channelFileName[c])
             self.subE(jobElement, "ChannelExtension", self.channelExtension[c])
@@ -1139,14 +1141,19 @@ def check_trailing_digit(name_format):
 
 
 def get_color_space_configfile(doc):
-    try:
-        color_space_configfile = os.environ['OCIO']
-    except KeyError:
-        color_space_configfile =  doc[c4d.DOCUMENT_OCIO_CONFIG]
-    
+    color_space_configfile =  doc[c4d.DOCUMENT_OCIO_CONFIG]
+    if (color_space_configfile == "$OCIO"): 
+        if 'OCIO' in os.environ:
+            color_space_configfile = os.environ['OCIO']
+        else:
+            # this is the default behavoir of C4D.
+            # ocio config is set to $OCIO, but if it does not exist, C4D uses a failsave            
+            color_space_configfile ="./resource/modules/c4d_base/ocio/config.ocio" 
+            
     if color_space_configfile.startswith("./"):
         color_space_configfile = "<rrBaseAppPath><IsMac <../>>" + color_space_configfile[1:]
     
+    LOGGER.debug("color_space_configfile is set to " + str(color_space_configfile))
     return color_space_configfile
 
 
@@ -1163,6 +1170,8 @@ def get_int_setting_label(ob, id):
 
 
 def set_color_management(renderdata, job):
+    if (job.bakeOCIO):
+        return
     doc = c4d.documents.GetActiveDocument()
     try:
         c4d_ocio_attr = c4d.DOCUMENT_COLOR_MANAGEMENT
@@ -1170,21 +1179,25 @@ def set_color_management(renderdata, job):
         # no ocio support on this version
         LOGGER.warning("No c4d OCIO support found")
     else: 
-        if doc[c4d_ocio_attr] == c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO:
+        if doc[c4d_ocio_attr] == c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO: 
+            #NOT in legacy color management mode
             job.ColorSpaceConfigFile = get_color_space_configfile(doc)
-
-            # c4d uses numerals
-            job.ColorSpace = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_RENDER_COLORSPACE)
-            job.ColorSpace_View = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_VIEW_TRANSFORM)
-
-            if not doc[c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO_CONVERTED]:
-                LOGGER.info("Color Management is on but the scene was not converted to OCIO")
-
+            
+            if c4d.GetC4DVersion() >= 2025000:
+                job.ColorSpace = doc[c4d.DOCUMENT_OCIO_RENDER_COLORSPACE_NAME]
+                job.ColorSpace_View = doc[c4d.DOCUMENT_OCIO_VIEW_TRANSFORM_NAME ]
+            else:
+                # c4d uses the index in the file
+                job.ColorSpace = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_RENDER_COLORSPACE)
+                job.ColorSpace_View = get_int_setting_label(doc, c4d.DOCUMENT_OCIO_VIEW_TRANSFORM)
+                if not doc[c4d.DOCUMENT_COLOR_MANAGEMENT_OCIO_CONVERTED]:
+                    LOGGER.info("Color Management is on but the scene was not converted to OCIO")
+                    
             return
-
-    # Look for renderer ocio
-    if job.renderer == 'Redshift':
-        GetRedshiftColorManagement(renderdata, job)
+            
+        # Look for renderer ocio
+        if job.renderer == 'Redshift':
+            GetRedshiftColorManagement(renderdata, job)
 
 
 class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
@@ -1205,10 +1218,25 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         if not render_data:
             render_data = self.renderSettings
 
+        colorProfile = render_data[c4d.RDATA_IMAGECOLORPROFILE]
+        if colorProfile.HasProfile() and colorProfile.GetInfo(0) == colorProfile.GetDefaultLinearRGB().GetInfo(0):
+            job.linearColorSpace = True
+            LOGGER.debug("linearColorSpace: yes")
+        else:
+            LOGGER.debug("linearColorSpace: no")
+
+
+        if (render_data[c4d.RDATA_FORMATDEPTH] != c4d.RDATA_FORMATDEPTH_32 or (render_data[c4d.RDATA_BAKE_OCIO_VIEW_TRANSFORM]==1)):
+            job.bakeOCIO= True
+
         if job.channel:
             job.imageFormatID = render_data[c4d.RDATA_MULTIPASS_SAVEFORMAT]
+            job.bakeOCIO= False   # the output shown in RR is the multichannel output. And that one is always un-baked and linear
+            job.linearColorSpace = True
         else:
             job.imageFormatID = render_data[c4d.RDATA_FORMAT]
+
+        LOGGER.debug("job.bakeOCIO: "+ str(job.bakeOCIO))
 
         try:
             job.imageFormat = IMG_FORMATS[job.imageFormatID]
@@ -1229,9 +1257,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             LOGGER.error("Unknown File Format Multi Pass: " + str(job.imageFormatIDMultiPass))
             job.imageFormatMultiPass = ".exr"
 
-        colorProfile = render_data[c4d.RDATA_IMAGECOLORPROFILE]
-        if colorProfile.HasProfile() and colorProfile.GetInfo(0) == colorProfile.GetDefaultLinearRGB().GetInfo(0):
-            job.linearColorSpace = True
+
+
+        
 
         return True
 

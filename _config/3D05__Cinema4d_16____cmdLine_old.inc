@@ -24,7 +24,7 @@ CommandLine=  "<Exe>"
 	                             <Channel ?  -oimage "<ImageDir><ImageFilenameVariables><EL.>" >
 	<Channel <EndsWith(<Channel>, Reg_Multi) -oimage "<ImageDir><ImageFilenameVariables><EL.>" > >
 	<Channel -omultipass "<ImageDir><ImageFilenameVariables><EL.>">
-	<Layer -take "<Layer>">
+	<Layer -take "<SplitAfter* <Layer>>>"
 	<CPU -threads <CPU> >
 	<OverrideImageFormat -oformat <OverrideImageFormat>? >
 	<AdditionalCommandlineParam>

@@ -334,7 +334,7 @@ tooltip:"Submit scene to Server (old)"
 			tmpStrg2 = substituteString tmpStrg2 "." "<dec>"
 			rrSI.cmdOptions=rrSI.cmdOptions + " \"COGammaCorrect=0~0\"  \"AdditionalCommandlineParam=0~0~ -gammaCorrection:1 -gammaValueIn:" + tmpStrg1 + " -gammaValueOut:" + tmpStrg2 +"\" "
 			if (fileOutGamma==1.0)  then (
-				rrSI.cmdOptions= rrSI.cmdOptions + " \"PreviewGamma2.2=1~1\"  "
+				rrSI.cmdOptions= rrSI.cmdOptions + " \"Linearcolor=1~1\"  "
 			)
 		)		
 	)
@@ -634,7 +634,7 @@ tooltip:"Submit scene with RP-Manager passes to Server"
 			tmpStrg2 = substituteString tmpStrg2 "." "<dec>"
 			rrSI.cmdOptions=" \"COGammaCorrect=0~0\"  \"AdditionalCommandlineParam=0~0~ -gammaCorrection:1 -gammaValueIn:" + tmpStrg1 + " -gammaValueOut:" + tmpStrg2 +"\" "
 			if (fileOutGamma==1.0)  then (
-				rrSI.cmdOptions= rrSI.cmdOptions + " \"PreviewGamma2.2=1~1\"  "
+				rrSI.cmdOptions= rrSI.cmdOptions + " \"Linearcolor=1~1\"  "
 			)
 		)
 	)

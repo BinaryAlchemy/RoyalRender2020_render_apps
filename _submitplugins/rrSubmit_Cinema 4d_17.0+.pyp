@@ -689,7 +689,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "SceneOS", self.osString)
         self.subE(jobElement, "Camera", self.camera)
         if self.linearColorSpace:
-            self.subE(jobElement, "SubmitterParameter", "PreviewGamma2.2=1~1")
+            self.subE(jobElement, "SubmitterParameter", "Linearcolor=1~1")
         for c in range(0, self.maxChannels):
             self.subE(jobElement, "ChannelFilename", self.channelFileName[c])
             self.subE(jobElement, "ChannelExtension", self.channelExtension[c])
