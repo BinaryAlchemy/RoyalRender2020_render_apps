@@ -50,7 +50,7 @@ else:
 #
 
 def printDebug(msg):
-    if (False):
+    if (True):
         print(msg)
 
 # option menus
@@ -186,6 +186,17 @@ def rrOptions_SetValue(name, typeName, value):
                     
     return cmds.getAttr('RoyalRender_Options.' + name)
             
+ 
+def getCameraNameFromShape(shapeName):
+    transformNode = cmds.listRelatives(shapeName, parent=True, fullPath=False)
+    printDebug("getCameraNameFromShape: Parent relative of " + str(shapeName) + " is " + str(transformNode) )
+    transformNode= transformNode[0]
+    if "|" in shapeName: 
+        transformNode = cmds.listRelatives(shapeName, parent=True, fullPath=True)
+        printDebug("getCameraNameFromShape: Parent relative of " + str(shapeName) + " is " + str(transformNode) )
+        transformNode= transformNode[0]
+    return transformNode
+
  
         
         
@@ -960,6 +971,8 @@ class rrMayaLayer:
  
     #Get all cameras,  with layer overrides
     def getLayerCamera(self):
+    
+        #At first, get the CameraShape nodes that have the renderable flag set
         self.tempCamRenderable= []
         self.tempCamNames= []
         cameraList=cmds.ls(ca=True)
@@ -979,17 +992,10 @@ class rrMayaLayer:
         #convert CameraShape into camera name:
         for c in range(0, len(self.tempCamRenderable)):
             if (self.tempCamRenderable[c]):
-                transformNode = cmds.listRelatives(self.tempCamNames[c],parent=True)
-                transformNode=transformNode[0]
-                if (self.tempCamNames[c].find(transformNode+"|")>=0):
-                    transformNode= "|"+transformNode
                 if ((self.renderer=="_3delight") or (self.renderer=="renderMan" and (self.rendererVersion[:2]>21))):
-                    self.camera= self.tempCamNames[c]
+                    self.camera= self.tempCamRenderable[c]
                 else:
-                    self.camera= transformNode
-                
-        
-                
+                    self.camera= getCameraNameFromShape(self.tempCamNames[c])
     
                     
     def getLayerRenderer(self):
@@ -1417,17 +1423,15 @@ class rrMayaLayer:
         if (self.nbRenderableCams>1):
             for c in range(0, len(self.tempCamRenderable)):
                 if (self.tempCamRenderable[c]):
-                    self.nbRenderableCams=self.nbRenderableCams+1
-                    transformNode = cmds.listRelatives(self.tempCamNames[c],parent=True)
-                    transformNode=transformNode[0]
-                    if (self.renderer=="mayaSoftware") or (self.renderer=="redshift") or (self.renderer=="vray"):
-                        if (self.tempCamNames[c].find(transformNode+"|")>=0):
-                            transformNode= "_"+transformNode
-                    if (self.camera!=transformNode):
-                        self.channelFileName.append(self.imageFileName.replace('<Camera>',transformNode))
+                    self.nbRenderableCams= self.nbRenderableCams+1
+                    camName= getCameraNameFromShape(self.tempCamNames[c])
+                    
+                    if (self.camera!=camName):
+                        self.channelFileName.append(self.imageFileName.replace('<Camera>',camName))
                         self.channelExtension.append(self.imageExtension)
                         self.maxChannels +=1
             self.camera=self.camera + " MultiCam"
+            
         if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<camera>")<0)):
             self.camera=""
         if (self.renderer=="mayaSoftware") or (self.renderer=="redshift") or (self.renderer=="vray"):
@@ -1520,14 +1524,13 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
     #get list of all cameras in scene
     def getAllCameras(self):
         cameraList=cmds.ls(ca=True)
-        for cam in cameraList:
-            transformNode = cmds.listRelatives(cam,parent=True)
-            transformNode=transformNode[0]
-            if ((transformNode!="front") and (transformNode!="top") and (transformNode!="side")):
-                if (self.layer[0].renderer=="_3delight"):
-                    self.cameras.append(cam)                        
+        for camShape in cameraList:
+            camName= getCameraNameFromShape(camShape)
+            if ((camName!="front") and (camName!="top") and (camName!="side")):
+                if ((self.layer[0].renderer=="_3delight") or (self.layer[0].renderer=="renderMan" and (self.layer[0].rendererVersion[:2]>21))):
+                    self.cameras.append(camShape) 
                 else:
-                    self.cameras.append(transformNode)
+                    self.cameras.append(camName)     
 
 
     def rrWriteNodeStr(self,fileID,name,text):
