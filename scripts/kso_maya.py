@@ -1217,7 +1217,7 @@ def rrStart(argAll):
         flushLog()
         cmds.file( arg.SName, f=True, o=True )
         flushLog()
-        print("______________________________________________________ Scene opened _____________________________________________________________________" )            
+        print("______________________________________________________ Scene loaded _____________________________________________________________________" )            
 
         if (argValid(arg.pathConversionFile)):
             doCrossOSPathConversion_CustomFile(arg, arg.pathConversionFile, 1, 2)
@@ -1374,7 +1374,8 @@ def rrStart(argAll):
         timeEnd=datetime.datetime.now()
         timeEnd=timeEnd - timeStart;
         logMessage("Scene load time: "+str(timeEnd)+"  h:m:s.ms")
-        logMessage("Scene init done, starting to render... ")
+        print("______________________________________________________ Scene init done, starting to render... _____________________________________________________________________" )            
+        
         flushLog()
 
         if (argValid(arg.customScriptFile)):
