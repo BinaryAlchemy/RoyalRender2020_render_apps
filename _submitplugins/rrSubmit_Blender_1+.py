@@ -187,6 +187,50 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             for layer in layers:
                 self.writeLayerJob(scn, fileID, scene_state, layer.name, is_active=is_active and layer == bpy.context.view_layer)
 
+    def writeFileOutNodes(self, fileID, scn):
+        if not scn.render.use_compositing:
+            return
+        if not scn.use_nodes:
+            return
+
+        out_nodes = []
+        for node in scn.node_tree.nodes:
+            if node.type != 'OUTPUT_FILE':
+                continue
+            if node.mute:
+                continue
+            if node.format.file_format == 'OPEN_EXR_MULTILAYER':
+                # MULTILAYER EXR is not saved for some reason in 4.3
+                # TODO: check 4.4
+                self.report({'WARNING'}, f"Node {node.name} saves OPEN_EXR_MULTILAYER and will be skipped")
+                continue
+            out_nodes.append(node)
+
+        if not out_nodes:
+            return
+
+        # create tmp scene to take advantage of Scene.rernder.file_extension
+        tmp_resolve = bpy.data.scenes.new(f'_rr_tmp_resolve_')
+
+        for node in out_nodes:
+            base_path = node.base_path
+            tmp_resolve.render.image_settings.file_format = node.format.file_format
+            node_extension = tmp_resolve.render.file_extension
+            for i, out_slot in enumerate(node.file_slots):
+                if not node.inputs[i].links:
+                    continue
+                if out_slot.use_node_format:
+                    slot_extension = node_extension
+                else:
+                    tmp_resolve.render.image_settings.file_format = out_slot.format.file_format
+                    slot_extension = tmp_resolve.render.file_extension
+                out_name = out_slot.path
+                self.writeNodeStr(fileID, "ChannelFilename", os.path.join(base_path, out_name))
+                self.writeNodeStr(fileID, "ChannelExtension", slot_extension)
+
+        bpy.data.scenes.remove(tmp_resolve)
+
+
     def writeLayerJob(self, scn, fileID, scene_state="", layer="", is_active=True):
         # file_format and file_codec are used in the render script
         file_format = scn.render.image_settings.file_format
@@ -251,6 +295,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeStr(fileID, "Imagefilename", os.path.basename(render_out))
         writeNodeInt(fileID, "ImageFramePadding", renderPadding)
         writeNodeStr(fileID, "ImageExtension", extension)
+        self.writeFileOutNodes(fileID, scn)
 
         writeNodeStr(fileID, "Layer", layer)
         writeNodeStr(fileID, "CustomFrameFormat", file_format)
@@ -298,10 +343,9 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         self.report({'DEBUG'}, "Found RR_Root:{0}".format(RR_ROOT))
 
-        is_win_os = False
         if sys.platform.lower().startswith("win"):
             submitCMDs = ('{0}\\win__rrSubmitter.bat'.format(RR_ROOT), TempFileName)
-            is_win_os = True
+
         elif sys.platform.lower() == "darwin":
             submitCMDs = ('{0}/bin/mac64/rrSubmitter.app/Contents/MacOS/rrSubmitter'.format(RR_ROOT), TempFileName)
         else:
