@@ -45,7 +45,7 @@ permanentErrorSearchLine = The installed OpenGL driver is not able to run OpenGL
 permanentErrorSearchLine = There must be a camera in the USD file
 permanentErrorSearchLine = does not match Houdini version at RR submission
 permanentErrorSearchLine = Please start the server before retrying
-
+permanentErrorSearchLine = Please check for a valid license server host
 
 errorSearchLine = aborting render script
 

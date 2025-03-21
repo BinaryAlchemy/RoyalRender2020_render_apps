@@ -58,8 +58,7 @@ licenseFailLine=  Failed to checkout an engine license
 BrokenImageLine=  Failed to checkout an engine license
 
 
-
-
+permanentErrorSearchLine = Please check for a valid license server host
 permanentErrorSearchLine = Unable to connect to hserver for license
 permanentErrorSearchLine = There must be a camera in the USD file
 
