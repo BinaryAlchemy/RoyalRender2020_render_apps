@@ -1213,6 +1213,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
     logMessage("Image res: X:"+str(arg.width)+"   Y: "+str(arg.height))
     rd[c4d.RDATA_FRAMESEQUENCE] = c4d.RDATA_FRAMESEQUENCE_MANUAL
     rflags = c4d.RENDERFLAGS_EXTERNAL | c4d.RENDERFLAGS_NODOCUMENTCLONE | c4d.RENDERFLAGS_SHOWERRORS
+    #RENDERFLAGS_RENDERQUEUEERRORS
 
     localNoFrameLoop = arg.noFrameLoop
     if (not localNoFrameLoop):
@@ -1493,9 +1494,8 @@ def init_c4d():
 
         arg.sceneFile = os.path.normpath(arg.sceneFile)
 
-        load_flags = c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS |\
-                     c4d.SCENEFILTER_PROGRESSALLOWED | c4d.SCENEFILTER_DIALOGSALLOWED |\
-                     c4d.SCENEFILTER_NONEWMARKERS
+        load_flags = c4d.SCENEFILTER_OBJECTS | c4d.SCENEFILTER_MATERIALS | c4d.SCENEFILTER_NONEWMARKERS
+        #SCENEFILTER_IGNOREMISSINGPLUGINSINNONACTIVERENDERDATA
 
         global doc
         doc = c4d.documents.LoadDocument(arg.sceneFile, load_flags, None)
