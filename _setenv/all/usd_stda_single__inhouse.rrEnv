@@ -24,12 +24,9 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 #     RR_REDSHIFT_BASE  =  \\myfileserver\Renderer\Redshift\Redshift_<rrJobRendererVersion>
 # [EndIf]
 
-# switch to a different redshift folder for a floating license installation (floating and node-locked are different redshift installations)
-# change the rrClient config, license group and add the license group name instead of "cfgLicPool_None".
-# Possible values are: <cfgLicPool_Default>  <cfgLicPool_Workstation> <cfgLicPool_Renderfarm> <cfgLicPool_Cloud> <cfgLicPool_WorkRenderMix>
-[If] <cfgLicPool_None>  [==] 1
-    RR_REDSHIFT_FLT  =  1
-[EndIf]
+# set this var if Redshift should NOT be copied to the local drive (not recommended to change if there is not a good reason)
+# RR_REDSHIFT_NO_LOCAL_SYNC = 1
+
 
 
 

@@ -29,6 +29,9 @@ CommandLine=
 CommandLine=
     <SetEnvSoft>
 
+CommandLine=
+	<OSSetEnv CUDA_VISIBLE_DEVICES ; <GpuListC>>
+    
 
 CommandLine=
     <ResetExitCode> 

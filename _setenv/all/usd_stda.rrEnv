@@ -176,26 +176,27 @@ RR_REDSHIFT_VERSION= <RR_REDSHIFT_VERSION>
     RR_REDSHIFT_VERSION  =  AnyVersion
 [EndIf]
 
-RR_REDSHIFT_FLT = <RR_REDSHIFT_FLT>
 RR_REDSHIFT_BASE = <RR_REDSHIFT_BASE>
-RR_REDSHIFT_BASE_LOCAL = <RR_REDSHIFT_BASE_LOCAL>
-[If] <RR_REDSHIFT_FLT>  [==] 1
-    [If] <RR_REDSHIFT_BASE>  [==] 
-        RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>_flt
-    [EndIf]
-    RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>_flt
-[Else]
-    [If] <RR_REDSHIFT_BASE>  [==] 
-        RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>
-    [EndIf]
-    RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
+[If] <RR_REDSHIFT_BASE>  [==] 
+    RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>
 [EndIf]
+RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
+
 echo * RedShift source path is set to <RR_REDSHIFT_BASE>
-echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
-[copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
+[If] <RR_REDSHIFT_NO_LOCAL_SYNC>  [==] 1
+    #If we do not localize the license path, then Redshift will try to save a file into the netzwork drive, which might fails with many machines
+    [dir] <RR_REDSHIFT_BASE_LOCAL>
+    REDSHIFT_LICENSEPATH =  <RR_REDSHIFT_BASE_LOCAL>
+    REDSHIFT_PREFSPATH  =  <RR_REDSHIFT_BASE_LOCAL>\preferences.xml
+    RR_REDSHIFT_BASE_LOCAL  = <RR_REDSHIFT_BASE>
+[Else]
+    echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
+    [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
+    REDSHIFT_PREFSPATH  =  <RR_REDSHIFT_BASE_LOCAL>\preferences.xml
+
+[EndIf]
+
 REDSHIFT_COREDATAPATH  =  <RR_REDSHIFT_BASE_LOCAL>
-REDSHIFT_PREFSPATH  =  <RR_REDSHIFT_BASE_LOCAL>\preferences.xml
-REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
 [If] <REDSHIFT_HOUDINI_ROOT>  [==] 
     [If] <rrExeOS>  [==] win
         REDSHIFT_HOUDINI_ROOT  =  <RR_REDSHIFT_BASE_LOCAL>\Plugins\Houdini\<ExeVersionFull>
@@ -231,22 +232,26 @@ REDSHIFT_LICENSEPATH  =  <RR_REDSHIFT_BASE_LOCAL>
     # HOUDINI_DSO_PATH  =  <HOUDINI_DSO_PATH>;<REDSHIFT_HOUDINI_ROOT>\dso
 [EndIf]
 
-[If] <REDSHIFT_USED> [==] TRUE
-    [If] <rrExeOS>  [==] win
-        PXR_PLUGINPATH_NAME = <RR_REDSHIFT_BASE_LOCAL>\Plugins\Solaris\<ExeVersionFull>;<PXR_PLUGINPATH_NAME>
-        [copy] SyncCreate C:\ProgramData\Redshift\redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core.lic
-        [copy] SyncCreate C:\ProgramData\Redshift\redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core2.lic
-    [Else]
-        PXR_PLUGINPATH_NAME = <RR_REDSHIFT_BASE_LOCAL>\redshift4solaris\<ExeVersionFull>;<PXR_PLUGINPATH_NAME>
-        [If] <rrExeOS>  [==] lx
-            [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core.lic
-            [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
+[If] <RR_REDSHIFT_NO_LOCAL_SYNC>  [!=] 1
+    [If] <REDSHIFT_USED> [==] TRUE
+        [If] <rrExeOS>  [==] win
+            PXR_PLUGINPATH_NAME = <RR_REDSHIFT_BASE_LOCAL>\Plugins\Solaris\<ExeVersionFull>;<PXR_PLUGINPATH_NAME>
+            [copy] SyncCreate C:\ProgramData\Redshift\redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core.lic
+            [copy] SyncCreate C:\ProgramData\Redshift\redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core2.lic
+        [Else]
+            PXR_PLUGINPATH_NAME = <RR_REDSHIFT_BASE_LOCAL>\redshift4solaris\<ExeVersionFull>;<PXR_PLUGINPATH_NAME>
+            [If] <rrExeOS>  [==] lx
+                [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core.lic
+                [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
+            [EndIf]
         [EndIf]
+    REDSHIFT_LICENSEPATH=<RR_REDSHIFT_BASE_LOCAL>
     [EndIf]
-REDSHIFT_LICENSEPATH=<RR_REDSHIFT_BASE_LOCAL>
 [EndIf]
 
+
 REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
+[dir] <REDSHIFT_LOCALDATAPATH>
 [If] <REDSHIFT_CACHEPATH>  [==] 
     REDSHIFT_CACHEPATH = <rrLocalExeDir_NoApp>Redshift\TextureCache
     #delete old cache folders used in times before RR had set them:
