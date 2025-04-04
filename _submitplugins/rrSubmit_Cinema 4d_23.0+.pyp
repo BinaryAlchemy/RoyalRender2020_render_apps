@@ -773,6 +773,7 @@ class rrJob(JobProps):
         self.subE(jobElement, "SeqStart", self.seqStart)
         self.subE(jobElement, "SeqEnd", self.seqEnd)
         self.subE(jobElement, "SeqStep", self.seqStep)
+        self.subE(jobElement, "SeqFrameSet", self.seqFrameSet)
         self.subE(jobElement, "ImageWidth", int(self.width))
         self.subE(jobElement, "ImageHeight", int(self.height))
         self.subE(jobElement, "Imagefilename", self.imageName)
@@ -884,30 +885,50 @@ def setSeq(job, localRenderSettings):
     doc = c4d.documents.GetActiveDocument()
     seqMode = localRenderSettings[c4d.RDATA_FRAMESEQUENCE]
 
-    if seqMode == c4d.RDATA_FRAMESEQUENCE_MANUAL:
+    if seqMode == c4d.RDATA_FRAMESEQUENCE_MANUAL:  #value 0
         startTime = localRenderSettings[c4d.RDATA_FRAMEFROM]
         endTime = localRenderSettings[c4d.RDATA_FRAMETO]
         frameRate = job.frameRateRender
         job.seqStart = startTime.GetFrame(int(frameRate))
         job.seqEnd = endTime.GetFrame(int(frameRate))
-    elif seqMode == c4d.RDATA_FRAMESEQUENCE_CURRENTFRAME:
+    elif seqMode == c4d.RDATA_FRAMESEQUENCE_CURRENTFRAME: #value 1
         startTime = localRenderSettings[c4d.RDATA_FRAMEFROM]
         endTime = startTime
         frameRate = job.frameRateRender
         job.seqStart = startTime.GetFrame(int(frameRate))
         job.seqEnd = endTime.GetFrame(int(frameRate))
-    elif seqMode == c4d.RDATA_FRAMESEQUENCE_PREVIEWRANGE:
+    elif seqMode == c4d.RDATA_FRAMESEQUENCE_PREVIEWRANGE: #value 3
         startTime = doc.GetLoopMinTime()
         endTime = doc.GetLoopMaxTime()
         frameRate = job.frameRateRender
         job.seqStart = startTime.GetFrame(int(frameRate))
         job.seqEnd = endTime.GetFrame(int(frameRate))
-    else:
+    elif seqMode == c4d.RDATA_FRAMESEQUENCE_ALLFRAMES: #value 2
         startTime = doc.GetMinTime()
         endTime = doc.GetMaxTime()
         frameRate = job.frameRateRender
         job.seqStart = startTime.GetFrame(int(frameRate))
         job.seqEnd = endTime.GetFrame(int(frameRate))
+    elif seqMode == 4:
+        job.seqStart = 1
+        job.seqEnd = 1
+        job.seqFrameSet= localRenderSettings[5015]
+        job.seqFrameSet= job.seqFrameSet.replace(':', 'x')
+        #INFO: used this script to find out new parameter IDs:
+        #rd = doc.GetActiveRenderData()
+        #container = rd.GetDataInstance()
+        #for param_id, value in container:
+        #print(f"ID: {param_id} - Wert: {value}")
+
+    
+    else: #same as RDATA_FRAMESEQUENCE_ALLFRAMES
+        startTime = doc.GetMinTime()
+        endTime = doc.GetMaxTime()
+        frameRate = job.frameRateRender
+        job.seqStart = startTime.GetFrame(int(frameRate))
+        job.seqEnd = endTime.GetFrame(int(frameRate))
+        
+        
 
     job.seqStep = localRenderSettings[c4d.RDATA_FRAMESTEP]
     if not job.seqStep:

@@ -4,7 +4,7 @@ echo * ------ houdini__inhouse.rrEnv ------
 USERPROFILE  =  <rrLocalRoot>SysUserPrefs\All
 LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
-#[exec] <rrBaseAppPath>\houdini\hserver -S myLicenseServerIP
+#[exec] <rrBaseAppPath>\bin\hserver -S myLicenseServerIP
 
 
 # HOUDINI_PACKAGE_DIR= somefolder

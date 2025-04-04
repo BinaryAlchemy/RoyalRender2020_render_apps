@@ -67,6 +67,7 @@ LicenseFlags= <LicenseFlags>
     [If] <rrExeVersionMajor>  [<] 22
         # Local install conflicts with network Redshift in older release
         [Exists] <rrBaseAppPath>\plugins\Redshift
+            echo * WARNING: Unable to use Shared Redshift as there is already a local version of Redshift installed: <rrBaseAppPath>\plugins\Redshift
             RR_REDSHIFT_NETWORK = 0
         [EndIf]
     [EndIf]
