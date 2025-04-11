@@ -16,6 +16,9 @@ echo * ------ blender.rrEnv version %rrVersion% ------
 
 [If] <rrExeOS>  [==] win
     USERPROFILE  =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
+[EndIf]
+
+[If] <rrExeOS>  [==] win
     [copy] SyncCreateDir <rrPrefs><rrExeVersion>   =>   <USERPROFILE>\AppData\Roaming\Blender Foundation\Blender\<rrExeVersion>
 [EndIf]
 
