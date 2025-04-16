@@ -1228,7 +1228,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
         if argValid(arg.FExt):
 
             if localNoFrameLoop:
-                logMessage( "Rendering Frames (no frame loop): " + str(FrStart) + "-" + str(FrEnd))
+                logMessage( "Rendering Frames (All frames at once. No frame-by-frame): " + str(FrStart) + "-" + str(FrEnd))
                 rd[c4d.RDATA_FRAMEFROM] = c4d.BaseTime(FrStart, fps)
                 rd[c4d.RDATA_FRAMETO] = c4d.BaseTime(FrEnd, fps)
                 rd[c4d.RDATA_FRAMESTEP] = FrStep

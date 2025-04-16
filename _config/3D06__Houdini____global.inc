@@ -48,6 +48,7 @@ permanentErrorSearchLine = Please start the server before retrying
 permanentErrorSearchLine = Please check for a valid license server host
 
 errorSearchLine = aborting render script
+errorSearchLine = CRITICAL: Stop: Damaged block
 
 RenderAppWindow_WIN= Houdini DSO Error ~ Couldn't load ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= Houdini ~ installed OpenGL driver is not able ~ 1 ~ Button ~ OK
