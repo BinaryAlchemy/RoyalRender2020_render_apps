@@ -80,13 +80,13 @@ def convertPath(writeNode, orgDir, orgDirWinDrive, locDir, createFolder, attrNam
         return
     pathResolved_new= ireplaceStartsWith(pathResolved, orgDir, locDir)
     pathResolved_new= ireplaceStartsWith(pathResolved_new, orgDirWinDrive, locDir)
-    writeNode[attrName].setValue(pathResolved_new)
-    if (pathScripted!=pathResolved_new):
+    if (pathResolved != pathResolved_new):
+        writeNode[attrName].setValue(pathResolved_new)
         if (pathScripted!=pathResolved):
             writeInfo("    "+writeNode['name'].value()+":   "+pathScripted+" => "+pathResolved+" => "+pathResolved_new)
         else:
             writeInfo("    "+writeNode['name'].value()+":   "+pathResolved+" => "+pathResolved_new)
-    writeDir=os.path.dirname(pathResolved_new)
+    writeDir= os.path.dirname(pathResolved_new)
     if (createFolder and (not os.path.exists(writeDir))):
         writeInfo("     creating directory: "+writeDir)
 
@@ -245,7 +245,12 @@ def crossOSConvert(pyModPath, sceneOS, write_node_name=None):
     else:
         sceneOS=1
 
+    #this does not work as it might be that a Windows comp was submitted on Linux.
+    #Nuke prefs have an option for cross OS conversion itself. 
+    #And this way a Linux user can work on a Windows scene. 
     #crossOSConvert_sub(sceneOS, ourOS)
+    
+    #so we convert all possible OS:
     crossOSConvert_sub(1,ourOS)
     crossOSConvert_sub(2,ourOS)
     crossOSConvert_sub(3,ourOS)
