@@ -1810,7 +1810,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             else:
                 passes.append((pass_name, descr_name))
 
-        if not (mainMP.isValid() and mainMP.channel_name):
+        if not mainMP.isValid() and passes and mainMP.channel_name:
             mainMP.channel_name = passes.pop(0)[0]
 
         for pass_name, descr_name in passes:
