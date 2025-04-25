@@ -42,6 +42,7 @@ CommandLine= "<Exe>"
     -avFrameTime <AvFrameTimeSec>
     -noFrameLoop <CONoFrameLoop True ? False>
     -sceneOS <sceneOS>
+    -rAA <AAsamplesMultiply>
     <Channel -Channel <Channel> >
     <Camera -camera <Camera> >
     <CPU -threads <CPU> >

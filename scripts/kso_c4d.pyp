@@ -58,7 +58,7 @@ def argValid(argValue):
 
 class argParser:
     def getParam(self,argFindName):
-        argFindName=argFindName.lower()
+        argFindName = argFindName.lower()
         for a in range(0,  len(sys.argv)):
             if ((sys.argv[a].lower()==argFindName) and (a+1<len(sys.argv))):
                 argValue=sys.argv[a+1]
@@ -112,6 +112,7 @@ class argParser:
         self.noFrameLoop=self.getParam("-noFrameLoop")
         self.sceneOS=self.getParam("-sceneOS")
         self.arnoldDriverOut=self.getParam("-arnoldDriverOut")
+        self.AAsamplesMultiply=self.getParam("-rAA")
 
         # replace RR tokens left for compatibility
         arg.FNameVar = self.FNameVar.replace("<Camera>", self.camera)
@@ -908,16 +909,21 @@ def arnold_ass_export(fr_start, fr_end, fr_step):
     c4d.CallCommand(ARNOLD_ASS_EXPORT)
 
 
-def tiled_checkRedshift_compatibility(arg, rd):
+def get_videopost(rd, id):
     _vp = rd.GetFirstVideoPost()
     while _vp:
-        rs_vp = None  # Redshift VideoPost
+        if _vp.CheckType(id):
+            return _vp
 
-        if _vp.CheckType(1036219):  # Redshift ID
-            rs_vp = _vp
-            break
         _vp = _vp.GetNext()
 
+
+def get_redshift_videopost(rd):
+    return get_videopost(rd, 1036219) # Redshift ID
+
+
+def tiled_checkRedshift_compatibility(arg, rd):
+    rs_vp = get_redshift_videopost(rd)
     if not rs_vp:
         return
 
@@ -952,15 +958,11 @@ def tiled_checkRedshift_compatibility(arg, rd):
             )
 
 
-def tiled_checkOctane_compatibility(arg, rd):
-    _vp = rd.GetFirstVideoPost()
-    oc_vp = None  # Octane VideoPost
+def get_octane_videopost(rd):
+    return get_videopost(rd, 1029525)  # Octane ID
 
-    while _vp:
-        if _vp.CheckType(1029525):  # Octane ID
-            oc_vp = _vp
-            break
-        _vp = _vp.GetNext()
+def tiled_checkOctane_compatibility(arg, rd):
+    oc_vp = get_octane_videopost
     if not oc_vp:
         return
 
@@ -1488,7 +1490,6 @@ def init_c4d():
     if arg.renderer.lower() == "redshift":
         printRedshiftVersion()
     
-
     if argValid(arg.sceneFile):
         logMessage("loading scene file...")
 
@@ -1533,6 +1534,8 @@ def init_c4d():
         arnoldSetDriversPath(doc, arg)
         arnoldEnsureDriversFrameNumber(doc, arg)
 
+    adjust_AA(arg.AAsamplesMultiply, arg.renderer.lower())
+
     logMessage("Scene init done, starting to render... ")
 
     if arg.KSOMode and argValid(arg.KSOMode):
@@ -1544,6 +1547,63 @@ def init_c4d():
 
     return True
 
+
+def adjust_AA(samples_factor, renderer):
+    try:
+        factor = float(samples_factor)
+    except ValueError:
+        factor = 1.0
+
+    if factor == 1.0:
+        return
+
+    if renderer == 'redshift':
+        rs_vp = get_redshift_videopost(doc.GetActiveRenderData())
+        if not rs_vp:
+            logMessageWarning(f"VideoPost not found while trying to adjust Redshift AntiAliasing filter")
+            return
+        
+        prev_AA = rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE]
+        rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE] = prev_AA * factor
+        logMessage(f"Redshift AntiAliasing Filter was changed from {prev_AA} to {rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE]}")
+
+        if (bool(rs_vp[c4d.REDSHIFT_RENDERER_ENABLE_AUTOMATIC_SAMPLING])):
+            logMessageWarning("Redshift Automatic Sampling is enabled and no override will be applied")
+        else:
+            for rs_setting_name in ('REDSHIFT_RENDERER_UNIFIED_MIN_SAMPLES', 'REDSHIFT_RENDERER_UNIFIED_MAX_SAMPLES'):
+                rs_setting = getattr(rs_setting_name)
+                prev = rs_vp[rs_setting]
+                rs_vp[rs_setting] = prev * factor
+
+                rs_nice_name = rs_setting_name.replace('RENDERER_UNIFIED_', '').title().replace('_', ' ')
+                logMessageSET(f"{rs_nice_name} from {prev} to {rs_vp[rs_setting]}")
+
+        return
+
+    if renderer == 'arnold':
+        arnold_setttings = GetArnoldRenderSettings()
+        if not arnold_setttings:
+            logMessageWarning(f"Arnold setting not found while trying to adjustArnold Antialiasing settings")
+            return
+        
+        scene_aa_samples = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]
+        arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES] = round(scene_aa_samples * factor)
+        logMessageSET(f"Arnold Camera Sample (AA) from {scene_aa_samples} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]}")
+
+        if arnold_setttings[c4d.C4DAIP_OPTIONS_ENABLE_ADAPTIVE_SAMPLING]:
+            scene_max_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]
+            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX] = round(scene_max_sample * factor)
+            logMessageSET(f"Arnold AA Samples max from {scene_max_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]}")
+        
+        if arnold_setttings[c4d.C4DAI_OPTIONS_ENABLE_CLAMP_SAMPLES]:
+            scene_clamp_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]
+            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP] = scene_clamp_sample * factor
+            logMessageSET(f"Arnold AA Samples clamp from {scene_clamp_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]}")
+
+        return
+
+    logMessageWarning(f"Can't set {samples_factor} AntiAliasing for renderer {renderer}")
+    
 
 def PluginMessage(id, data):
     """Receive messages sent by Cinema4D or other plugins via GePluginMessage()"""
