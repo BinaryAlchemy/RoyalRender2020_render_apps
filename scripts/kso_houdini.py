@@ -189,6 +189,7 @@ class argParser:
         self.slicerClient=self.getParam("-slicerClient")
         self.slicerPort=self.getParam("-slicerPort")
         self.slicerNode=self.getParam("-slicerNode")
+        self.AASamples=self.getParam("-AASamples")
         
         
 
@@ -488,6 +489,34 @@ def addFrameNumber_and_Log(outFileName):
     return outFileName
 
 
+def getSampleArgument():
+    if not argValid(arg.AASamples):
+        return 1.0
+    try:
+        return float(arg.AASamples)
+    except ValueError:
+        logMessage("Warning: Argument 'AASamples' not parsed correctly " + str(arg.AASamples))
+    
+    return 1.0
+
+
+def setSampleParameters(samples_multi, *sample_params):
+    if samples_multi == 1.0:
+        return
+    
+    rop_name = arg.rop.name()
+    for parm_name in (sample_params):
+        parm = arg.rop.parm(parm_name)
+        if not parm:
+            logMessage("Parameter " + parm_name + " was not found on " + rop_name)
+            continue
+
+        parm_val = parm.eval()
+        parm.set(round(parm_val * samples_multi))
+        logMessageSET(rop_name + " " + parm_name + " from " + str(parm_val) + " to " + str(parm.eval()))
+
+
+
 def applyRendererOptions_comp():
     global arg
     logMessage("Rendering comp ")
@@ -647,6 +676,9 @@ def applyRendererOptions_default():
                         flushLog()
         except:
             pass
+    
+    setSampleParameters(getSampleArgument(), 'vm_samplesx', 'vm_samplesy', 'vm_transparentsamples')  # 'vm_minraysamples', 'vm_maxraysamples' are multiplied by vm_samples*
+
 
 def applyRendererOptions_createUSD():
     global arg
@@ -771,6 +803,8 @@ def applyRendererOptions_Arnold():
     else:
         setROPValue("Archive Export", "ar_ass_export_enable", 0)
         setROPValue("Output Filename", 'ar_picture', outFileName)
+
+    setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp')
     
     
     
@@ -877,6 +911,13 @@ def applyRendererOptions_Redshift():
         setROPValue('Enable Archive', 'RS_archive_enable', 0)
         setROPValue("Output Filename", 'RS_outputFileNamePrefix',outFileName)
         setROPValue("Output File Format", 'RS_outputFileFormat',arg.FExt)
+    
+    sample_multi = getSampleArgument()
+    if sample_multi != 1.0:
+        if arg.rop.parm("EnableAutomaticSampling").eval():
+            logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+        else:
+            setSampleParameters(sample_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
 
 def list_parents(targetnode):
     nparents = len(targetnode.path().split("/"))-2
