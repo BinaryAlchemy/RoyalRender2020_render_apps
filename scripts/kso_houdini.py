@@ -867,6 +867,12 @@ def applyRendererOptions_VRay():
         outFileName= addFrameNumber_and_Log(arg.FName)
         setROPValue('output', 'SettingsOutput_img_file_path', outFileName)
     
+    setSampleParameters(getSampleArgument(),
+                        'SettingsImageSampler_progressive_minSubdivs', 'SettingsImageSampler_progressive_maxSubdivs',
+                        'SettingsImageSampler_dmc_minSubdivs', 'SettingsImageSampler_dmc_maxSubdivs'
+                        )
+
+    
     
 def applyRendererOptions_Redshift():
     global arg
