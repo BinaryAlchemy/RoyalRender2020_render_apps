@@ -718,6 +718,8 @@ def applyRendererOptions_USD():
     if (not setFirst and not setSecond):
         raise NameError("Error: Unable to set output filename!")
 
+    setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples')
+
     
 def applyRendererOptions_openGl():
     global arg
