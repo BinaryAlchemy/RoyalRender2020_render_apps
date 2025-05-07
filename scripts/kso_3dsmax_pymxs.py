@@ -267,6 +267,7 @@ class ArgParser:
         self.limitNoise = self.getParam("limitNoise")
         self.multiExr = self.getParam("multiExr")
         self.showVfb = self.getParam("showVfb")
+        self.AASamples=self.getParam("AASamples")
 
 
 
@@ -467,6 +468,29 @@ def applyOutput_default(arg, frameNr, verbose):
 def applyRendererOptions_default(arg):
     logMessage("Rendering with Max Default Scanline")
     applyOutput_default(arg, 0, True)
+
+def getSamplesFactor(arg):
+    if not argValid(arg.AASamples):
+        return 1.0
+    try:
+        return float(arg.AASamples)
+    except ValueError:
+        logMessage("Warning: Argument 'AASamples' not parsed correctly " + str(arg.AASamples))
+
+    return 1.0
+
+
+def applyRendererOptions_Arnold(arg):
+    logMessage("Rendering with Arnold")
+    applyOutput_default(arg, 0, True)
+
+    samples_factor = getSamplesFactor()
+    if samples_factor != 1.0:
+        renderer = rt.execute("renderers.current")
+        renderer.AA_samples = round(renderer.AA_samples * samples_factor)
+        renderer.AA_samples_max *= round(renderer.AA_samples_max * samples_factor)
+        renderer.AA_sample_clamp *= samples_factor
+        renderer.indirect_sample_clamp *= samples_factor
 
 
 def getVraySettingsContainer():
@@ -768,6 +792,8 @@ def applyRendererOptions_Vray(arg):
                 vray_settings.adv_irradmap_mode = 7
 
     applyOutput_VRay(arg, 0, True)
+
+
 
 
 def writeRenderPlaceholder(filename):
@@ -1263,6 +1289,8 @@ def render_main():
 
     if arg.Renderer == "VRay":
         applyRendererOptions_Vray(arg)
+    elif arg.Renderer == "Arnold-s":
+        applyRendererOptions_Arnold(arg)
     else:
         applyRendererOptions_default(arg)
 
