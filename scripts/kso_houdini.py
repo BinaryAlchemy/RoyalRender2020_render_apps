@@ -718,7 +718,26 @@ def applyRendererOptions_USD():
     if (not setFirst and not setSecond):
         raise NameError("Error: Unable to set output filename!")
 
-    setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples')
+    renderer_name = arg.rop.type().name()
+
+    if renderer_name == 'karma':
+        setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples')
+    elif renderer_name == 'ifd':
+        setSampleParameters(getSampleArgument(), 'vm_samplesx', 'vm_samplesy', 'vm_transparentsamples')  # 'vm_minraysamples', 'vm_maxraysamples' are multiplied by vm_samples*
+    elif renderer_name == 'arnold':
+        setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp')
+    elif renderer_name == 'Redshift_ROP':
+        sample_multi = getSampleArgument()
+        if sample_multi != 1.0:
+            if arg.rop.parm("EnableAutomaticSampling").eval():
+                logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+            else:
+                setSampleParameters(sample_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
+    elif renderer_name == 'vray_renderer':
+        setSampleParameters(getSampleArgument(),
+                        'SettingsImageSampler_progressive_minSubdivs', 'SettingsImageSampler_progressive_maxSubdivs',
+                        'SettingsImageSampler_dmc_minSubdivs', 'SettingsImageSampler_dmc_maxSubdivs'
+                        )
 
     
 def applyRendererOptions_openGl():
