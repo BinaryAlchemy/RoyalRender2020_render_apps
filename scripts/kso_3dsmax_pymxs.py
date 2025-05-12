@@ -484,13 +484,26 @@ def applyRendererOptions_Arnold(arg):
     logMessage("Rendering with Arnold")
     applyOutput_default(arg, 0, True)
 
-    samples_factor = getSamplesFactor()
+    samples_factor = getSamplesFactor(arg)
     if samples_factor != 1.0:
         renderer = rt.execute("renderers.current")
+        logMessage("Multiplying Arnold Sampling by " + str(samples_factor))
+
+        prev = renderer.AA_samples
         renderer.AA_samples = round(renderer.AA_samples * samples_factor)
+        logMessage("AA_samples changed from {0} to {1}".format(prev, renderer.AA_samples))
+
+        prev = renderer.AA_samples_max
         renderer.AA_samples_max *= round(renderer.AA_samples_max * samples_factor)
+        logMessage("AA_samples_max changed from {0} to {1}".format(prev, renderer.AA_samples_max))
+
+        prev = renderer.AA_sample_clamp
         renderer.AA_sample_clamp *= samples_factor
+        logMessage("AA_sample_clamp changed from {0} to {1}".format(prev, renderer.AA_sample_clamp))
+
+        prev = renderer.indirect_sample_clamp
         renderer.indirect_sample_clamp *= samples_factor
+        logMessage("indirect_sample_clamp changed from {0} to {1}".format(prev, renderer.indirect_sample_clamp))
 
 
 def getVraySettingsContainer():
@@ -790,6 +803,18 @@ def applyRendererOptions_Vray(arg):
             else:
                 logMessageSET("VRay GI mode to animation render")
                 vray_settings.adv_irradmap_mode = 7
+
+    samples_factor = getSamplesFactor(arg)
+    if samples_factor != 1.0:
+        logMessage("Multiplying VRay Sampling by " + str(samples_factor))
+        for attr in ("progressive_minSamples", "progressive_maxSamples", "twoLevel_baseSubdivs", "twoLevel_fineSubdivs"):
+            try:
+                prev = getattr(vray_settings, attr)
+            except AttributeError:
+                logMessageWarn("Attribute not found " + attr)
+            else:
+                setattr(vray_settings, attr, round(prev * samples_factor))
+                logMessage(attr.replace('_', " ").title() + "changed from " + str(prev) + " to " + str(getattr(vray_settings, attr)))
 
     applyOutput_VRay(arg, 0, True)
 
