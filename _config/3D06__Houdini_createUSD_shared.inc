@@ -53,6 +53,7 @@ CommandLine=
     -threads <CPU>
     -renderDemo False 
     -avFrameTime <AvFrameTimeSec>
+    -AASamples <AAsamplesMultiply>
     <AvFrameTimeMin10 -verbose True>
     <NoFramebyFrameLoop -noFrameLoop True>
     <ImageSingleOutputFile -noFrameLoop True>
