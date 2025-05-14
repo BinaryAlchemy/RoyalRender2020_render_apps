@@ -500,13 +500,14 @@ def getSampleArgument():
     return 1.0
 
 
-def setSampleParameters(samples_multi, *sample_params):
+def setSampleParameters(samples_multi, *sample_params, settings_node=None):
     if samples_multi == 1.0:
         return
-    
-    rop_name = arg.rop.name()
+    settings_node = settings_node if settings_node else arg.rop
+
+    rop_name = settings_node.name()
     for parm_name in (sample_params):
-        parm = arg.rop.parm(parm_name)
+        parm = settings_node.parm(parm_name)
         if not parm:
             logMessage("Parameter " + parm_name + " was not found on " + rop_name)
             continue
@@ -697,6 +698,19 @@ def applyRendererOptions_createUSD():
     except:
         pass
     
+
+    logMessageDebug("Checking create usd rop input")
+    r_props = arg.rop.input(0)
+    
+    if r_props:
+        props_type = r_props.type().name()
+        if props_type  == 'karmarenderproperties':
+            setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
+        elif props_type == 'arnold_rendersettings':
+            setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp', settings_node=r_props)
+
+
+
 def applyRendererOptions_USD():
     global arg
     logMessage("Rendering USD/LOP")
@@ -719,13 +733,26 @@ def applyRendererOptions_USD():
         raise NameError("Error: Unable to set output filename!")
 
     renderer_name = arg.rop.type().name()
+    r_props = None
+
+    if renderer_name == 'usdrender_rop':
+        logMessageDebug("Checking usd rop input")
+        r_props = arg.rop.input(0)
+        
+        if r_props:
+            props_type = r_props.type().name()
+            if props_type  == 'karmarenderproperties':
+                renderer_name = 'karma'
+            elif props_type == 'arnold_rendersettings':
+               renderer_name = 'arnold'
 
     if renderer_name == 'karma':
-        setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples')
+        logMessageDebug("setting karma sampling to " + str(getSampleArgument()))
+        setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
+    elif renderer_name == 'arnold':
+        setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp', settings_node=r_props)
     elif renderer_name == 'ifd':
         setSampleParameters(getSampleArgument(), 'vm_samplesx', 'vm_samplesy', 'vm_transparentsamples')  # 'vm_minraysamples', 'vm_maxraysamples' are multiplied by vm_samples*
-    elif renderer_name == 'arnold':
-        setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp')
     elif renderer_name == 'Redshift_ROP':
         sample_multi = getSampleArgument()
         if sample_multi != 1.0:
