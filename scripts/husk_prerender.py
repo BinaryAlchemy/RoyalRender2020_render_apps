@@ -3,7 +3,7 @@ import sys
 
 class Params():
     def __init__(self):
-        samples_factor = 1.0
+        self.samples_factor = 1.0
         
         self.parse_args()
 
