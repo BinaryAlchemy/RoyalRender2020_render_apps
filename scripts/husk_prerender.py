@@ -27,6 +27,8 @@ def render_samples_multiply(samples_factor : float):
         return
 
     r_prim = stage.GetPrimAtPath("/Render/rendersettings")
+    if not r_prim:
+        return
 
     for attr_name in ("karma:global:samplesperpixel", "karma:object:varianceaa_maxsamples", "karma:object:varianceaa_minsamples"):
         attr = r_prim.GetAttribute(attr_name)
