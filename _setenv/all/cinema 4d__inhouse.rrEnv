@@ -9,6 +9,10 @@ echo * ------ cinema 4d__inhouse.rrEnv ------
 #           Note: Env vars (your password) must NOT contain these 5 characters:  ! | & < >
 # 			password does NOT have quotes:
 # g_licensepassword=MAXON_PASSWORD
+#
+# Optional: Force to use Commandline licenses only:
+# g_hideaccountmode=false
+
 
 # Similarly for RLM you can use (with quotes)
 # g_licenseServerRLM="[servername]:[port]" 
