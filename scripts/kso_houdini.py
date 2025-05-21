@@ -500,12 +500,39 @@ def getSampleArgument():
     return 1.0
 
 
+def forceKarmaOptimals(settings_node):
+    logMessage("Setting optimal render parameters for Karma")
+
+    sample_params = {
+        'imagemode': 'Bucket',
+        'bucketsize': 128,
+        'progressivepasses': 0,
+        'bucketorder': 'Left'
+        }
+
+    rop_name = settings_node.name()
+    for parm_name, parm_val in sample_params.items():
+        parm = settings_node.parm(parm_name)
+        if not parm:
+            logMessage("Parameter " + parm_name + " was not found on " + rop_name)
+            continue
+
+        prev_val = parm.eval()
+        if not parm.isAtDefault():
+            logMessage("Leaving " + rop_name + "." + parm_name + " at its set value of " + str(prev_val))
+            continue
+
+        parm.set(parm_val)
+        logMessageSET(rop_name + " " + parm_name + " from " + str(prev_val) + " to " + str(parm.eval()))
+
+
 def setSampleParameters(samples_multi, *sample_params, settings_node=None):
     if samples_multi == 1.0:
         return
     settings_node = settings_node if settings_node else arg.rop
 
     rop_name = settings_node.name()
+    logMessage("Setting sampling parameters for " + rop_name)
     for parm_name in (sample_params):
         parm = settings_node.parm(parm_name)
         if not parm:
@@ -743,8 +770,9 @@ def applyRendererOptions_USD():
             props_type = r_props.type().name()
             if props_type  == 'karmarenderproperties':
                 renderer_name = 'karma'
+                forceKarmaOptimals(r_props)
             elif props_type == 'arnold_rendersettings':
-               renderer_name = 'arnold'
+                renderer_name = 'arnold'
 
     if renderer_name == 'karma':
         logMessageDebug("setting karma sampling to " + str(getSampleArgument()))
