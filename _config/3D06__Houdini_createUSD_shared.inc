@@ -110,6 +110,9 @@ AllowLocalRenderOut= 0~0
 
 IconRenderer=r_usd.png
 
+BrokenImageLine=  hou.OperationFailed
+
+
 ::include(3D06__Houdini____global.inc)
 
 ::include(<ConfigFileName>__inhouse.inc)

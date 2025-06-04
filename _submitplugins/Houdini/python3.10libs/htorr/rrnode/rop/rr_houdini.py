@@ -16,14 +16,17 @@ class WedgeNode(rrNode):
     name = "wedge"
 
     def childclass_parse(self, parseData):
-
         try:
-            input_node = rrNode.create(self._node.inputs()[0])
+            driver = self._node.parm("driver").evalAsNode()
+            if driver:
+                input_node = rrNode.create(driver)
+            else:
+                input_node = rrNode.create(self._node.inputs()[0])
         except ValueError as e:
             logger.warning(e)
             return
         except IndexError:
-            logger.warning("Wedge Node has no Inputs")
+            logger.warning("{}: Wedge Node has no Inputs".format(self.path))
             return
 
         if self._node.evalParm("wedgemethod") != 0:
@@ -37,20 +40,24 @@ class WedgeNode(rrNode):
         mulit_parms = self._node.parm("wedgeparams").multiParmInstances()
         wedges = []
         for parm_group in self.get_parm_group(mulit_parms):
-            wedge = []
+            wedgeSingle = []
             values = [v.eval() for v in parm_group]
             name, chan, rangex, rangey, steps = values
             stepsize = (rangey - rangex) / (steps - 1) if steps > 1 else 0
 
             for s in range(steps):
                 v = rangex + s * stepsize
-                wedge.append("{}_{}".format(name, v))
+                wedgeSingle.append("{}_{}".format(name, v))
 
-            wedges.append(wedge)
+            wedges.append(wedgeSingle)
+
+        logger.debug("{}: wedges: {}".format(self.path, wedges))
 
         wedges_combined = self.combine(wedges)
 
         wedges_combined_string = ["_".join(s) for s in wedges_combined]
+        
+        logger.debug("{}: wedges_combined_string: {}".format(self.path, wedges_combined_string))
 
         try:
             wedger = parseData.Wedge.create(self.path)
@@ -75,20 +82,24 @@ class WedgeNode(rrNode):
             yield parms[i : i + 5]
 
     @staticmethod
-    def combine(list):
+    def combine(allWedgesList):
         comb_count = 1
-
-        for n in list:
+        #allWedgesList is a 2 dimensional array   [['angvely_360.0', 'angvely_539.5', 'angvely_719.0'], ['elz_0.0', 'elz_9.5', 'elz_19.0']]
+        
+        #calculate the total number of combinations
+        for n in allWedgesList:
             comb_count *= len(n)
-
+        
         combinations = []
 
-        for i in range(0, comb_count):
+        for globalIndex in range(0, comb_count):
             combination = []
-            for l in list:
-                index = i % len(l)
-                i = i / len(l)
-                combination.append(l[index])
+            gi=globalIndex
+            for singleVar in allWedgesList:
+                index = gi % len(singleVar)
+                gi = gi / len(singleVar)
+                gi = int(gi) #workaround as we cannot use // in python 2, but python 3 returns float with  /
+                combination.append(singleVar[index])
             combinations.append(combination)
 
         return combinations

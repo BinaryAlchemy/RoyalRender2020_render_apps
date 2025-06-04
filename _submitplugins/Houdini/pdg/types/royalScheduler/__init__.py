@@ -15,6 +15,6 @@ import royalDefs as rrDefs
 
 
 def registerTypes(type_registry):
-    print("Registering royalScheduler " + rrDefs.plugin_version_str+ ". Houdini Python version: "+str(sys.version_info.major)+"."+str(sys.version_info.minor)) 
+    print("\nRegistering royalScheduler " + rrDefs.plugin_version_str+ ". Houdini Python version: "+str(sys.version_info.major)+"."+str(sys.version_info.minor)+"\n") 
     
     type_registry.registerScheduler(royalScheduler.RoyalScheduler, label="royalScheduler") 
