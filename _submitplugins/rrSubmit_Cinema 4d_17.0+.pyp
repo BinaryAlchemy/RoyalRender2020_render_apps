@@ -7,16 +7,17 @@
 # Copyright (c)  Holger Schoenberger
 # #win:   rrInstall_Copy:         plugins\
 # #linux: rrInstall_Copy:         plugins\
-# #mac:   rrInstall_Copy:         ..\..\..\plugins\
+# #mac:   rrInstall_Copy:         ..\plugins\
 # #win:   rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_11.0+.cof
 # #linux: rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_11.0+.cof
-# #mac:   rrInstall_Delete:       ..\..\..\plugins\rrSubmit_Cinema 4d_11.0+.cof
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_11.0+.cof
 # #win:   rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_13.0+.pyp
 # #linux: rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_13.0+.pyp
-# #mac:   rrInstall_Delete:       ..\..\..\plugins\rrSubmit_Cinema 4d_13.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_13.0+.pyp
 # #win:   rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_16.0+.pyp
 # #linux: rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_16.0+.pyp
-# #mac:   rrInstall_Delete:       ..\..\..\plugins\rrSubmit_Cinema 4d_16.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_16.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_17.0+.pyp
 #
 ######################################################################
 

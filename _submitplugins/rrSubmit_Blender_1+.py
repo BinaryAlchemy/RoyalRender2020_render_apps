@@ -8,7 +8,7 @@
 #
 # #win:   rrInstall_Copy:     \*\scripts\startup\
 # #linux: rrInstall_Copy:     \*\scripts\startup\
-# #mac:   rrInstall_Copy:     \Resources\*\scripts\startup\
+# #mac:   rrInstall_Copy:     \Contents\Resources\*\scripts\startup\
 # 
 ######################################################################
 

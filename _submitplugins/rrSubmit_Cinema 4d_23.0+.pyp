@@ -7,10 +7,12 @@
 # Copyright (c)  Holger Schoenberger
 # #win:   rrInstall_Copy:         plugins\
 # #linux: rrInstall_Copy:         plugins\
-# #mac:   rrInstall_Copy:         ..\..\..\plugins\
+# #mac:   rrInstall_Copy:         ..\plugins\
 # #win:   rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_17.0+.pyp
 # #linux: rrInstall_Delete:       plugins\rrSubmit_Cinema 4d_17.0+.pyp
-# #mac:   rrInstall_Delete:       ..\..\..\plugins\rrSubmit_Cinema 4d_17.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_17.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_23.0+.pyp
+# #mac:   rrInstall_Delete:       ..\..\plugins\rrSubmit_Cinema 4d_23.0+.png
 #
 ######################################################################
 

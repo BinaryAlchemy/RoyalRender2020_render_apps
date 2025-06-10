@@ -7,7 +7,7 @@
 # Copyright (c)  Holger Schoenberger - Binary Alchemy
 # #win:     rrInstall_Env: MAYA_PLUG_IN_PATH, Directory
 # #linux:   rrInstall_Env: MAYA_PLUG_IN_PATH, Directory
-# #mac:     rrInstall_Copy:         /MacOS/plug-ins
+# #mac:     rrInstall_Copy:   /Contents/MacOS/plug-ins
 # 
 ######################################################################
 
