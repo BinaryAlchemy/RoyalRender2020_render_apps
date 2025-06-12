@@ -1126,7 +1126,7 @@ class RRSubmitBase(object):
             self.submitRR(tmpFile.name)
 
     def submitRR(self, filename):
-        """Call rrSubmit and pass the XML job file as a parameter"""
+        """Call rrSubmit and pass the XML job file as a parameter"""        LOGGER.debug("Executing: '" + rrGetRR_Root() + self.getRRSubmitter() + "'  "  +filename)
         c4d.storage.GeExecuteProgram(rrGetRR_Root() + self.getRRSubmitter(), filename)
         return True
 
@@ -1147,7 +1147,7 @@ class RRSubmitBase(object):
         if isWin() == True:
             rrSubmitter = "\\win__rrSubmitter.bat"
         else:
-            rrSubmitter = "/bin/mac64/rrSubmitter.app/Contents/MacOS/startlocal.sh"
+            rrSubmitter = "/bin/mac64/rrSubmitter.app"
         return rrSubmitter
 
     def getRRSubmitterConsole(self):
@@ -1155,7 +1155,7 @@ class RRSubmitBase(object):
         if isWin() == True:
             rrSubmitterConsole = "\\bin\\win64\\rrSubmitterconsole.exe"
         else:
-            rrSubmitterConsole = "/bin/mac64/rrSubmitterConsole.app/Contents/MacOS/startlocal.sh"
+            rrSubmitterConsole = "/bin/mac64/rrSubmitterConsole.app"
         return rrSubmitterConsole
 
 
