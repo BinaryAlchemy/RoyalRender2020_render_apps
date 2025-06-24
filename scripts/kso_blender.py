@@ -752,6 +752,39 @@ def set_render_region(min_x, max_x, min_y, max_y):
 
     render_settings.use_border = True
 
+
+def list_addons():
+    # Get add-ons folder paths
+    addon_paths = addon_utils.paths()
+
+    # Collect installed add-ons
+    installed_addons = set()
+
+    for path in addon_paths:
+        if not os.path.isdir(path):
+            continue
+        for entry in os.listdir(path):
+            full_path = os.path.join(path, entry)
+            if os.path.isdir(full_path) and os.path.isfile(os.path.join(full_path, "__init__.py")):
+                installed_addons.add(entry)
+            elif entry.endswith(".py"):
+                installed_addons.add(entry[:-3])
+
+    # Print status of each add-on
+    addons_loaded=""
+    addons_idle=""
+    for addon in sorted(installed_addons):
+        is_enabled = addon_utils.check(addon)[1]  # [1] returns whether it's loaded
+        if is_enabled:
+            addons_loaded= addons_loaded + str(addon) + ", " 
+        else:
+            addons_idle= addons_idle + str(addon) + ", " 
+
+    print("Add-ons found and active:  "+ addons_loaded)
+    print("Add-ons found, but deactivated:  " + addons_idle)
+        
+  
+
 ####
 
 if __name__ == "__main__":
@@ -774,7 +807,8 @@ if __name__ == "__main__":
         enable_addon("redshift")
     if args.renderer.lower() == "luxcore":
         enable_addon("BlendLuxCore")
-
+    
+    list_addons()
     log_msg(" About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
     flush_log()
@@ -782,6 +816,7 @@ if __name__ == "__main__":
     open_blend_file(args.blend_file)
     log_msg(" blend file opened ".center(100, "_"))
     flush_log()
+    list_addons()
 
     ensure_scene_and_layer()
     
