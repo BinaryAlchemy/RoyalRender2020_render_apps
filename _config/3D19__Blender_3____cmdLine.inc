@@ -53,6 +53,7 @@ CommandLine=   "<Exe>"
 	<AdditionalCommandlineParam>
     -rPyModPath <rrLocalRenderScripts><EL<PD>>
     <NoFramebyFrameLoop -NoFramebyFrameLoop>
+    <COLoadAdd-ons  -load3rdPartyPlugins>
 
 CommandLine=
 	<CheckExitCode> <FN>
@@ -77,7 +78,7 @@ KSOlog_Quit=rrKSO closed
 
 
 ################################## Submitter Settings ##################################    
-COLoadRedshift= 0~0
+COLoadAdd-ons= 1~0
 
 ################################## Render Settings ################################## 
 

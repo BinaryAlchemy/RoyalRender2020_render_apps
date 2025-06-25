@@ -252,6 +252,8 @@ class RRArgParser(object):
         
         self.NoFramebyFrameLoop= False
 
+        self.load3rdPartyPlugins = False
+
         self.error = ""
         self.parse(args)
 
@@ -324,6 +326,9 @@ class RRArgParser(object):
 
             if arg == "-NoFramebyFrameLoop":
                 self.NoFramebyFrameLoop = True
+
+            if arg == "-load3rdPartyPlugins":
+                self.load3rdPartyPlugins = True
                 
 
             # Keyword/Value Flags
@@ -753,36 +758,82 @@ def set_render_region(min_x, max_x, min_y, max_y):
     render_settings.use_border = True
 
 
-def list_addons():
-    # Get add-ons folder paths
-    addon_paths = addon_utils.paths()
+import os
+import addon_utils
+import bpy
 
-    # Collect installed add-ons
-    installed_addons = set()
+def list_addons(load_3rdParty = False):
+    log_msg("ADDONS".center(100, "_"))
+    if load_3rdParty:
+        log_msg("Loading  3rd Party add-ons  enabled") 
+    blenderPath=os.path.dirname(bpy.app.binary_path)
+    addon_paths = addon_utils.paths()
+    log_msg("Add-on search paths: ")        
 
     for path in addon_paths:
-        if not os.path.isdir(path):
-            continue
-        for entry in os.listdir(path):
-            full_path = os.path.join(path, entry)
-            if os.path.isdir(full_path) and os.path.isfile(os.path.join(full_path, "__init__.py")):
-                installed_addons.add(entry)
-            elif entry.endswith(".py"):
-                installed_addons.add(entry[:-3])
+        if ("RR_localdata" in path) and ('rrPrefs' in os.environ):
+            pathRR= os.environ['rrPrefs']
+            if 'rrJobVerMajorMinor' in os.environ:
+                pathRR= pathRR + os.environ['rrJobVerMajorMinor']
+            path= path + "  ( copy of {} )".format(pathRR)
+        log_msg("    "+ str(path))        
 
-    # Print status of each add-on
-    addons_loaded=""
-    addons_idle=""
-    for addon in sorted(installed_addons):
-        is_enabled = addon_utils.check(addon)[1]  # [1] returns whether it's loaded
-        if is_enabled:
-            addons_loaded= addons_loaded + str(addon) + ", " 
-        else:
-            addons_idle= addons_idle + str(addon) + ", " 
 
-    print("Add-ons found and active:  "+ addons_loaded)
-    print("Add-ons found, but deactivated:  " + addons_idle)
+    blenderAddons_idle_count=0
+    blenderAddons_loaded_count=0
+    blenderAddons_loaded="   ("
+    extAddons_idle_count=0
+    extAddons_loaded_count=0
+    total_count=0
+    title_printed=False
+
+    for mod in addon_utils.modules():
+        #if (mod.bl_info.get("support")=="OFFICIAL"):
+        #    continue
+        total_count= total_count + 1
+        is_enabled = addon_utils.check(mod.__name__)[1]  # [1] returns whether it's loaded
+        installPath=mod.__file__
+        is3rdParty= not installPath.startswith(blenderPath)
+    
+        if (is3rdParty):
+            if not title_printed:
+                title_printed= True
+                log_msg("3rd Party add-ons  (outside Blender app folder):  ")
+
+            ver= mod.bl_info.get("version",(-1, -1, -1) )
+            if len(ver)==0:
+                ver=("?", "0", "0")
+            while len(ver)<3:
+                ver= ver + (0,)
+            
+            if (not is_enabled) and load_3rdParty:
+                log_msg("  loading '" + mod.__name__ + "' ...")
+                addon_utils.enable(mod.__name__, persistent= False)
+                is_enabled = addon_utils.check(mod.__name__)[1]  # [1] returns whether it's loaded
         
+            statusString="      "
+            if is_enabled:
+                statusString="ACTIVE"
+                extAddons_loaded_count= extAddons_loaded_count + 1
+            else:
+                extAddons_idle_count= extAddons_idle_count + 1
+                
+            log_msg(" - {} - '{}' ({}) v{}.{}.{}".format(statusString, mod.bl_info.get("name"), mod.__name__, ver[0], ver[1], ver[2]  ))
+        else:
+            if is_enabled:
+                blenderAddons_loaded= blenderAddons_loaded + mod.bl_info.get("name") + ",  "
+                blenderAddons_loaded_count= blenderAddons_loaded_count + 1
+            else:
+                blenderAddons_idle_count= blenderAddons_idle_count + 1
+    blenderAddons_loaded= blenderAddons_loaded + ")     "
+ 
+    log_msg("Total  add-on count:            {} ".format(total_count))
+    log_msg("3rd Party   add-ons loaded:     {} ".format(extAddons_loaded_count))
+    log_msg("Blender app add-ons loaded:     {} ".format(blenderAddons_loaded_count))
+    log_msg(blenderAddons_loaded)
+    log_msg("3rd Party   add-ons not loaded: {} ".format(extAddons_idle_count))
+    log_msg("Blender app add-ons not loaded: {} ".format(blenderAddons_idle_count))
+       
   
 
 ####
@@ -808,15 +859,14 @@ if __name__ == "__main__":
     if args.renderer.lower() == "luxcore":
         enable_addon("BlendLuxCore")
     
-    list_addons()
-    log_msg(" About to open blend file ".center(100, "_"))
+    list_addons(args.load3rdPartyPlugins)
+    log_msg("About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
     flush_log()
 
     open_blend_file(args.blend_file)
     log_msg(" blend file opened ".center(100, "_"))
     flush_log()
-    list_addons()
 
     ensure_scene_and_layer()
     
