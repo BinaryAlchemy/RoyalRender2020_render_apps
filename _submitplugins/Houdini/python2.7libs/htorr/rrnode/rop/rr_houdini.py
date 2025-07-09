@@ -55,7 +55,7 @@ class WedgeNode(rrNode):
 
             for s in range(steps):
                 v = rangex + s * stepsize
-                wedgeSingle.append("{}_{}".format(name, v))
+                wedgeSingle.append("{}_{:.2f}".format(name, v))
 
             wedges.append(wedgeSingle)
 
