@@ -37,6 +37,14 @@ class WedgeNode(rrNode):
             logger.warning("{}: Random not supported".format(self.path))
             return
 
+        prefix=""
+        try:
+            prefix= self._node.evalParm("prefix")
+        except:
+            pass
+            
+
+
         mulit_parms = self._node.parm("wedgeparams").multiParmInstances()
         wedges = []
         for parm_group in self.get_parm_group(mulit_parms):
@@ -66,15 +74,20 @@ class WedgeNode(rrNode):
             logger.error(e)
             return
 
+        wegdeNum=0
         try:
             with wedger:
                 for w in wedges_combined_string:
-                    hou.putenv("WEDGE", w)
+                    w_prefix= prefix + "_" + w
+                    hou.putenv("WEDGE", w_prefix)
+                    hou.putenv("WEDGENUM", str(wegdeNum))
+                    wegdeNum= wegdeNum + 1
                     input_node.parse(parseData)
                     wedger.next()
 
         finally:
             hou.unsetenv("WEDGE")
+            hou.unsetenv("WEDGENUM")
 
     @staticmethod
     def get_parm_group(parms):

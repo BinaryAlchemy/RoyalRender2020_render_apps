@@ -17,6 +17,7 @@ echo * ------ 3dsmax.rrEnv version %rrVersion% ------
 
 USERPROFILE = <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>
 LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>\AppData\Local
+[dir] <LOCALAPPDATA>
 [dir] <LOCALAPPDATA>\Autodesk\3dsMax\<rrExeVersionMajor> - 64bit\ENU\
 [dir] <USERPROFILE>\AppData\Roaming\Autodesk
 [Exists] <rrPrefs><rrExeVersionMajor>\Workspace1.se.ini

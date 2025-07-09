@@ -16,6 +16,7 @@ import os
 sharedPath= os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../shared"))
 sys.path.append(sharedPath)
 import royalDefs as rrDefs
+import traceback
 
 logger = logging.getLogger("HtoRR")
 
@@ -27,7 +28,8 @@ except ImportError:
 
 def submit(rops=[], gui=True, askForSave=True):
     logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
-    logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
+    #logger.debug("------------------------------------"+rrDefs.plugin_version_str+"---------------------------------------")
+    #logger.debug(str(traceback.print_stack(limit=10)))
     #logger.debug("UICurrent: {}".format( hou.frame()))
     sel = hou.selectedNodes()
 
@@ -168,5 +170,5 @@ def parse_nodes(nodes):
 
 
 
-if __name__ == "__main__":
-    submit()
+#if __name__ == "__main__":
+    #submit()
