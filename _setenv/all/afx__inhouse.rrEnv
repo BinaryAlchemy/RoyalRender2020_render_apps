@@ -1,0 +1,9 @@
+[If] <rrExeOS>  [==] win
+
+    USERPROFILE = <rrLocalRoot>SysUserPrefs\All
+    LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\All\AppData\Local
+    [dir] <rrLocalRoot>SysUserPrefs\All\Documents
+    
+    echo "Creating language file." 2> <rrLocalRoot>SysUserPrefs\All\Documents\ae_force_english.txt
+
+[EndIf]
