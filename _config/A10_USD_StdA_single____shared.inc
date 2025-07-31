@@ -22,6 +22,8 @@ FlagsVerboseInformation= -V4a
 FlagsVerboseProgress=    -V7a
 FlagsVerboseDebug=       -V9ap
 
+TileAdd=  --tile-count <TotalTiles> 1  --tile-index <TileNumber>
+
 REZ_EXE_WIN=   husk.exe
 REZ_EXE_LX=    husk
 REZ_EXE_MAC=   husk
