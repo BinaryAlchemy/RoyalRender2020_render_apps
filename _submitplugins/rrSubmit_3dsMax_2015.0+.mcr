@@ -327,7 +327,7 @@ tooltip:"Submit scene to Server (old)"
 			rrSI.cmdOptions=rrSI.cmdOptions + " \"AllowLocalSceneCopy=0~0\""
                 )
 
-		if (IDisplayGamma.colorCorrectionMode== #gamma) then (
+		if ( (IDisplayGamma != undefined and IDisplayGamma.colorCorrectionMode == #gamma) or (ColorPipelineMgr != undefined and ColorPipelineMgr.Mode == #gamma)) then (
 			tmpStrg1=fileInGamma as string
 			tmpStrg2=fileOutGamma as string
 			tmpStrg1 = substituteString tmpStrg1 "." "<dec>"
@@ -627,7 +627,7 @@ tooltip:"Submit scene with RP-Manager passes to Server"
 		rrSI.channelFileNames = #()
 		rrSI.channelExt = #()
 		rrSI.cmdOptions=""
-		if (IDisplayGamma.colorCorrectionMode== #gamma) then (
+		if ( (IDisplayGamma != undefined and IDisplayGamma.colorCorrectionMode == #gamma) or (ColorPipelineMgr != undefined and ColorPipelineMgr.Mode == #gamma)) then (
 			tmpStrg1=fileInGamma as string
 			tmpStrg2=fileOutGamma as string
 			tmpStrg1 = substituteString tmpStrg1 "." "<dec>"

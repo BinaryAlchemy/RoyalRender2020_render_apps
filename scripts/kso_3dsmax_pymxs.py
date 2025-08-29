@@ -1055,7 +1055,10 @@ def render_main():
             part = part.replace(",", ".")
             part = (part == "1")
             logMessageSET("Gamma Correction to " + str(part))
-            rt.iDisplayGamma.colorCorrectionMode = (rt.name('gamma') if part else rt.name('none'))
+            try:
+                rt.ColorPipelineMgr.Mode = rt.name('gamma') if part else rt.name('none')
+            except AttributeError:  # pre 2025 interface
+                rt.iDisplayGamma.colorCorrectionMode = (rt.name('gamma') if part else rt.name('none'))
 
         pos = arg.AdditionalCommandlineParam.find("gammaValueIn:")
         if pos > 0:
@@ -1093,8 +1096,12 @@ def render_main():
         logMessageError("Unable to open scene file")
 
    
-    
-    logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((rt.iDisplayGamma.colorCorrectionMode == rt.name('gamma')),
+    try:
+        correction_mode = rt.ColorPipelineMgr.Mode
+    except AttributeError:  # pre 2025 interface
+        correction_mode = rt.iDisplayGamma.colorCorrectionMode
+
+    logMessage("Gamma Settings: Enabled: {0} In: {1} Out: {2}".format((correction_mode == rt.name('gamma')),
                                                                       round(rt.fileInGamma, 5),
                                                                       round(rt.fileOutGamma, 5)))
 

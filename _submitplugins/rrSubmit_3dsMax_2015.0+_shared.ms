@@ -214,7 +214,7 @@ struct rrSubmit_scriptrender
             rrSI.cmdOptions=rrSI.cmdOptions + " \"COAutoElementFileName=0~0\""
         )
 
-        if ( (IDisplayGamma != undefined and IDisplayGamma.colorCorrectionMode == #gamma) or (ColorPipelineMgr != undefined and ColorPipelineMgr.colorCorrectionMode == #gamma)) then (
+        if ( (IDisplayGamma != undefined and IDisplayGamma.colorCorrectionMode == #gamma) or (ColorPipelineMgr != undefined and ColorPipelineMgr.Mode == #gamma)) then (
             tmpStrg1=fileInGamma as string
             tmpStrg2=fileOutGamma as string
             tmpStrg1 = substituteString tmpStrg1 "." "<dec>"
