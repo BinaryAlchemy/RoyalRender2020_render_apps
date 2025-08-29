@@ -63,7 +63,7 @@ LOGGER.addHandler(ch)
 
 
 ##############################################
-# GLOBAL FUNCTIONS                           #
+# GLOBAL DATA                                #
 ##############################################
 
 # c4d
@@ -108,6 +108,18 @@ MULTILAYER_FORMATS = (
     1016606,
     1035823
 )
+
+RENDERER_NAMES = {
+    c4d.RDATA_RENDERENGINE_STANDARD: "",
+    c4d.RDATA_RENDERENGINE_PHYSICAL: "Physical",
+    c4d.RDATA_RENDERENGINE_PREVIEWHARDWARE: "Hardware",
+    
+    1029525: "Octane",
+    1029988: "Arnold",
+    1019782: "vray",
+    1035287: "cycles",
+    1030480: "Corona",
+}
 
 
 # Arnold
@@ -1039,6 +1051,9 @@ class TakeManager(object):
             new_job.channelFileName[ch] = convert_filename_tokens(self._doc, take, new_job.channelFileName[ch])
             new_job.channelFileName[ch] = new_job.channelFileName[ch].replace("$take", take_name)
 
+        reset_job_renderer_version(new_job)
+        set_job_renderer(new_job, render_data[c4d.RDATA_RENDERENGINE], self._doc)
+
         setSeq(new_job, render_data)
         if new_job.Arnold_DriverOut:
             new_job.setOutputFromArnoldDriver()
@@ -1088,6 +1103,45 @@ class TakeManager(object):
         setSeq(main_job, rd)
 
 
+def add_RENDERERS_ids():
+    global RENDERER_NAMES
+    try:
+        RENDERER_NAMES[c4d.RDATA_RENDERENGINE_CINEMAN] = "CineMan"
+    except AttributeError:
+        # Cineman was removed in C4D 2024
+        pass
+    
+    try:
+        # Redshift attr was added in C4D 2024
+        RENDERER_NAMES[c4d.RDATA_RENDERENGINE_REDSHIFT] = "Redshift"
+    except AttributeError:
+        # Fallback to plugin ID
+        RENDERER_NAMES[1036219] = "Redshift"
+
+    try:
+        RENDERER_NAMES[c4d.RDATA_RENDERENGINE_PREVIEWSOFTWARE] = "preview"
+    except AttributeError:
+        pass  # missing in R21
+
+
+def reset_job_renderer_version(job):
+    job.rendererVersion = rrJob.rendererVersion
+    job.Arnold_C4DtoAVersion = rrJob.Arnold_C4DtoAVersion
+    job.Redshift_C4DtoRSVersion = rrJob.Redshift_C4DtoRSVersion
+
+def set_job_renderer(job, rendererID, doc):
+    job.renderer = RENDERER_NAMES.get(rendererID, "RID"+str(rendererID))
+
+    if job.renderer == "Arnold":
+        job.rendererVersion = GetArnoldVersion(doc)
+        job.Arnold_C4DtoAVersion = GetC4DtoAVersion(doc)
+    elif job.renderer == "Redshift":
+        job.rendererVersion = GetRedshiftVersion()
+        job.Redshift_C4DtoRSVersion = GetRedshiftPluginVersion()
+    elif job.renderer == "Octane":
+        job.rendererVersion = GetOctaneVersion(doc)
+
+
 class RRSubmitBase(object):
     """Base class for RRSubmit and RRSubmitAssExport"""
 
@@ -1126,7 +1180,8 @@ class RRSubmitBase(object):
             self.submitRR(tmpFile.name)
 
     def submitRR(self, filename):
-        """Call rrSubmit and pass the XML job file as a parameter"""        LOGGER.debug("Executing: '" + rrGetRR_Root() + self.getRRSubmitter() + "'  "  +filename)
+        """Call rrSubmit and pass the XML job file as a parameter"""
+        LOGGER.debug("Executing: '" + rrGetRR_Root() + self.getRRSubmitter() + "'  "  +filename)
         c4d.storage.GeExecuteProgram(rrGetRR_Root() + self.getRRSubmitter(), filename)
         return True
 
@@ -2655,47 +2710,9 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             if not ret:
                 return False
 
-        renderers = {
-            c4d.RDATA_RENDERENGINE_STANDARD: "",
-            c4d.RDATA_RENDERENGINE_PHYSICAL: "Physical",
-            c4d.RDATA_RENDERENGINE_PREVIEWHARDWARE: "Hardware",
-            
-            1029525: "Octane",
-            1029988: "Arnold",
-            1019782: "vray",
-            1035287: "cycles",
-            1030480: "Corona",
-        }
-
-        try:
-            renderers[c4d.RDATA_RENDERENGINE_CINEMAN] = "CineMan"
-        except AttributeError:
-            # Cineman was removed in C4D 2024
-            pass
-        
-        try:
-            # Redshift attr was added in C4D 2024
-            renderers[c4d.RDATA_RENDERENGINE_REDSHIFT] = "Redshift"
-        except AttributeError:
-            # Fallback to plugin ID
-            renderers[1036219] = "Redshift"
-
-        try:
-            renderers[c4d.RDATA_RENDERENGINE_PREVIEWSOFTWARE] = "preview"
-        except AttributeError:
-            pass  # missing in R21
-
+        add_RENDERERS_ids()
         rendererID = self.renderSettings[c4d.RDATA_RENDERENGINE]
-        self.job[0].renderer = renderers.get(rendererID, "RID"+str(rendererID))
-
-        if self.job[0].renderer == "Arnold":
-            self.job[0].rendererVersion = GetArnoldVersion(doc)
-            self.job[0].Arnold_C4DtoAVersion = GetC4DtoAVersion(doc)
-        elif self.job[0].renderer == "Redshift":
-            self.job[0].rendererVersion = GetRedshiftVersion()
-            self.job[0].Redshift_C4DtoRSVersion = GetRedshiftPluginVersion()
-        elif self.job[0].renderer == "Octane":
-            self.job[0].rendererVersion = GetOctaneVersion(doc)
+        set_job_renderer(self.job[0], rendererID, doc)
 
         setSeq(self.job[0], self.renderSettings)
         self.setImageFormat()
