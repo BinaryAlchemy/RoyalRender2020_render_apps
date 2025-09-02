@@ -14,6 +14,7 @@ import time
 import sys
 import os
 import struct
+import math
 FSCODING = sys.stdout.encoding or sys.getfilesystemencoding()
 
 if sys.version_info.major == 2:
@@ -499,13 +500,26 @@ def getSampleArgument():
     
     return 1.0
 
+def getSampleThreshold(half_effect, samples_multi, old_threshold):
+    if samples_multi == 1.0:
+        return old_threshold
+    if (half_effect):
+        samples_multi = (samples_multi + 1.0) / 2.0
+    new_threshold = math.pow(samples_multi, -2) * old_threshold
+    if (new_threshold > 0.75):
+        new_threshold = 0.75
+    if (new_threshold < 0.0005):
+        new_threshold = 0.0005
+    return new_threshold
+
+
 
 def forceKarmaOptimals(settings_node):
     logMessage("Setting optimal render parameters for Karma")
 
     sample_params = {
         'imagemode': 'Bucket',
-        'bucketsize': 128,
+        'bucketsize': 64,
         'progressivepasses': 0,
         'bucketorder': 'Left'
         }
@@ -538,10 +552,31 @@ def setSampleParameters(samples_multi, *sample_params, settings_node=None):
         if not parm:
             logMessage("Parameter " + parm_name + " was not found on " + rop_name)
             continue
-
+        if (parm_name.find("_min") > 0):
+            # we just want to reduce the min samples, but we never increase them
+            if (samples_multi > 1.0):
+                continue
+        
         parm_val = parm.eval()
         parm.set(round(parm_val * samples_multi))
         logMessageSET(rop_name + " " + parm_name + " from " + str(parm_val) + " to " + str(parm.eval()))
+
+def setSampleThresholdParameters(half_effect, samples_multi, *sample_params, settings_node=None):
+    if samples_multi == 1.0:
+        return
+    settings_node = settings_node if settings_node else arg.rop
+
+    rop_name = settings_node.name()
+    logMessage("Setting sampling parameters for " + rop_name)
+    for parm_name in (sample_params):
+        parm = settings_node.parm(parm_name)
+        if not parm:
+            logMessage("Parameter " + parm_name + " was not found on " + rop_name)
+            continue
+
+        parm_val = parm.eval()
+        parm.set(getSampleThreshold(half_effect, samples_multi, parm_val))
+        logMessageSET(rop_name + " " + parm_name + " from {:.4f} to {:.4f} ".format(parm_val, parm.eval()))
 
 
 
@@ -726,15 +761,17 @@ def applyRendererOptions_createUSD():
         pass
     
 
-    logMessageDebug("Checking create usd rop input")
-    r_props = arg.rop.input(0)
     
-    if r_props:
-        props_type = r_props.type().name()
-        if props_type  == 'karmarenderproperties':
-            setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
-        elif props_type == 'arnold_rendersettings':
-            setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp', settings_node=r_props)
+    #this should be set within the "Render USD job", not in the usd creation. We can do that now as we use a script with Husk.
+    #
+    #logMessageDebug("Checking create usd rop input")
+    #r_props = arg.rop.input(0)
+    #if r_props:
+    #    props_type = r_props.type().name()
+    #    if props_type  == 'karmarenderproperties':
+    #        setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
+    #    elif props_type == 'arnold_rendersettings':
+    #        setSampleParameters(getSampleArgument(), 'AA_samples_max', 'AA_samples' , settings_node=r_props)
 
 
 
@@ -775,19 +812,22 @@ def applyRendererOptions_USD():
                 renderer_name = 'arnold'
 
     if renderer_name == 'karma':
-        logMessageDebug("setting karma sampling to " + str(getSampleArgument()))
+        logMessageDebug("setting karma sampling factor to " + str(getSampleArgument()))
         setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
     elif renderer_name == 'arnold':
-        setSampleParameters(getSampleArgument(), 'ar_AA_samples', 'ar_AA_samples_max', 'ar_AA_sample_clamp', 'ar_indirect_sample_clamp', settings_node=r_props)
+        setSampleParameters(getSampleArgument(), 'ar_AA_samples_max', 'ar_AA_samples', settings_node=r_props)
     elif renderer_name == 'ifd':
         setSampleParameters(getSampleArgument(), 'vm_samplesx', 'vm_samplesy', 'vm_transparentsamples')  # 'vm_minraysamples', 'vm_maxraysamples' are multiplied by vm_samples*
     elif renderer_name == 'Redshift_ROP':
-        sample_multi = getSampleArgument()
-        if sample_multi != 1.0:
+        samples_multi = getSampleArgument()
+        if samples_multi != 1.0:
             if arg.rop.parm("EnableAutomaticSampling").eval():
-                logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                setSampleThresholdParameters(False, samples_multi, 'UnifiedAdaptiveErrorThreshold')
+                #logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                pass
             else:
-                setSampleParameters(sample_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
+                setSampleParameters(samples_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
+                setSampleThresholdParameters(True, samples_multi, 'UnifiedAdaptiveErrorThreshold')
     elif renderer_name == 'vray_renderer':
         setSampleParameters(getSampleArgument(),
                         'SettingsImageSampler_progressive_minSubdivs', 'SettingsImageSampler_progressive_maxSubdivs',
@@ -994,12 +1034,17 @@ def applyRendererOptions_Redshift():
         setROPValue("Output Filename", 'RS_outputFileNamePrefix',outFileName)
         setROPValue("Output File Format", 'RS_outputFileFormat',arg.FExt)
     
-    sample_multi = getSampleArgument()
-    if sample_multi != 1.0:
+    samples_multi = getSampleArgument()
+    if samples_multi != 1.0:
         if arg.rop.parm("EnableAutomaticSampling").eval():
-            logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+            setSampleThresholdParameters(False, samples_multi, 'UnifiedAdaptiveErrorThreshold')
+            #logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+            pass
         else:
-            setSampleParameters(sample_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
+            setSampleParameters(samples_multi, 'UnifiedMinSamples', 'UnifiedMaxSamples')
+            setSampleThresholdParameters(True, samples_multi, 'UnifiedAdaptiveErrorThreshold')
+    setROPValue('Enable Archive', 'RS_archive_enable', 0)
+            
 
 def list_parents(targetnode):
     nparents = len(targetnode.path().split("/"))-2

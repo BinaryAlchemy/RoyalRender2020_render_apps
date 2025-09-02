@@ -23,6 +23,7 @@ MAYA_DEBUG_NO_SAVE_ON_CRASH  =  1
 MAYA_DISABLE_CIP  =  1
 MAYA_DISABLE_CER  =  1
 MAYA_DISABLE_CLIC_IPM  =  1
+MAYA_CM_DISABLE_ERROR_POPUPS  =  1
 
 #Disable Autodesk Analytics data collection:
 [If] <rrExeOS>  [==] win
@@ -80,7 +81,7 @@ PYTHONPATH  = <PYTHONPATH>
     RATTREE  =  <RR_RenderManForMaya_LOCAL>
     RMANTREE  =  <RR_RenderManProServer_LOCAL>
     RMSTREE  =  <RR_RenderManProServer_LOCAL>
-    # XBMLANGPATH  =  <RR_RenderManProServer_LOCAL>\lib\mtor\resources
+    # XBMLANGPATH  =  <RR_RenderManProServer_LOCAL>\lib\mtor\resources;<XBMLANGPATH>
     PATH  =  <RR_RenderManProServer_LOCAL>\lib;<PATH>
 [EndIf]
 
@@ -420,8 +421,8 @@ YETI_TMP  =  <TEMP>
 [If] <RR_GOLAEM_NETWORK>  [==] 1
     echo * Golaem source path is set to <RR_GOLAEM_BASE>
     echo * Golaem cache path is set to <RR_GOLAEM_BASE_LOCAL>
-    [copy] SyncCreateDir <RR_GOLAEM_BASE>   =>   <RR_GOLAEM_BASE_LOCAL>
     [dir] <RR_GOLAEM_BASE_LOCAL>
+    [copy] SyncCreateDir <RR_GOLAEM_BASE>   =>   <RR_GOLAEM_BASE_LOCAL>
     echo + glmCrowd any <RR_GOLAEM_BASE_LOCAL> > <RR_GOLAEM_BASE_LOCAL>\glmCrowd.mod
 
     MAYA_MODULE_PATH  =  <RR_GOLAEM_BASE_LOCAL>;<MAYA_MODULE_PATH>
@@ -438,6 +439,7 @@ YETI_TMP  =  <TEMP>
     RMS_SHADER_PATH = <RR_GOLAEM_BASE_LOCAL>\shaders;<RMS_SHADER_PATH>
     REDSHIFT_PROCEDURALSPATH = <RR_GOLAEM_BASE_LOCAL>\procedurals;<REDSHIFT_PROCEDURALSPATH>
     REDSHIFT_MAYAEXTENSIONSPATH = <RR_GOLAEM_BASE_LOCAL>\procedurals;<REDSHIFT_MAYAEXTENSIONSPATH>
+    # XBMLANGPATH  =  <XBMLANGPATH>;<RR_GOLAEM_BASE_LOCAL>\icons\outliner;<RR_GOLAEM_BASE_LOCAL>\icons\shaders  
 [EndIf]
 
 [If] <rrJobRenderer>  [contains] vray

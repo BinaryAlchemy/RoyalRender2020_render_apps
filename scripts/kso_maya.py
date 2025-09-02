@@ -9,6 +9,7 @@ import maya.cmds as cmds
 import maya.mel
 import rrScriptHelper
 import os
+import math
 
 
 if sys.version_info.major == 2:
@@ -21,7 +22,7 @@ def flushLog():
     
 def logMessageGen(lvl, msg):
     if (len(lvl)==0):
-        print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMaya      : " + str(msg))
+        print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMaya        : " + str(msg))
     else:
         print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrMaya - " + str(lvl) + ": " + str(msg))
 
@@ -30,21 +31,48 @@ def logMessage(msg):
     logMessageGen("",msg)
 
 def logMessageSet(msg):
-    logMessageGen("SET",msg)
+    logMessageGen("SET  ",msg)
 
     
 def logMessageDebug( msg):
     if (False):
-        logMessageGen("DGB", msg)
+        logMessageGen("DGB  ", msg)
 
-def logMessageError(msg):
-    logMessageGen("ERROR", str(msg)+"\n\n")
-    logMessage("                                   ... ")
-    logMessage("                                   ..  ")
-    logMessage("                                   ... ")
-    time.sleep(2) #some delay as some log messages seem to be cut off
+def logMessageError_noRaise(msg, location=""):
+    isException= False
+    isRR_reRaise= False
+    if (str(msg).find("Aborting RR render script")>0 ):
+        isRR_reRaise= True
+    if not isRR_reRaise and isinstance(msg, Exception):
+        isException= True
+        msg= type(msg).__name__ + ": " + str(msg)
+    else:
+        msg= str(msg)
+
+    print("\n\n...........................................................................................................")
+    logMessageGen("ERROR", str(msg))
+    if (len(location)>0):
+        logMessage("(Reported in " + location + ")")
+    if (not isRR_reRaise  and isException):
+        import traceback
+        tb = traceback.format_exc()
+        tb_lines = tb.splitlines()
+        indented_tb = "\n".join([tb_lines[0]] + ["               " + line for line in tb_lines[1:]])
+        logMessage(indented_tb)
+    print("...........................................................................................................\n\n")
+    time.sleep(1) #some delay as some log messages seem to be cut off
     flushLog()
-    raise NameError("\nError reported, aborting render script\n")
+    
+
+def logMessageError(msg, location=""):
+    isException= False
+    if isinstance(msg, Exception):
+        isException= True
+    logMessageError_noRaise(msg, location)
+    if isException:
+        raise RuntimeError("An error has occured before. Aborting RR render script...") from None
+    else:
+        raise RuntimeError("An error has occured before. Aborting RR render script...")
     
     
 def initGlobalVars():
@@ -101,16 +129,27 @@ def setAttr(setParam,setValue):
         cmds.setAttr(setParam,setValue)
     else:
         logMessageGen("WRN","Unable to set value. "+str(setParam)+" does not exist!")
-        
+    
+def getAttr(setParam):
+    if cmds.objExists(setParam):
+        return cmds.getAttr(setParam)
+    return "-"
+      
         
 def logSetAttr(setParam,setValue):
-    logMessageGen("SET",str(setParam)+" = "+str(setValue))
+    oldValue= getAttr(setParam)
+    if (setValue == oldValue):
+        logMessageSet( "{} = {}     (same as before)".format( setParam, setValue))
+    elif (len(str(oldValue)) < 35):
+        logMessageSet( "{} = {}".format( setParam, setValue))
+    else:
+        logMessageSet( "{} = {}     (before: {})".format( setParam, setValue, oldValue))
     setAttr(setParam,setValue)
     flushLog()
         
 
 def logSetAttrType(setParam,setValue,setType):
-    logMessageGen("SET",str(setParam)+" = "+str(setValue))
+    logMessageSet(str(setParam)+" = "+str(setValue))
     if cmds.objExists(setParam):
         maya.mel.eval("removeRenderLayerAdjustmentAndUnlock "+str(setParam)+";")
         cmds.setAttr(setParam,setValue, type=setType)
@@ -119,7 +158,7 @@ def logSetAttrType(setParam,setValue,setType):
 
 
 def logSetAttr2(setParam,setValue,setValueB):
-    logMessageGen("SET", str(setParam)+" = "+str(setValue)+", "+str(setValueB))
+    logMessageSet( str(setParam)+" = "+str(setValue)+", "+str(setValueB))
     if cmds.objExists(setParam):
         maya.mel.eval("removeRenderLayerAdjustmentAndUnlock "+str(setParam)+";")
         cmds.setAttr(setParam,setValue,setValueB)
@@ -158,6 +197,26 @@ def getParam(allArgList, argFindName):
 def isPluginLoaded(pluginName):
     return (str(cmds.pluginInfo( query=True, listPlugins=True )).lower().find(pluginName.lower())>0)
     
+def runMelCmd(cmd):
+    #the python exception might not return a right message.
+    #perhaps this function does, but I did not had an render error to test with
+    logMessageDebug("runMelCmd: "+cmd)
+    try:
+        failed= maya.mel.eval('catch("' + cmd + '");')
+        logMessageDebug("runMelCmd: failed? "+str(failed))
+        if failed != 0:
+            err = maya.mel.eval('getLastError()')
+            logMessage("MEL error:" + str(err))
+            return False
+        logMessageDebug("runMelCmd: success")
+        err = maya.mel.eval('getLastError()')
+        logMessageDebug("MEL error:" + str(err))
+    except Exception as e:
+        logMessage("WARNING: Unable to execute MEL: " + cmd) 
+        logMessage(str(e))
+        return False
+    return True
+           
 
 def disableAllImageplanes():
     for img_plane in cmds.ls(type='imagePlane'):
@@ -255,7 +314,6 @@ def renderFrames(arg,FrStart,FrEnd,FrStep,FrOffset,Renderer, Layer):
             elif (arg.avFrameTime < 140):
                 localNoFrameLoop= arg.Renderer in ("redshift", "Octane", "mayaHardware2")
         
-        
         if (localNoFrameLoop):
             frameCount= ((FrEnd - FrStart) / FrStep ) + 1
             logMessage("Starting to render frames "+str(FrStart)+" - "+str(FrEnd)+", "+str(FrStep)+" ("+str(frameCount)+" frames)")
@@ -308,15 +366,24 @@ def renderFrames(arg,FrStart,FrEnd,FrStep,FrOffset,Renderer, Layer):
                 flushLog()
         
     except Exception as e:
-        logMessageError(str(e))
+        logMessageError(e, "renderFrames")
+        return False
+        
+    return True
 
     
-
+kso_abort = False
 
 
 def ksoRenderFrame(FrStart,FrEnd,FrStep ):
     global globalArg
-    renderFrames(globalArg,FrStart,FrEnd,FrStep, globalArg.FrOffset, globalArg.Renderer, globalArg.Layer)
+    global kso_abort 
+    kso_abort= False
+    if not renderFrames(globalArg,FrStart,FrEnd,FrStep, globalArg.FrOffset, globalArg.Renderer, globalArg.Layer):
+        logMessage("rrKSO Frame(s) FAILED #"+str(FrEnd)+" ")
+        kso_abort= True
+        flushLog()
+        return
     flushLog()
     logMessage("rrKSO Frame(s) done #"+str(FrEnd)+" ")
     logMessage("                                                            ")
@@ -346,10 +413,9 @@ def rrKSOStartServer(arg):
                 server.handle_request()
                 time.sleep(1) # handle_request() seem to return before handle() completed execution
             except Exception as e:
-                logMessageError(e)
-                server.continueLoop= False;
                 import traceback
-                logMessageError(traceback.format_exc())
+                logMessageError(e, "rrKSOStartServer")
+                server.continueLoop= False;
             logMessage("rrKSO NextCommand '"+ kso_tcp.rrKSONextCommand+"'")   
             logMessage("                                                           **   ")
             logMessage("                                                         *wait* ")
@@ -362,11 +428,15 @@ def rrKSOStartServer(arg):
                 else:
                     exec (kso_tcp.rrKSONextCommand)
                     kso_tcp.rrKSONextCommand=""
+                    global kso_abort
+                    if (kso_abort):
+                        server.continueLoop= False;
+                        logMessage("About to close KSO because of error")    
         logMessage("Closing TCP")    
         server.closeTCP()
         logMessage("rrKSO closed")                    
     except Exception as e:
-        logMessageError(str(e))
+        logMessageError(e, "rrKSOStartServer")
 
 
 def render_KSO(arg):
@@ -437,9 +507,17 @@ def execute_scriptfile(arg):
         else:
             exec(open(arg.customScriptFile).read())
     except Exception as e:
-        logMessageError(str(e))        
+        logMessageError(e, "execute_scriptfile")        
 
 
+
+def getSampleThreshold(samples_multi, old_threshold):
+    new_threshold = math.pow(samples_multi, -2) * old_threshold
+    if (new_threshold > 0.75):
+        new_threshold = 0.75
+    if (new_threshold < 0.0005):
+        new_threshold = 0.0005
+    return new_threshold
     
 
 def setRenderSettings_MayaSoftware(arg):
@@ -471,7 +549,7 @@ def setRenderSettings_MayaSoftware(arg):
         if (argValid(arg.RenderMotionBlur)): 
             logSetAttr('defaultRenderGlobals.motionBlur',arg.RenderMotionBlur)
     except Exception as e:
-        logMessageError(str(e))        
+        logMessageError(e)        
 
 
 def setRenderSettings_MRay(arg):
@@ -510,7 +588,7 @@ def setRenderSettings_MRay(arg):
             logSetAttr('miDefaultOptions.contrastR',float(arg.AA3))
             logSetAttr('miDefaultOptions.contrastR',float(arg.AA3))
     except Exception as e:
-        logMessageError(str(e))
+        logMessageError(e)
 
         
 def setRenderSettings_VRay(arg):
@@ -547,7 +625,7 @@ def setRenderSettings_VRay(arg):
         if (argValid(arg.AAseed)):
             logSetAttr('vraySettings.dmcs_randomSeed',int(arg.AAseed))
     except Exception as e:
-        logMessageError(str(e))        
+        logMessageError(e)        
     
 def setRenderSettings_Arnold(arg):
     try:
@@ -625,7 +703,7 @@ def setRenderSettings_Arnold(arg):
                 logSetAttr('defaultArnoldRenderOptions.log_verbosity',int(arg.Verbose))
                 logSetAttr('defaultArnoldRenderOptions.log_console_verbosity',int(arg.Verbose))
         except Exception as e:
-            logMessageError(str(e))
+            logMessageError(e)
         if (argValid(arg.AAseed)):
             logSetAttrType('defaultArnoldRenderOptions.aiUserOptions','AA_seed '+str(arg.AAseed),"string")
         if argValid(arg.AASamples):
@@ -636,18 +714,23 @@ def setRenderSettings_Arnold(arg):
             else:
                 if samples_multi != 1.0:
                     new_aa_samples = round(cmds.getAttr("defaultArnoldRenderOptions.AASamples") * samples_multi)
-                    logSetAttr('defaultArnoldRenderOptions.AASamples', new_aa_samples)
+                    if (new_aa_samples==0 and samples_multi<0.5):
+                        logSetAttr('defaultArnoldRenderOptions.AASamples', -1)
+                    else:
+                        logSetAttr('defaultArnoldRenderOptions.AASamples', new_aa_samples)
 
                     if cmds.getAttr("defaultArnoldRenderOptions.enableAdaptiveSampling"):
                         new_max_samples = round(cmds.getAttr("defaultArnoldRenderOptions.AASamplesMax") * samples_multi)
                         logSetAttr('defaultArnoldRenderOptions.AASamplesMax', new_max_samples)
+                        newThreshold= getSampleThreshold(samples_multi, cmds.getAttr("defaultArnoldRenderOptions.AAAdaptiveThreshold"))
+                        logSetAttr('defaultArnoldRenderOptions.AAAdaptiveThreshold', newThreshold)
                     
                     if cmds.getAttr("defaultArnoldRenderOptions.use_sample_clamp"):
                         new_samples_clamp = cmds.getAttr("defaultArnoldRenderOptions.AASampleClamp") * samples_multi
                         logSetAttr('defaultArnoldRenderOptions.AASampleClamp', new_samples_clamp)
 
     except Exception as e:
-        logMessageError(str(e))   
+        logMessageError(e)   
 
 
 def setRenderSettings_Renderman(arg):
@@ -678,8 +761,7 @@ def setRenderSettings_Renderman(arg):
             logSetAttr2('rmanGlobals.opt_cropWindowBottomRight', float(arg.RegionX2) , float(arg.RegionY2) )
         
     except Exception as e:
-        logMessageError(str(e))  
-        
+        logMessageError(e)  
         
 def setRenderSettings_Redshift(arg):
     try:
@@ -688,12 +770,14 @@ def setRenderSettings_Redshift(arg):
         arg.FName=arg.FName.replace("<layer>","<RenderLayer>");
         logSetAttrType('redshiftOptions.imageFilePrefix',arg.FDir+"/"+arg.FName,"string")
         logSetAttr('redshiftOptions.skipExistingFrames',0)
+        #runMelCmd('rsPreference -q AllCudaDevices')
         try:
-            availableCuda= maya.mel.eval('rsPreference -q "AllCudaDevices";')
-            logMessage("Available Cuda devices: "+availableCuda)
+            maya.mel.eval('$resCuda= `rsPreference -q AllCudaDevices`;')
+            maya.mel.eval('print("Available Cuda devices: " + $resCuda);')
         except Exception as e:
-            logMessage("WARNING: Unable to execute function 'rsPreference -q AllCudaDevices;'") 
-            logMessage(str(e))                   
+            #logMessage("WARNING: Unable to execute 'rsPreference -q AllCudaDevices;'") 
+            #logMessage(str(e))
+            pass
         if (argValid(arg.CudaDevices)):
             arg.CudaDevices= arg.CudaDevices.replace(".",",")
             arg.CudaDevices="{"+arg.CudaDevices+"}"
@@ -702,7 +786,7 @@ def setRenderSettings_Redshift(arg):
             try:
                 maya.mel.eval('redshiftSelectCudaDevices('+arg.CudaDevices+');')      
             except Exception as e:
-                logMessage("ERROR: Unable to execute function 'redshiftSelectCudaDevices("+str(arg.CudaDevices)+");'")
+                logMessage("ERROR: Unable to execute 'redshiftSelectCudaDevices("+str(arg.CudaDevices)+");'")
                 logMessage(str(e))            
         if (argValid(arg.RenderDemo)):
             if (arg.RenderDemo):
@@ -727,8 +811,11 @@ def setRenderSettings_Redshift(arg):
                 logMessage("Warning: Samples argument given but not a valid float: {0}".format(arg.AASamples))
             else:
                 if samples_multi != 1.0:
+                    newThreshold= getSampleThreshold(samples_multi, cmds.getAttr("redshiftOptions.unifiedAdaptiveErrorThreshold"))
+                    logSetAttr('redshiftOptions.unifiedAdaptiveErrorThreshold', newThreshold)
                     if cmds.getAttr("redshiftOptions.enableAutomaticSampling"):
-                        logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                        #logMessage("Warning: Redshift Automatic Sampling is enabled and no override will be applied")
+                        pass
                     else:
                         new_min_samples = max(round(cmds.getAttr("redshiftOptions.unifiedMinSamples") * samples_multi), 1)
                         logSetAttr('redshiftOptions.unifiedMinSamples', new_min_samples)
@@ -737,7 +824,7 @@ def setRenderSettings_Redshift(arg):
                         logSetAttr('redshiftOptions.unifiedMaxSamples', new_max_samples)
 
     except Exception as e:
-        logMessageError(str(e))      
+        logMessageError(e)      
 
 
 def printPluginsLoaded():
@@ -1160,13 +1247,13 @@ def rrYetiChanges(arg):
         logMessage(str(e))  
 
 def rrStart(argAll):
+    restore_includeAllLights = False
     try:    
         initGlobalVars()
         flushLog()
         logMessage("")
         print("_______________________________________________________ Maya started ____________________________________________________________________" )            
         cmds.cycleCheck(e=False )
-        
         timeStart=datetime.datetime.now()
         arg= argParser()
         arg.readArguments(argAll)
@@ -1204,7 +1291,6 @@ def rrStart(argAll):
             logMessageSet("Animation Evaluation Manager to 'off' (DG).")
             cmds.evaluationManager(mode="off")
             
-        restore_includeAllLights = False
         includeAllLights_default = cmds.optionVar(q='renderSetup_includeAllLights')
         if argValid(arg.noIncludeAllLights):
             logMessageDebug("renderSetup_includeAllLights is set to " + str(includeAllLights_default))
@@ -1320,7 +1406,16 @@ def rrStart(argAll):
         
         if (argValid(arg.Camera)): 
             logMessageSet("camera to '" +arg.Camera+"'" )
-            maya.mel.eval('makeCameraRenderable("'+arg.Camera+'")')
+            flushLog()
+            funcFail= maya.mel.eval('catch(`makeCameraRenderable("'+arg.Camera+'")`)')
+            if funcFail:
+                flushLog()
+                # No need to print the error as it is always printed. (CatchQuiet does not work in batch?)
+                #err = maya.mel.eval('getLastError()')
+                #if err:
+                #    logMessage("MEL error:"+ str( err))                
+                logMessageError("Unable to set camera to '" +arg.Camera+"'" )
+
         cameraList=cmds.ls(ca=True)
         foundRenderCam=False
         for cam in cameraList:
@@ -1391,7 +1486,7 @@ def rrStart(argAll):
             
         logMessage("Render done")
     except Exception as e:
-        logMessageError(str(e))
+        logMessageError_noRaise(e, "rrStart")
     
     # reset preferences in case they have changed
     if restore_includeAllLights:
