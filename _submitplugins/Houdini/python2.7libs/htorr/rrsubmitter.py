@@ -184,7 +184,13 @@ class RrCmdGlobSubmitter(RrCmdSubmitter):
         proc = subprocess.Popen(command, startupinfo=startupinfo, stdout=subprocess.PIPE, env=rr_env, shell=True)
 
         out = proc.communicate()[0]
-        out= out.decode('ascii')
+        out = out.replace(b"\n", b"")
+        logger.debug("#####################CONSOLE Commandline Submitter###########################")
+        #logger.debug(out)
+        #logger.debug("################################################")
+        out= out.decode("latin-1")
+        logger.debug(out)
+        logger.debug("#####################CONSOLE Commandline Submitter###########################")
 
         if proc.returncode != 0:
             logger.warning("RR Commandline Submitter cant submit Job:\n"+out)

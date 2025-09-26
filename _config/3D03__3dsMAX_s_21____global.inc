@@ -30,7 +30,8 @@ COListenerLog=0~0
 
 Frozen_MinCoreUsage=1.90
 
-licenseFailLine=  
+licenseFailLine=  [V-Ray] Could not obtain a license
+RealTimeAbortLine= [V-Ray] Could not obtain a license
 
 errorSearchLine= Error executing render script
 errorSearchLine= An unexpected exception has occurred in the network renderer and it is terminating

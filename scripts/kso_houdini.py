@@ -579,6 +579,54 @@ def setSampleThresholdParameters(half_effect, samples_multi, *sample_params, set
         logMessageSET(rop_name + " " + parm_name + " from {:.4f} to {:.4f} ".format(parm_val, parm.eval()))
 
 
+def setSampleParameters_Arnold_solaris(samples_multi, settings_node=None):
+    if samples_multi == 1.0:
+        return
+    settings_node = settings_node if settings_node else arg.rop
+
+    rop_name = settings_node.name()
+    logMessage("Setting sampling parameters for " + rop_name)
+    
+    aa_value_parm = settings_node.parm("xn__arnoldglobalAA_samples_wcbg")
+    aa_control_parm = settings_node.parm("xn__arnoldglobalAA_samples_control_xpbg")
+
+    control_mode= aa_control_parm.eval()
+    if (control_mode != "add") and (control_mode != "multiply"):
+       if (control_mode != "setexisting") and (control_mode != "set"):
+           aa_value=3 #arnold default is 3 samples
+       else:
+           aa_value=aa_value_parm.eval()
+       aa_control_parm.set("set")
+       if (samples_factor <= 0.5):       
+           aa_value_parm.set(-1)
+       else:
+           aa_value_parm.set(round(aa_value * samples_multi))
+       logMessageSET(rop_name + " arnoldglobalAA_samples from " + str(aa_value) + " to " + str(aa_value_parm.eval()))
+        
+        
+        
+    aa_value_parm = settings_node.parm("xn__arnoldglobalAA_samples_max_fjbg")
+    aa_control_parm = settings_node.parm("xn__arnoldglobalAA_samples_max_control_gwbg")
+
+    control_mode= aa_control_parm.eval()
+    if (control_mode == "setexisting") or (control_mode == "set"):
+       aa_value=aa_value_parm.eval()
+       aa_control_parm.set("set")
+       aa_value_parm.set(round(aa_value * samples_multi))
+       logMessageSET(rop_name + " arnoldglobalAA_samples_max from " + str(aa_value) + " to " + str(aa_value_parm.eval()))
+
+
+       
+    aa_value_parm = settings_node.parm("xn__arnoldglobalAA_adaptive_threshold_tubg")
+    aa_control_parm = settings_node.parm("xn__arnoldglobalAA_adaptive_threshold_control_u7bg")
+
+    control_mode= aa_control_parm.eval()
+    if (control_mode == "setexisting") or (control_mode == "set"):
+       aa_value=aa_value_parm.eval()
+       aa_control_parm.set("set")
+       aa_value_parm.set(getSampleThreshold(True, samples_multi, aa_value))
+       logMessageSET(rop_name + " arnoldglobalAA_adaptive_threshold from {:.4f} to {:.4f} ".format(aa_value, aa_value_parm.eval()))
+       
 
 def applyRendererOptions_comp():
     global arg
@@ -815,7 +863,7 @@ def applyRendererOptions_USD():
         logMessageDebug("setting karma sampling factor to " + str(getSampleArgument()))
         setSampleParameters(getSampleArgument(), 'samplesperpixel', 'varianceaa_minsamples', 'varianceaa_maxsamples', settings_node=r_props)
     elif renderer_name == 'arnold':
-        setSampleParameters(getSampleArgument(), 'ar_AA_samples_max', 'ar_AA_samples', settings_node=r_props)
+        setSampleParameters_Arnold_solaris(getSampleArgument(), settings_node=r_props)
     elif renderer_name == 'ifd':
         setSampleParameters(getSampleArgument(), 'vm_samplesx', 'vm_samplesy', 'vm_transparentsamples')  # 'vm_minraysamples', 'vm_maxraysamples' are multiplied by vm_samples*
     elif renderer_name == 'Redshift_ROP':

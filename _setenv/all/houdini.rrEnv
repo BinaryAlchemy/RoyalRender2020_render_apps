@@ -141,6 +141,7 @@ RR_HTOA_VERSION=<RR_HTOA_VERSION>
 RR_HTOA_BASE_LOCAL  =  <rrLocalExeDir>htoa<RR_HTOA_VERSION>__houdini<ExeVersionFull>
 echo * HtoA source path is set to <RR_HTOA_BASE>
 echo * HtoA cache path is set to <RR_HTOA_BASE_LOCAL>
+[dir] <RR_HTOA_BASE>
 [copy] SyncNoCreateDir <RR_HTOA_BASE>   =>   <RR_HTOA_BASE_LOCAL>
 PATH  =  <RR_HTOA_BASE_LOCAL>\bin;<RR_HTOA_BASE_LOCAL>\scripts\bin;<PATH>
 ARNOLD_PLUGIN_PATH  =  <RR_HTOA_BASE_LOCAL>\shaders;<ARNOLD_PLUGIN_PATH>
@@ -183,6 +184,7 @@ RR_REDSHIFT_BASE = <RR_REDSHIFT_BASE>
 RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
 
 echo * RedShift source path is set to <RR_REDSHIFT_BASE>
+[dir] <RR_REDSHIFT_BASE>
 [If] <RR_REDSHIFT_NO_LOCAL_SYNC>  [==] 1
     #If we do not localize the license path, then Redshift will try to save a file into the netzwork drive, which might fails with many machines
     [dir] <RR_REDSHIFT_BASE_LOCAL>
@@ -308,6 +310,7 @@ RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray_<RR_VRAY_VERSION>__houdini<ExeVersion
 [If] <RR_VRAY_IS_USED>  [==] TRUE 
     echo * VRay source path is set to <RR_VRAY_BASE>
     echo * VRay cache path is set to <RR_VRAY_BASE_LOCAL>
+    [dir] <RR_VRAY_BASE>
     [copy] SyncNoCreateDir <RR_VRAY_BASE>   =>   <RR_VRAY_BASE_LOCAL>
 
     VFH_HOME  =  <RR_VRAY_BASE_LOCAL>\vfh_home
@@ -401,9 +404,11 @@ RR_RENDERMAN_BASE_LOCAL  =  <rrLocalExeDir>Renderman
 [EndIf]
 [If] <RR_RENDERMAN_USED>  [==] TRUE
     echo * Renderman ProServer source path is set to <RR_RENDERMAN_PROSERVER>
+    [dir] <RR_RENDERMAN_PROSERVER>
     echo * Renderman ProServer cache path is set to <RR_RENDERMAN_PROSERVER_LOCAL>
     [copy] SyncNoCreateDir <RR_RENDERMAN_PROSERVER>   =>   <RR_RENDERMAN_PROSERVER_LOCAL>
     echo * Renderman Houdini source path is set to <RR_RENDERMAN_HOUDINI>
+    [dir] <RR_RENDERMAN_HOUDINI>
     echo * Renderman Houdini cache path is set to <RR_RENDERMAN_HOUDINI_LOCAL>
     [copy] SyncNoCreateDir <RR_RENDERMAN_HOUDINI>   =>   <RR_RENDERMAN_HOUDINI_LOCAL>
     RMANTREE = <RR_RENDERMAN_PROSERVER_LOCAL>
@@ -441,6 +446,7 @@ RR_OCTANE_VERSION= <RR_OCTANE_VERSION>
 [EndIf]
 RR_OCTANE_BASE_LOCAL  =  <rrLocalExeDir>Octane_<RR_OCTANE_VERSION>_Houdini_<ExeVersionFull>
 echo * Octane source path is set to <RR_OCTANE_BASE>
+[dir] <RR_OCTANE_BASE>
 echo * Octane cache path is set to <RR_OCTANE_BASE_LOCAL>
 [copy] SyncNoCreateDir <RR_OCTANE_BASE>   =>   <RR_OCTANE_BASE_LOCAL>
 

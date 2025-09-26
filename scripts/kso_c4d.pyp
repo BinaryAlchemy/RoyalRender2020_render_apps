@@ -1231,6 +1231,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
 
             if localNoFrameLoop:
                 logMessage( "Rendering Frames (All frames at once. No frame-by-frame): " + str(FrStart) + "-" + str(FrEnd))
+                doc.SetTime(c4d.BaseTime(FrStart, fps))
                 rd[c4d.RDATA_FRAMEFROM] = c4d.BaseTime(FrStart, fps)
                 rd[c4d.RDATA_FRAMETO] = c4d.BaseTime(FrEnd, fps)
                 rd[c4d.RDATA_FRAMESTEP] = FrStep

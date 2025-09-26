@@ -22,6 +22,6 @@ RealTimeAbortLine= The render will not start
 RealTimeAbortLine= Engine 'REDSHIFT' not available for scene
 RealTimeAbortLine= Maxon licensing error
 
-SeperateRenderLogFile= <rrLocalTemp>\Redshift\Log\Log.Latest.0\log.html
+SeparateRenderLogFile= <rrLocalTemp>\Redshift\Log\Log.Latest.0\log.html
 
 ::include(<ConfigFileName>__inhouse.inc)

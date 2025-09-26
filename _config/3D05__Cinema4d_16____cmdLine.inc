@@ -40,7 +40,7 @@ CommandLine= "<Exe>"
     -FPadding <ImageFramePadding>
     <AppRenderer -renderer <AppRenderer>>
     -avFrameTime <AvFrameTimeSec>
-    -noFrameLoop <CONoFrameLoop True ? False>
+    -noFrameLoop <NoFramebyFrameLoop True ? False>
     -sceneOS <sceneOS>
     -rAA <AAsamplesMultiply>
     <Channel -Channel <Channel> >

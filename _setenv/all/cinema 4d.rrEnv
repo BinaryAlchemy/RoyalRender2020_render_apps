@@ -77,6 +77,7 @@ LicenseFlags= <LicenseFlags>
 
 [If] <RR_REDSHIFT_NETWORK>  [==] 1
         echo * RedShift source path is set to <RR_REDSHIFT_BASE>
+        [dir] <RR_REDSHIFT_BASE>
         echo * Redshift plugin source path is set to  <RR_REDSHIFT_BASE>\Plugins\C4D\R<rrExeVersionMajor>
         echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
 
@@ -165,6 +166,7 @@ REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
 
 [If] <RR_OCTANE_NETWORK>  [==] 1
         echo * Octane source path is set to <RR_OCTANE_BASE>
+        [dir] <RR_OCTANE_BASE>
         echo * Octane cache path is set to <RR_OCTANE_BASE_LOCAL>
         [copy] SyncNoCreateDir <RR_OCTANE_BASE>   =>   <RR_OCTANE_BASE_LOCAL>
 
@@ -203,6 +205,7 @@ REDSHIFT_LOCALDATAPATH = <rrLocalTemp>Redshift
 
 [If] <RR_ARNOLD_NETWORK>  [==] 1
         echo * Arnold source path is set to <RR_ARNOLD_BASE>
+        [dir] <RR_ARNOLD_BASE>
         echo * Arnold cache path is set to <RR_ARNOLD_BASE_LOCAL>
         [copy] SyncNoCreateDir <RR_ARNOLD_BASE>   =>   <RR_ARNOLD_BASE_LOCAL>
         PATH=<ARNOLD_BIN>;<PATH>
@@ -220,6 +223,7 @@ ARNOLD_ADP_OPTIN = 0
 
 [If] <rrExeVersionMajor>  [>=] 20
     echo * c4d plugin source path is set to <rrPlugins><rrExeVersion>\plug-ins
+    [dir] <rrPlugins><rrExeVersion>\plug-ins
     echo * c4d plugin path is set to <C4D_rrRenderScriptFolder>
     [copy] SyncNoCreateDir <rrPlugins><rrExeVersion>\plug-ins   =>   <C4D_rrRenderScriptFolder>
 [EndIf]

@@ -38,6 +38,7 @@ MAYA_APP_DIR  =  <rrLocalPrefs>
     RR_MAYA_PREFS  =  <rrPrefs><rrExeVersionMinReq>
 [EndIf]
 echo * Maya preference source path is set to <RR_MAYA_PREFS>
+[dir] <RR_MAYA_PREFS>
 echo * Maya preference cache  path is set to <rrLocalPrefs><rrExeVersionMinReq>
 [copy] OverwriteDifferentDir <RR_MAYA_PREFS>   =>   <rrLocalPrefs><rrExeVersionMinReq>
 
@@ -46,6 +47,7 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\lib;<LD_LIBRARY_PATH>
 RR_MAYAPLUGIN_BASE  =  <rrPlugins><rrExeVersionMinReq>\plug-ins
 RR_MAYAPLUGIN_BASE_LOCAL  =  <rrLocalExeDir><rrExeVersionMinReq>\plug-ins
 echo * Maya plugin source path is set to <RR_MAYAPLUGIN_BASE>
+[dir] <RR_MAYAPLUGIN_BASE>
 echo * Maya plugin path is set to <RR_MAYAPLUGIN_BASE_LOCAL>
 [copy] SyncNoCreateDir <RR_MAYAPLUGIN_BASE>   =>   <RR_MAYAPLUGIN_BASE_LOCAL>
 PATH  =  <RR_MAYAPLUGIN_BASE_LOCAL>;<PATH>
@@ -67,9 +69,11 @@ PYTHONPATH  = <PYTHONPATH>
 
 [If] <rrJobRenderer>  [==] renderMan
     echo * RenderManForMaya source path is set to <RR_RenderManForMaya_BASE>
+    [dir] <RR_RenderManForMaya_BASE>
     echo * RenderManForMaya cache path is set to <RR_RenderManForMaya_LOCAL>
     [copy] SyncCreateDir <RR_RenderManForMaya_BASE>   =>   <RR_RenderManForMaya_LOCAL>
     echo * RenderManProServer source path is set to <RR_RenderManProServer_BASE>
+    [dir] <RR_RenderManProServer_BASE>
     echo * RenderManProServer cache path is set to <RR_RenderManProServer_LOCAL>
     [copy] SyncCreateDir <RR_RenderManProServer_BASE>   =>   <RR_RenderManProServer_LOCAL>
     [copy] SyncCreate <rrSharedExeDir>pixar.license   =>   <rrLocalExeDir>pixar.license
@@ -124,6 +128,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
 # On Windows, the whole commandline is loaded and variables are replaced before execution. An If/endif is one commandline. Therefore "set RR_VRAY_BASE_LOCAL  =  " and using it inside the same If/EndIf does not work.
 [If] <RR_VRAY_NETWORK>  [==] 1
     echo * VRay source path is set to <RR_VRAY_BASE>
+    [dir] <RR_VRAY_BASE>
     echo * VRay cache path is set to <RR_VRAY_BASE_LOCAL>
     [copy] SyncCreateDir <RR_VRAY_BASE>   =>   <RR_VRAY_BASE_LOCAL>
     MAYA_PLUG_IN_PATH  =  <RR_VRAY_BASE_LOCAL>\maya_vray\plug-ins;<RR_VRAY_BASE_LOCAL>\maya_root\plug-ins;<MAYA_PLUG_IN_PATH>
@@ -217,6 +222,7 @@ RR_USE_ARNOLD_RENDERER = 0
 [EndIf]
 
 echo * MtoA source path is set to <RR_MTOA_BASE>
+[dir] <RR_MTOA_BASE>
 echo * MtoA cache path is set to <RR_MTOA_BASE_LOCAL>
 [If] <RR_MTOA_NETWORK>  [==] 1
     [copy] SyncCreateDir <RR_MTOA_BASE>   =>   <RR_MTOA_BASE_LOCAL>
@@ -304,6 +310,7 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
 
 [If] <rrJobRenderer>  [contains] redshift
     echo * RedShift source path is set to <RR_REDSHIFT_BASE>
+    [dir] <RR_REDSHIFT_BASE>
     echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
     [If] <RR_REDSHIFT_NETWORK>  [==] 1
         [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
@@ -382,6 +389,7 @@ MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-in
 
 [If] <RR_YETI_NETWORK>  [==] 1
     echo * Yeti source path is set to <RR_YETI_BASE>
+    [dir] <RR_YETI_BASE>
     echo * Yeti cache path is set to <RR_YETI_BASE_LOCAL>
     [copy] SyncCreateDir <RR_YETI_BASE>   =>   <RR_YETI_BASE_LOCAL>
     ARNOLD_PROCS_PATH  =  <RR_YETI_BASE_LOCAL>\bin;<ARNOLD_PROCS_PATH>
@@ -420,6 +428,7 @@ YETI_TMP  =  <TEMP>
 
 [If] <RR_GOLAEM_NETWORK>  [==] 1
     echo * Golaem source path is set to <RR_GOLAEM_BASE>
+    [dir] <RR_GOLAEM_BASE>
     echo * Golaem cache path is set to <RR_GOLAEM_BASE_LOCAL>
     [dir] <RR_GOLAEM_BASE_LOCAL>
     [copy] SyncCreateDir <RR_GOLAEM_BASE>   =>   <RR_GOLAEM_BASE_LOCAL>

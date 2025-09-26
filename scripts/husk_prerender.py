@@ -6,11 +6,23 @@
 import sys
 import json
 import math
+from pxr import Sdf
+
+DEBUG= False
+if "DEBUG" in os.environ:
+    DEBUG= True
+
+def print_debug(msg):
+    global DEBUG
+    if DEBUG:
+        print("DGB: " + msg)
+
+
 
 class Params():
     def __init__(self):
         self.samples_factor = 1.0
-        
+        self.verbose_level = -1
         self.parse_args()
 
     def parse_args(self):
@@ -26,6 +38,13 @@ class Params():
                     self.samples_factor = float(aa_samples)
                 except ValueError:
                     print(f"WARNING: can't convert {arg} {aa_samples} to a decimal number")
+            if arg == '-verbose':
+                try:
+                    self.verbose_level = sys.argv[i + 1]
+                except IndexError:
+                    print(f"WARNING: no value given for parameter {arg}")
+                    self.verbose_level=-1
+                    continue
             
 def getSampleThreshold(half_effect, samples_multi, old_threshold):
     if samples_multi == 1.0:
@@ -42,22 +61,25 @@ def getSampleThreshold(half_effect, samples_multi, old_threshold):
 def render_samples_multiply(samples_factor : float):
     if samples_factor == 1.0:
         return
-    print("husk_prerender.py version %rrVersion%")
 
     r_prim = stage.GetPrimAtPath("/Render/rendersettings")
     if not r_prim:
         return
 
     for attr_name in ("arnold:global:AA_samples_max", "arnold:global:AA_samples", "karma:global:samplesperpixel", "karma:global:samplesperpixel", "karma:object:varianceaa_maxsamples"):
-        #print("DGB: {}".format(attr_name) )
         attr = r_prim.GetAttribute(attr_name)
-        #print("DGB: attr is {}".format(type(attr)) )
+        print_debug("{} is type {} - {}".format(attr_name, type(attr), attr.GetTypeName()) )
         if attr is None:
             continue
         prev = attr.Get()
+        print_debug("   value is type {}".format(type(prev)) )
         if prev is None:
-            continue
-        #print("DGB: prev is {}".format(type(prev)) )
+            if (attr_name == "arnold:global:AA_samples"): 
+                attr = r_prim.CreateAttribute("arnold:global:AA_samples", Sdf.ValueTypeNames.Int)            
+                prev=3 #arnold default is 3 samples
+            else:
+                continue
+        print_debug("   value is {}".format(prev))
         attr.Set(round(prev * samples_factor))
         print("SET: {} changed from {} to {}".format(attr_name, prev, r_prim.GetAttribute(attr_name).Get()) )
 
@@ -96,5 +118,25 @@ def render_samples_multiply(samples_factor : float):
             print("ERROR: " +  str(e)+"\n")      
 
 
+def renderer_verbose_set(verbose_level):
+    if verbose_level == -1 :
+        return
+    r_prim = stage.GetPrimAtPath("/Render/rendersettings")
+    if not r_prim:
+        return
+        
+    attr_name="arnold:global:log:verbosity"
+    attr = r_prim.GetAttribute(attr_name)
+    print_debug("{} is type {} - {}".format(attr_name, type(attr), attr.GetTypeName()) )
+    if attr is not None:
+        prev = attr.Get()
+        if prev is None:
+            attr = r_prim.CreateAttribute(attr_name, Sdf.ValueTypeNames.Int)            
+        attr.Set(int(verbose_level))
+
+
+
+print("husk_prerender.py version %rrVersion%")
 params = Params()
 render_samples_multiply(params.samples_factor)
+renderer_verbose_set(params.verbose_level)

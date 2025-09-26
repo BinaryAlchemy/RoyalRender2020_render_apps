@@ -22,7 +22,7 @@ AllowLocalSceneCopy= 1~0
 
 
 ################################## Client Settings ################################## 
-SeperateRenderLogFile= <rrLocalTemp><SceneFileName>.crash.txt
+SeparateRenderLogFile= <rrLocalTemp><SceneFileName>.crash.txt
 
 TexReplaceFormat= .blend ~ FOR4 ~ AlwaysForward
 
