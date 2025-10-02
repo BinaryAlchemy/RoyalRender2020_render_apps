@@ -166,6 +166,8 @@ class rrJob:
         self.sendAppBit = ""
         self.preID = ""
         self.waitForPreID  = ""
+        self.CustomAddCmdFlags = ""
+        self.CustomNoSceneExistCheck = False
         self.CustomProjectName  = ""
         self.CustomSequencePath = ""
         self.CustomPresetPath = ""
@@ -174,6 +176,7 @@ class rrJob:
         self.shotName = ""
         self.seqName = ""
         self.versionName = ""
+        self.submitter_parameter = ""
 
     # from infix.se (Filip Solomonsson)
     def indent(self, elem, level=0):
@@ -213,6 +216,7 @@ class rrJob:
     def writeToXMLJob(self, rootElement):
 
         jobElement = self.subE(rootElement, "Job", "")
+        self.subE(jobElement, "SubmitterParameter", self.submitter_parameter)
         self.subE(jobElement, "rrSubmitterPluginVersion", "%rrVersion%")
         self.subE(jobElement, "Software", self.software)
         self.subE(jobElement, "Renderer", self.renderer)
@@ -247,6 +251,8 @@ class rrJob:
         self.subE(jobElement, "CustomSeQName", self.seqName)
         self.subE(jobElement, "CustomSHotName", self.shotName)
         self.subE(jobElement, "CustomVersionName", self.versionName)
+        self.subE(jobElement, "CustomAddCmdFlags", self.CustomAddCmdFlags)
+        self.subE(jobElement, "CustomNoSceneExistCheck", self.CustomNoSceneExistCheck)
         self.subE(jobElement, "CustomProjectName", self.CustomProjectName)
         self.subE(jobElement, "LocalTexturesFile", self.LocalTexturesFile)
         self.subE(jobElement, "CustomSequencePath", self.CustomSequencePath)
@@ -420,26 +426,7 @@ def get_file_params(ue_job):
     return file_params
 
 
-def submit_ue_jobs(queue):
-    system_lib = unreal.SystemLibrary()
-
-    unreal_ver = system_lib.get_engine_version().split('-', 1)[0]
-
-    project_dir = system_lib.get_project_directory()
-    project_fpath = unreal.Paths().get_project_file_path()
-    project_fdir, project_fname = os.path.split(project_fpath)
-
-    # attributes for all RR jobs
-    base_job_rr = rrJob()
-    base_job_rr.software = "Unreal Engine"
-    base_job_rr.renderer = "MoviePipeline"
-    base_job_rr.version = unreal_ver
-    base_job_rr.sceneOS = get_OS_String()
-    base_job_rr.CustomProjectName = project_fname
-    base_job_rr.sceneDatabaseDir = project_dir
-    base_job_rr.imageSingleOutput = ''
-    base_job_rr.seqStep = 1
-
+def collect_rr_jobs(base_job_rr, queue):
     rr_jobs = []
 
     # get Unreal Engine jobs
@@ -480,8 +467,6 @@ def submit_ue_jobs(queue):
         new_job_rr.layer = seq_asset_name
 
         split_shot_jobs = True
-        submission_ui = True
-
         out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
 
         # ALL SETTINGS contain output, format, and other setting classes
@@ -647,8 +632,11 @@ def submit_ue_jobs(queue):
         dialog.show_message("No jobs found",
                             "No job found for submission. Please, make sure all job settings were saved: unreal ignores unsaved settings",
                             unreal.AppMsgType.OK)
-        return
-        
+    
+    return rr_jobs
+
+
+def submit_rr_jobs(base_job_rr, rr_jobs, show_ui=True):
     # launch_rr_submitter
 
     tmp_file = tempfile.NamedTemporaryFile(mode='w+b',
@@ -662,9 +650,31 @@ def submit_ue_jobs(queue):
         rr_job.writeToXMLJob(xmlObj)
 
     if base_job_rr.writeToXMLEnd(tmp_file, xmlObj):
-        launch_rr_submitter(tmp_file.name, show_ui=submission_ui)
+        launch_rr_submitter(tmp_file.name, show_ui=show_ui)
     else:
         unreal.log_error("Could not write submission file") 
+
+
+def create_base_job():
+    # attributes for all RR jobs
+
+    system_lib = unreal.SystemLibrary()
+    unreal_ver = system_lib.get_engine_version().split('-', 1)[0]
+    project_dir = system_lib.get_project_directory()
+    project_fpath = unreal.Paths().get_project_file_path()
+    project_fdir, project_fname = os.path.split(project_fpath)
+    
+    base_job_rr = rrJob()
+    base_job_rr.software = "Unreal Engine"
+    base_job_rr.renderer = "MoviePipeline"
+    base_job_rr.version = unreal_ver
+    base_job_rr.sceneOS = get_OS_String()
+    base_job_rr.CustomProjectName = os.path.splitext(project_fname)[0]
+    base_job_rr.sceneDatabaseDir = project_dir
+    base_job_rr.imageSingleOutput = ''
+    base_job_rr.seqStep = 1
+
+    return base_job_rr
 
 
 @unreal.uclass()
@@ -677,7 +687,9 @@ class MoviePipelineRoyalSubmit(unreal.MoviePipelinePythonHostExecutor):
         # executor is instantiated.
         
         # The user pressed "Remote" in the MoviePipelineQue window: submit the jobs
-        submit_ue_jobs(inPipelineQueue)
+        base_job_rr = create_base_job()
+        rr_jobs = collect_rr_jobs(base_job_rr, inPipelineQueue)
+        submit_rr_jobs(base_job_rr, rr_jobs)
 
     @unreal.ufunction(override=True)
     def is_rendering(self):
