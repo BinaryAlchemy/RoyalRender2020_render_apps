@@ -197,9 +197,20 @@ def enable_addon(addon_name):
     
     try:
         addon_utils.enable(addon_name)
+        is_enabled = addon_utils.check(addon_name)[1]
+        if (not is_enabled):
+            log_msg_wrn(f"Failed to enable addon {addon_name}")
+            flush_log()
+            return False
+        return True
     except ModuleNotFoundError:
-        log_msg_wrn(f"Failed to enable addon: {addon_name}")
+        log_msg_wrn(f"Failed to enable addon {addon_name}: A module was not found")
         flush_log()
+        return False
+    except Exception as e:
+        log_msg_wrn(f"Failed to enable addon {addon_name}: "+str(e))
+        flush_log()
+        return False
 
 
 # Parsing
@@ -246,7 +257,7 @@ class RRArgParser(object):
         self.borderMaxY = None
 
         self.enable_gpu = False
-        self.load_redshift = False
+        #self.load_redshift = False
         self.enable_gpu_cpu = False
         self.enable_gpu_optix = False
         
@@ -320,9 +331,9 @@ class RRArgParser(object):
                 self.enable_gpu_optix = True
                 continue
 
-            if arg == "-rLoadRS":
-                self.load_redshift = True
-                continue
+            #if arg == "-rLoadRS":
+            #    self.load_redshift = True
+            #    continue
 
             if arg == "-NoFramebyFrameLoop":
                 self.NoFramebyFrameLoop = True
@@ -779,10 +790,12 @@ def list_addons(load_3rdParty = False):
         log_msg("    "+ str(path))        
 
 
-    blenderAddons_idle_count=0
+
+    blenderAddons_NotLoaded_count=0
     blenderAddons_loaded_count=0
     blenderAddons_loaded="   ("
-    extAddons_idle_count=0
+    blenderAddons_NotLoaded="   ("
+    extAddons_NotLoaded_count=0
     extAddons_loaded_count=0
     total_count=0
     title_printed=False
@@ -816,23 +829,29 @@ def list_addons(load_3rdParty = False):
                 statusString="ACTIVE"
                 extAddons_loaded_count= extAddons_loaded_count + 1
             else:
-                extAddons_idle_count= extAddons_idle_count + 1
+                extAddons_NotLoaded_count= extAddons_NotLoaded_count + 1
                 
             log_msg(" - {} - '{}' ({}) v{}.{}.{}".format(statusString, mod.bl_info.get("name"), mod.__name__, ver[0], ver[1], ver[2]  ))
         else:
             if is_enabled:
-                blenderAddons_loaded= blenderAddons_loaded + mod.bl_info.get("name") + ",  "
+                blenderAddons_loaded= blenderAddons_loaded + "'{}' ({}),   ".format(mod.bl_info.get("name"), mod.__name__  )  
                 blenderAddons_loaded_count= blenderAddons_loaded_count + 1
             else:
-                blenderAddons_idle_count= blenderAddons_idle_count + 1
+                blenderAddons_NotLoaded= blenderAddons_NotLoaded + "'{}' ({}),   ".format(mod.bl_info.get("name"), mod.__name__  )  
+                blenderAddons_NotLoaded_count= blenderAddons_NotLoaded_count + 1
     blenderAddons_loaded= blenderAddons_loaded + ")     "
+    blenderAddons_NotLoaded= blenderAddons_NotLoaded + ")     "
  
     log_msg("Total  add-on count:            {} ".format(total_count))
     log_msg("3rd Party   add-ons loaded:     {} ".format(extAddons_loaded_count))
+    log_msg("3rd Party   add-ons not loaded: {} ".format(extAddons_NotLoaded_count))
     log_msg("Blender app add-ons loaded:     {} ".format(blenderAddons_loaded_count))
     log_msg(blenderAddons_loaded)
-    log_msg("3rd Party   add-ons not loaded: {} ".format(extAddons_idle_count))
-    log_msg("Blender app add-ons not loaded: {} ".format(blenderAddons_idle_count))
+    log_msg("Blender app add-ons not loaded: {} ".format(blenderAddons_NotLoaded_count))
+    
+    v_major, v_minor, _ = bpy.app.version
+    if v_major > 4 or (v_minor > 2 and v_major == 4):    
+        log_msg(blenderAddons_NotLoaded)
        
   
 
@@ -854,10 +873,15 @@ if __name__ == "__main__":
     
     log_msg(" Renderer set: "+ args.renderer)
     
-    if args.load_redshift:
-        enable_addon("redshift")
-    if args.renderer.lower() == "luxcore":
-        enable_addon("BlendLuxCore")
+    if args.renderer.lower() == "redshift":
+        if not enable_addon("redshift"):
+            raise Exception("Unable to load renderer")
+    elif args.renderer.lower() == "luxcore":
+        if not enable_addon("BlendLuxCore"):
+            raise Exception("Unable to load renderer")
+    elif args.renderer.lower() == "octane":
+        if not enable_addon("octane"):
+            raise Exception("Unable to load renderer")
     
     list_addons(args.load3rdPartyPlugins)
     log_msg("About to open blend file ".center(100, "_"))

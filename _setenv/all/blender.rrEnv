@@ -20,10 +20,11 @@ echo * ------ blender.rrEnv version %rrVersion% ------
     [dir] <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>\AppData\Local
 [EndIf]
 
-
-
 [If] <rrExeOS>  [==] win
+    echo * Blender preference path is set to <rrPrefs><rrExeVersion>
+    echo * Blender addon path is set to <rrPrefs><rrExeVersion>\scripts\addons
     [copy] SyncCreateDir <rrPrefs><rrExeVersion>   =>   <USERPROFILE>\AppData\Roaming\Blender Foundation\Blender\<rrExeVersion>
+    [dir] <rrPrefs><rrExeVersion>\scripts\addons
 [EndIf]
 
 PYTHONPATH = <rrLocalRenderScripts>;<PYTHONPATH>
@@ -49,6 +50,7 @@ PYTHONPATH = <rrLocalRenderScripts>;<PYTHONPATH>
 
 [If] <RR_REDSHIFT_NETWORK>  [==] 1
     echo * RedShift source path is set to <RR_REDSHIFT_BASE>
+    [dir] <RR_REDSHIFT_BASE>
     echo * RedShift cache path is set to <RR_REDSHIFT_BASE_LOCAL>
     
     [copy] SyncNoCreateDir <RR_REDSHIFT_BASE>   =>   <RR_REDSHIFT_BASE_LOCAL>
