@@ -9,6 +9,7 @@ except AttributeError:
     pass
 else:
     from MoviePipelineRoyalSubmit import MoviePipelineRoyalSubmit
+    from MoviePipelineRoyalNoUI import MoviePipelineRoyalNoUI
 
     try:
         from init_unreal__inhouse import *
