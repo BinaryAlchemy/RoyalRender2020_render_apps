@@ -758,6 +758,7 @@ class rrJob(JobProps):
         rootElement.attrib["syntax_version"] = "6.0"
         self.subE(rootElement, "DeleteXML", "1")
         self.subE(rootElement, "decodeUTF8", "_")
+        self.subE(rootElement, "SubmitterParameter", "JobsSortBy=0~Queue")
 
         if self.Arnold_DriverOut:
             self.subE(rootElement, "SubmitterParameter", "COArnoldDriverOut=1~1")
