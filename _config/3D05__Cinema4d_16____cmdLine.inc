@@ -50,6 +50,7 @@ CommandLine= "<Exe>"
     <AdditionalCommandlineParam>
 	<ClientConfigParam>
 	<COArnoldDriverOut -arnoldDriverOut true>
+    <verboseLevel>
     g_prefspath=<rrLocalPrefs><ExeVersion>
 	
 CommandLine=
@@ -80,16 +81,13 @@ KSOlog_Quit=rrKSO closed
 FlagsRegion= -RegionLeft  <X1 <X1> ?0> -RegionRight <X2 <X2> ? <Width>>  -RegionTop <Y1 <Y1> ? 0 >  -RegionBtm <Y2 <Y2> ? <Height>>
 ImageSizeCommandline= -width <Width> -height <Height>
 
+FlagsVerboseDefault= 
+FlagsVerboseNone=        -verbose 0
+FlagsVerboseWarning=     -verbose 1
+FlagsVerboseInformation= -verbose 2
+FlagsVerboseProgress=    -verbose 3
+FlagsVerboseDebug=       -verbose 4
+
+
+
 ################################## Client Settings ################################## 
-
-errorSearchLine= Several plugins used in this project are missing
-#errorSearchLine= Plugin '   We must not enable this as  C4D 2024 adds Redshift even if it is not used as renderer
-errorSearchLine= Could not initialize Renderer
-
-
-RemoveFromLog= Contains ~ Loading file ~ /corelibs/
-RemoveFromLog= StartsWith ~ Warning: Team Render is deactivated
-RemoveFromLog= Contains ~ opencl.dll \n Windows System Error #126
-RemoveFromLog= Contains ~ g_licenseusername
-RemoveFromLog= Contains ~ g_licensepassword
-

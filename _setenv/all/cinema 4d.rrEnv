@@ -28,6 +28,7 @@ echo * ------ cinema 4d.rrEnv version %rrVersion% ------
 
 
 LicenseFlags= <LicenseFlags>
+g_additionalModulePath  =  <g_additionalModulePath>
 
 [If] <rrExeVersionMajor>  [<] 20
     [If] <C4D_PLUGINS_DIR>  [==] 
@@ -36,8 +37,7 @@ LicenseFlags= <LicenseFlags>
 [Else]
     C4D_rrRenderScriptFolder  =  <rrLocalTemp>C4D_renderscript
 [EndIf]
-
-# has to be separated in windows as If/else is executed after the variables are replaced
+#need to dublicate "[If] " in windows as If/else is executed after the variables are replaced
 [If] <rrExeVersionMajor>  [<] 20
     C4D_rrRenderScriptFolder  =  <C4D_PLUGINS_DIR>
 [Else]
@@ -54,7 +54,7 @@ LicenseFlags= <LicenseFlags>
 [If] <C4D_rrPluginFolder>  [!=] 
     C4D_rrPluginFolder_Local  =  <rrLocalPlugins><rrExeVersionMajor>
 [EndIf]    
-#need to dublicate "[If] <C4D_rrPluginFolder>" as Windows default batch execution mode does not evaluate if () line per line.
+#need to dublicate "[If] " in windows as If/else is executed after the variables are replaced
 [If] <C4D_rrPluginFolder>  [!=] 
     echo * C4D_rrPluginFolder source path is set to <C4D_rrPluginFolder>
     echo * C4D_rrPluginFolder cache path is set to <C4D_rrPluginFolder_Local>

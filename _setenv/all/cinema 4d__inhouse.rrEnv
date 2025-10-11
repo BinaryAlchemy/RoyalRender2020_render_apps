@@ -14,13 +14,6 @@ echo * ------ cinema 4d__inhouse.rrEnv ------
 # g_hideaccountmode=false
 
 
-# Similarly for RLM you can use (with quotes)
-# g_licenseServerRLM="[servername]:[port]" 
-
-
-# # Uncomment the following line to set the license server 
-# LicenseFlags=-license 127.0.0.1 5264
-
 
 # The following lines are requires to release floating licenses again:
 g_licenseReleaseLicenseOnQuit=true

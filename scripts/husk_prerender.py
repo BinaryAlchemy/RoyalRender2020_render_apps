@@ -92,7 +92,7 @@ def render_samples_multiply(samples_factor : float):
         if prev is None:
             continue
         attr.Set(getSampleThreshold(True, samples_factor, prev))
-        print("SET: {} changed from {0:.4f} to {0:.4f}".format(attr_name, prev, r_prim.GetAttribute(attr_name).Get()) )
+        print("SET: {} changed from {0:.4f} to {1:.4f}".format(attr_name, prev, r_prim.GetAttribute(attr_name).Get()) )
       
     attr = r_prim.GetAttribute("karma:global:pixeloracle")
     if attr is not None:
@@ -103,7 +103,7 @@ def render_samples_multiply(samples_factor : float):
                     obj = json.loads(attrStr)
                     
                     newThres= getSampleThreshold(True, samples_factor, obj[1]["variance"])
-                    print("SET: {} changed from {0:.4f} to {0:.4f}".format("variance", obj[1]["variance"], newThres) )
+                    print("SET: {} changed from {0:.4f} to {1:.4f}".format("variance", obj[1]["variance"], newThres) )
                     obj[1]["variance"]= newThres
                     
                     oldVal= obj[1]["minrays"]
@@ -111,7 +111,7 @@ def render_samples_multiply(samples_factor : float):
                         obj[1]["minrays"]= -2
                     elif (obj[1]["minrays"] > 0) and (samples_factor < 1.0):
                         obj[1]["minrays"] = round(obj[1]["minrays"] * samples_factor) 
-                    print("SET: {} changed from {0:.4f} to {0:.4f}".format("variance", oldVal, obj[1]["minrays"]) )
+                    print("SET: {} changed from {0:.4f} to {1:.4f}".format("variance", oldVal, obj[1]["minrays"]) )
                     attrStr= json.dumps(obj)
                     attr.Set(attrStr)
         except Exception as e:

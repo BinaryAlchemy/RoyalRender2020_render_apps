@@ -16,6 +16,9 @@ import os
 import struct
 import math
 FSCODING = sys.stdout.encoding or sys.getfilesystemencoding()
+DEBUG= False
+if "DEBUG" in os.environ:
+    DEBUG= True
 
 if sys.version_info.major == 2:
     range = xrange
@@ -30,7 +33,8 @@ def logMessage(msg):
     logMessageGen("",msg)
     
 def logMessageDebug( msg):
-    if (False):
+    global DEBUG
+    if DEBUG:
         logMessageGen("DGB", msg)
 
 def logMessageSET(msg):

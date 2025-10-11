@@ -60,10 +60,22 @@ ErrorSearchLine = Error rendering document
 ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
-#Disabled as we have a case in which this error is printed on C4D close. And we do not care about that
-#ErrorSearchLine = Not enough memory...
+#ErrorSearchLine = Not enough memory... #Disabled as we have a case in which this error is printed on C4D close. And we do not care about that
 ErrorSearchLine = net.maxon.ui.class.osclipboard is missing
 ErrorSearchLine = Invalid License from License Server
+errorSearchLine= Several plugins used in this project are missing
+#errorSearchLine= Plugin '        # We must not enable this as  C4D 2024 adds Redshift even if it is not used as renderer
+errorSearchLine= Could not initialize Renderer
+
+
+RemoveFromLog= Contains ~ Loading file ~ /corelibs/
+RemoveFromLog= StartsWith ~ Warning: Team Render is deactivated
+RemoveFromLog= Contains ~ opencl.dll \n Windows System Error #126
+RemoveFromLog= Contains ~ g_licenseusername
+RemoveFromLog= Contains ~ g_licensepassword
+RemoveFromLog_NotDebugVerbose= StartsWith ~ CRITICAL: CONSTSTRING not freed:
+RemoveFromLog_NotDebugVerbose= StartsWith ~ Warning: Unknown arguments
+
 
 RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= Application Error ~  ~ 1 ~ Button ~ OK

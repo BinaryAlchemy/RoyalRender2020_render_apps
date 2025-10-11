@@ -1091,6 +1091,7 @@ def doCrossOSPathConversion_sub(arg, fromOS, toOS):
                                 logMessage('Replaced '+fromOS[i]+' with '+toOS[i]+' in node ' + o)       
 
         doCrossOSPathConversion_node('mayaUsdProxyShape', '.filePath', fromOS, toOS)
+        doCrossOSPathConversion_node('AlembicNode', '.abc_File', fromOS, toOS)
 
         if (isPluginLoaded('xgenToolkit')):
             doCrossOSPathConversion_node('xgmCurveToSpline', '.fileName', fromOS, toOS)  # xgen

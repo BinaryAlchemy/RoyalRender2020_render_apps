@@ -15,7 +15,11 @@ import sys
 import c4d
 import os
 import struct
+import math
 FSCODING = sys.stdout.encoding or sys.getfilesystemencoding()
+DEBUG= False
+if "DEBUG" in os.environ:
+    DEBUG= True
 
 if sys.version_info.major == 2:
     range = xrange
@@ -39,7 +43,9 @@ def logMessageSET(msg):
     logMessageGen("SET", msg)
 
 def logMessageDebug(msg):
-    #logMessageGen("DBG", msg)
+    global DEBUG
+    if DEBUG:
+        logMessageGen("DBG", msg)
     pass
 
 def logMessageWarning(msg):
@@ -48,7 +54,7 @@ def logMessageWarning(msg):
 def logMessageError(msg):
     logMessageGen("ERR", str(msg)+"\n\n")
     logMessageGen("ERR", "Error reported, aborting render script")
-    c4d.CallCommand(12104, 12104)  # Quit
+    c4d.CallCommand(12104, 12104)  # Quit  does the ID change with every C4D version? It works with R25 and 2025
 
 
 # Parsing
@@ -1201,9 +1207,46 @@ def setRenderParams(doc, arg):
         return False
 
 
+
+def renderFrames_PythonCallBack(progress, progress_type):
+    """Function passed in RenderDocument. It will be called automatically by Cinema 4D with the current render progress.
+
+    Args:
+        progress (float): The percent of the progress for the current step
+        progress_type (c4d.RENDERPROGRESSTYPE): The Main part of the current rendering step
+    """
+    text = str()
+
+    if progress_type == c4d.RENDERPROGRESSTYPE_BEFORERENDERING:
+        text = "Pre"
+
+    elif progress_type == c4d.RENDERPROGRESSTYPE_DURINGRENDERING:
+        text = "Render"
+
+    elif progress_type == c4d.RENDERPROGRESSTYPE_AFTERRENDERING:
+        text = "Post"
+
+    elif progress_type == c4d.RENDERPROGRESSTYPE_GLOBALILLUMINATION:
+        text = "GI"
+
+    elif progress_type == c4d.RENDERPROGRESSTYPE_QUICK_PREVIEW:
+        text = "Preview"
+
+    elif progress_type == c4d.RENDERPROGRESSTYPE_AMBIENTOCCLUSION:
+        text = "AO"
+
+    # Prints to the console the current progress
+    print(datetime.datetime.now().strftime("%H:%M.%S") + "| {0}| {1:.2f}%".format(text, progress * 100.0))
+
+
+
+
 def renderFrames(FrStart, FrEnd, FrStep):
     global arg
     global doc
+    
+    if len(arg.verbose)>0:
+        arg.verbose= int(arg.verbose)
 
     FrStart = int(FrStart)
     FrEnd = int(FrEnd)
@@ -1247,7 +1290,11 @@ def renderFrames(FrStart, FrEnd, FrStep):
                     logMessageDebug("bmp MultipassBitmap rgb")
                     bmp = c4d.bitmaps.MultipassBitmap(int(arg.width), int(arg.height), c4d.COLORMODE_RGB)
 
-                res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
+                if (arg.verbose >= 3):
+                    logMessageDebug("Using renderFrames_PythonCallBack")
+                    res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags, prog=renderFrames_PythonCallBack)
+                else:
+                    res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
                 bmp.FlushAll()
                 del bmp
 
@@ -1305,7 +1352,12 @@ def renderFrames(FrStart, FrEnd, FrStep):
                         #bmp = c4d.bitmaps.BaseBitmap()
                         #bmp.Init(x=int(arg.width), y=int(arg.height))
 
-                    res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
+                    if (arg.verbose >= 3):
+                        logMessageDebug("Using renderFrames_PythonCallBack")
+                        res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags, prog=renderFrames_PythonCallBack)
+                    else:
+                        res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
+
 
                     bmp.FlushAll()
                     del bmp
@@ -1345,7 +1397,12 @@ def renderFrames(FrStart, FrEnd, FrStep):
             rd[c4d.RDATA_FRAMESTEP] = FrStep
             flushLog()
             beforeFrame=datetime.datetime.now()
-            res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
+            if (arg.verbose >= 3):
+                logMessageDebug("Using renderFrames_PythonCallBack")
+                res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags, prog=renderFrames_PythonCallBack)
+            else:
+                res = c4d.documents.RenderDocument(doc, rd.GetDataInstance(), bmp, rflags)
+
 
             if res == c4d.RENDERRESULT_OK:
                 pass
@@ -1468,6 +1525,79 @@ def printRedshiftVersion():
       logMessage("Redshift version is: " + str(rs_ver))
 
 
+def getSampleThreshold(half_effect, samples_multi, old_threshold):
+    if samples_multi == 1.0:
+        return old_threshold
+    if (half_effect):
+        samples_multi = (samples_multi + 1.0) / 2.0
+    new_threshold = math.pow(samples_multi, -2) * old_threshold
+    if (new_threshold > 0.75):
+        new_threshold = 0.75
+    if (new_threshold < 0.0005):
+        new_threshold = 0.0005
+    return new_threshold
+
+
+def adjust_AA(samples_factor, renderer):
+    try:
+        factor = float(samples_factor)
+    except ValueError:
+        factor = 1.0
+
+    if factor == 1.0:
+        return
+
+    if renderer == 'redshift':
+        rs_vp = get_redshift_videopost(doc.GetActiveRenderData())
+        if not rs_vp:
+            logMessageWarning(f"VideoPost not found while trying to adjust Redshift AntiAliasing filter")
+            return
+        
+        prev_AA = rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_ADAPTIVE_ERROR_THRESHOLD]
+        samples_Mode=rs_vp[c4d.REDSHIFT_RENDERER_ENABLE_AUTOMATIC_SAMPLING]
+
+        if (rs_vp[c4d.REDSHIFT_RENDERER_ENABLE_AUTOMATIC_SAMPLING] != 0):
+            logMessage("Redshift Automatic Sampling is enabled and no override will be applied")
+            rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_ADAPTIVE_ERROR_THRESHOLD] = getSampleThreshold(False, factor, prev_AA )
+        else:
+            for rs_setting_name in ('REDSHIFT_RENDERER_UNIFIED_MIN_SAMPLES', 'REDSHIFT_RENDERER_UNIFIED_MAX_SAMPLES'):
+                rs_setting = getattr(c4d, rs_setting_name)
+                prev = rs_vp[rs_setting]
+                rs_vp[rs_setting] = round(prev * factor)
+
+                rs_nice_name = rs_setting_name.replace('RENDERER_UNIFIED_', '').title().replace('_', ' ')
+                logMessageSET(f"{rs_nice_name} from {prev} to {rs_vp[rs_setting]}")
+                rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_ADAPTIVE_ERROR_THRESHOLD] = getSampleThreshold(True, factor, prev_AA )
+
+        logMessage("Redshift AntiAliasing Threshold was changed from {0:.4f} to {1:.4f}".format(prev_AA,rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_ADAPTIVE_ERROR_THRESHOLD] ))
+
+        return
+
+    if renderer == 'arnold':
+        arnold_setttings = GetArnoldRenderSettings()
+        if not arnold_setttings:
+            logMessageWarning(f"Arnold setting not found while trying to adjustArnold Antialiasing settings")
+            return
+        
+        scene_aa_samples = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]
+        arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES] = round(scene_aa_samples * factor)
+        logMessageSET(f"Arnold Camera Sample (AA) from {scene_aa_samples} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]}")
+
+        if arnold_setttings[c4d.C4DAIP_OPTIONS_ENABLE_ADAPTIVE_SAMPLING]:
+            scene_max_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]
+            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX] = round(scene_max_sample * factor)
+            logMessageSET(f"Arnold AA Samples max from {scene_max_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]}")
+        
+        if arnold_setttings[c4d.C4DAI_OPTIONS_ENABLE_CLAMP_SAMPLES]:
+            scene_clamp_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]
+            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP] = scene_clamp_sample * factor
+            logMessageSET(f"Arnold AA Samples clamp from {scene_clamp_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]}")
+
+        return
+
+    logMessageWarning(f"Can't set {samples_factor} AntiAliasing for renderer {renderer}")
+    
+
 # Init
 def init_c4d():
     """Parse command line arguments, setup logging, load scene, setup render
@@ -1545,66 +1675,10 @@ def init_c4d():
     else:
         render_default()
         logMessage("Task Frames Rendered, Exiting")
-
+        
+    c4d.CallCommand(12104, 12104)  # Quit  does the ID change with every C4D version? It works with R25 and 2025
     return True
-
-
-def adjust_AA(samples_factor, renderer):
-    try:
-        factor = float(samples_factor)
-    except ValueError:
-        factor = 1.0
-
-    if factor == 1.0:
-        return
-
-    if renderer == 'redshift':
-        rs_vp = get_redshift_videopost(doc.GetActiveRenderData())
-        if not rs_vp:
-            logMessageWarning(f"VideoPost not found while trying to adjust Redshift AntiAliasing filter")
-            return
-        
-        prev_AA = rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE]
-        rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE] = prev_AA * factor
-        logMessage(f"Redshift AntiAliasing Filter was changed from {prev_AA} to {rs_vp[c4d.REDSHIFT_RENDERER_UNIFIED_FILTER_SIZE]}")
-
-        if (bool(rs_vp[c4d.REDSHIFT_RENDERER_ENABLE_AUTOMATIC_SAMPLING])):
-            logMessageWarning("Redshift Automatic Sampling is enabled and no override will be applied")
-        else:
-            for rs_setting_name in ('REDSHIFT_RENDERER_UNIFIED_MIN_SAMPLES', 'REDSHIFT_RENDERER_UNIFIED_MAX_SAMPLES'):
-                rs_setting = getattr(rs_setting_name)
-                prev = rs_vp[rs_setting]
-                rs_vp[rs_setting] = prev * factor
-
-                rs_nice_name = rs_setting_name.replace('RENDERER_UNIFIED_', '').title().replace('_', ' ')
-                logMessageSET(f"{rs_nice_name} from {prev} to {rs_vp[rs_setting]}")
-
-        return
-
-    if renderer == 'arnold':
-        arnold_setttings = GetArnoldRenderSettings()
-        if not arnold_setttings:
-            logMessageWarning(f"Arnold setting not found while trying to adjustArnold Antialiasing settings")
-            return
-        
-        scene_aa_samples = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]
-        arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES] = round(scene_aa_samples * factor)
-        logMessageSET(f"Arnold Camera Sample (AA) from {scene_aa_samples} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES]}")
-
-        if arnold_setttings[c4d.C4DAIP_OPTIONS_ENABLE_ADAPTIVE_SAMPLING]:
-            scene_max_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]
-            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX] = round(scene_max_sample * factor)
-            logMessageSET(f"Arnold AA Samples max from {scene_max_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLES_MAX]}")
-        
-        if arnold_setttings[c4d.C4DAI_OPTIONS_ENABLE_CLAMP_SAMPLES]:
-            scene_clamp_sample = arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]
-            arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP] = scene_clamp_sample * factor
-            logMessageSET(f"Arnold AA Samples clamp from {scene_clamp_sample} to {arnold_setttings[c4d.C4DAIP_OPTIONS_AA_SAMPLE_CLAMP]}")
-
-        return
-
-    logMessageWarning(f"Can't set {samples_factor} AntiAliasing for renderer {renderer}")
-    
+   
 
 def PluginMessage(id, data):
     """Receive messages sent by Cinema4D or other plugins via GePluginMessage()"""
