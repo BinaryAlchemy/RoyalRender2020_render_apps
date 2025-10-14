@@ -1247,6 +1247,8 @@ def renderFrames(FrStart, FrEnd, FrStep):
     
     if len(arg.verbose)>0:
         arg.verbose= int(arg.verbose)
+    else:
+        arg.verbose=0
 
     FrStart = int(FrStart)
     FrEnd = int(FrEnd)
