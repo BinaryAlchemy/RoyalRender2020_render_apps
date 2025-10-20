@@ -1244,11 +1244,6 @@ def renderFrames_PythonCallBack(progress, progress_type):
 def renderFrames(FrStart, FrEnd, FrStep):
     global arg
     global doc
-    
-    if len(arg.verbose)>0:
-        arg.verbose= int(arg.verbose)
-    else:
-        arg.verbose=0
 
     FrStart = int(FrStart)
     FrEnd = int(FrEnd)
@@ -1504,10 +1499,6 @@ def rrKSOStartServer():
 def render_KSO():
     rrKSOStartServer()
 
-def render_default():
-    global arg
-    renderFrames(arg.FrStart,arg.FrEnd,arg.FrStep)
-
 
 def printRedshiftVersion():
     try:
@@ -1619,6 +1610,11 @@ def init_c4d():
         arg.avFrameTime = 0
     else:
         arg.avFrameTime= int(arg.avFrameTime)
+        
+    if len(arg.verbose)>0:
+        arg.verbose= int(arg.verbose)
+    else:
+        arg.verbose=0
         
     if arg.renderer.lower() == "redshift":
         printRedshiftVersion()
