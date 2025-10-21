@@ -47,6 +47,7 @@ CommandLine= "<Exe>"
     <Camera -camera <Camera> >
     <CPU -threads <CPU> >
     <Layer -take "<Layer>" -c4dtake "<Layer>">
+    <COOCIOfix -OCIOfix True>
     <AdditionalCommandlineParam>
 	<ClientConfigParam>
 	<COArnoldDriverOut -arnoldDriverOut true>
@@ -78,6 +79,9 @@ KSOlog_Quit=rrKSO closed
 ################################## Render Settings ################################## 
 
 
+COOCIOfix= 1 ~ 1
+
+
 FlagsRegion= -RegionLeft  <X1 <X1> ?0> -RegionRight <X2 <X2> ? <Width>>  -RegionTop <Y1 <Y1> ? 0 >  -RegionBtm <Y2 <Y2> ? <Height>>
 ImageSizeCommandline= -width <Width> -height <Height>
 
@@ -87,6 +91,8 @@ FlagsVerboseWarning=     -verbose 1
 FlagsVerboseInformation= -verbose 2
 FlagsVerboseProgress=    -verbose 3
 FlagsVerboseDebug=       -verbose 4
+
+
 
 
 

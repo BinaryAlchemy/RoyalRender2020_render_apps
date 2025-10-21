@@ -119,6 +119,7 @@ class argParser:
         self.sceneOS=self.getParam("-sceneOS")
         self.arnoldDriverOut=self.getParam("-arnoldDriverOut")
         self.AAsamplesMultiply=self.getParam("-rAA")
+        self.OCIOfix=self.getParam("-OCIOfix")
 
         # replace RR tokens left for compatibility
         arg.FNameVar = self.FNameVar.replace("<Camera>", self.camera)
@@ -1024,6 +1025,13 @@ def setRenderParams(doc, arg):
         logMessage("INFO: MultiPass Render Out is: " + orig_multipass_out)
         logMessage("")
 
+        if (arg.OCIOfix):
+            #logMessage("Set BAKE_OCIO_VIEW_TRANSFORM from {} to True".format(rd[c4d.RDATA_BAKE_OCIO_VIEW_TRANSFORM]))
+            #rd[c4d.RDATA_BAKE_OCIO_VIEW_TRANSFORM]= True
+            logMessage("Set BAKE_OCIO_VIEW_TRANSFORM_RENDER from {} to False".format(rd[c4d.RDATA_BAKE_OCIO_VIEW_TRANSFORM_RENDER]))
+            rd[c4d.RDATA_BAKE_OCIO_VIEW_TRANSFORM_RENDER]= False
+
+
         rd[c4d.RDATA_GLOBALSAVE] = True
 
         if (len(arg.FNameVar) > 4):
@@ -1257,6 +1265,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
     rflags = c4d.RENDERFLAGS_EXTERNAL | c4d.RENDERFLAGS_NODOCUMENTCLONE | c4d.RENDERFLAGS_SHOWERRORS
     #RENDERFLAGS_RENDERQUEUEERRORS
 
+
     localNoFrameLoop = arg.noFrameLoop
     if (not localNoFrameLoop):
         if arg.avFrameTime == 0:
@@ -1286,6 +1295,8 @@ def renderFrames(FrStart, FrEnd, FrStep):
                 else:
                     logMessageDebug("bmp MultipassBitmap rgb")
                     bmp = c4d.bitmaps.MultipassBitmap(int(arg.width), int(arg.height), c4d.COLORMODE_RGB)
+                if bmp is None:
+                    raise RuntimeError("Failed to create the Bitmap.")  
 
                 if (arg.verbose >= 3):
                     logMessageDebug("Using renderFrames_PythonCallBack")
@@ -1341,6 +1352,8 @@ def renderFrames(FrStart, FrEnd, FrStep):
                     beforeFrame=datetime.datetime.now()
 
                     bmp = c4d.bitmaps.MultipassBitmap(int(arg.width), int(arg.height), c4d.COLORMODE_RGB)
+                    if bmp is None:
+                        raise RuntimeError("Failed to create the Bitmap.")  
                     if rd[c4d.RDATA_ALPHACHANNEL]:
                         logMessageDebug("bmp MultipassBitmap +alpha")
                         bmp.AddChannel(True, True)
@@ -1388,6 +1401,8 @@ def renderFrames(FrStart, FrEnd, FrStep):
         else:
             logMessage( "Rendering Movie...")
             bmp = c4d.bitmaps.MultipassBitmap(int(arg.width), int(arg.height), c4d.COLORMODE_RGB)
+            if bmp is None:
+                raise RuntimeError("Failed to create the Bitmap.")  
             doc.SetTime(c4d.BaseTime(FrStart, fps))
             rd[c4d.RDATA_FRAMEFROM] = c4d.BaseTime(FrStart, fps)
             rd[c4d.RDATA_FRAMETO] = c4d.BaseTime(FrEnd, fps)
@@ -1610,8 +1625,11 @@ def init_c4d():
         arg.avFrameTime = 0
     else:
         arg.avFrameTime= int(arg.avFrameTime)
-        
-    if len(arg.verbose)>0:
+
+    if not argValid(arg.OCIOfix):
+        arg.OCIOfix = False
+    
+    if argValid(arg.verbose):
         arg.verbose= int(arg.verbose)
     else:
         arg.verbose=0
