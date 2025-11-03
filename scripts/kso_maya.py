@@ -69,7 +69,7 @@ def logMessageError(msg, location=""):
     if isinstance(msg, Exception):
         isException= True
     logMessageError_noRaise(msg, location)
-    if isException:
+    if isException and (sys.version_info.major != 2):
         raise RuntimeError("An error has occured before. Aborting RR render script...") from None
     else:
         raise RuntimeError("An error has occured before. Aborting RR render script...")
