@@ -2,6 +2,12 @@ echo * ------ nuke__inhouse.rrEnv ------
  
  #  FOUNDRY_LICENSE_FILE = ......
  #  FOUNDRY_LICENSE =  4101@servername
+ 
+ 
+ #  Team Login licenses require a token file that you place into some folder
+ # https://support.foundry.com/hc/en-us/articles/12107123282066-Q100674-How-to-set-up-your-Team-Login-render-licenses-with-a-render-farm
+ # FOUNDRY_CLOUDLIC_READ_DIRS=\\fileserver\path\to\tokens
+
 
  # Additional NUKE path: 
  # NUKE_PATH = /fileserver/myNukepath;<NUKE_PATH>
