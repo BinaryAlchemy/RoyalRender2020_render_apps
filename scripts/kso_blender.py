@@ -190,29 +190,6 @@ def useAllCores():
 
 
 
-
-def enable_addon(addon_name):
-    log_msg(f"*** Loading {addon_name.title()} addon... ***")
-    flush_log()
-    
-    try:
-        addon_utils.enable(addon_name)
-        is_enabled = addon_utils.check(addon_name)[1]
-        if (not is_enabled):
-            log_msg_wrn(f"Failed to enable addon {addon_name}")
-            flush_log()
-            return False
-        return True
-    except ModuleNotFoundError:
-        log_msg_wrn(f"Failed to enable addon {addon_name}: A module was not found")
-        flush_log()
-        return False
-    except Exception as e:
-        log_msg_wrn(f"Failed to enable addon {addon_name}: "+str(e))
-        flush_log()
-        return False
-
-
 # Parsing
 
 class RRArgParser(object):
@@ -512,7 +489,8 @@ def render_frame_range(start, end, step, movie=False):
     if not (movie or NO_FRAME_LOOP):
         log_msg(f"Rendering Frames: {start} - {end}")
         for fr in range(start, end + 1, step):
-            kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
+            if RENDER_PATH!="":
+                kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
 
             log_msg(f"Rendering Frame #{fr} ...")
             flush_log()
@@ -529,7 +507,10 @@ def render_frame_range(start, end, step, movie=False):
 
 def set_output_path():
     scene = bpy.data.scenes[RENDER_SCENE]
-    out_path = RENDER_PATH
+    global RENDER_PATH
+    if RENDER_PATH=="":
+        return
+    out_path = RENDER_PATH    
 
     if RENDER_PADDING != 4:
         out_path += '#' * RENDER_PADDING
@@ -542,7 +523,7 @@ def set_output_format(file_ext, file_format='', scene=None):
     Return chosen format, or given file_format if none is found"""
     scene = bpy.data.scenes[RENDER_SCENE]
 
-    log_msg(f"Scene file format is set to {scene.render.image_settings.file_format}")
+    log_msg(f"Scene file format was set to {scene.render.image_settings.file_format}")
 
     if file_ext=="":
         return file_format
@@ -578,9 +559,15 @@ def set_output_format(file_ext, file_format='', scene=None):
                 log_msg_wrn(f"File format and extension parameters do not match: {file_format}, {file_ext}")
         except:
             log_msg_wrn(f"File format parameter was not found: {file_format}")
+            
+            
     try:
         if out_format:
-            scene.render.image_settings.file_format = out_format
+            if out_format == scene.render.image_settings.file_format:
+                log_msg(f"Output format was already set to: {out_format}")
+            else:
+                log_msg(f"Changing output format to match argument: {file_ext}")      
+                scene.render.image_settings.file_format = out_format
         else:
             if scene.render.image_settings.file_format in viable_formats:
                 log_msg(f"More formats for extension {file_ext}, using current format {scene.render.image_settings.file_format}")
@@ -769,15 +756,78 @@ def set_render_region(min_x, max_x, min_y, max_y):
     render_settings.use_border = True
 
 
-import os
-import addon_utils
-import bpy
 
-def list_addons(load_3rdParty = False):
+
+
+def addon_is_loaded(addon_name):
+    if addon_name in bpy.context.preferences.addons:
+        return True
+        
+        
+def addon_enable(addon_name):
+    log_msg(f"    *** Loading {addon_name} addon... ***")
+    flush_log()
+   
+    try:
+        bpy.ops.preferences.addon_enable(module=addon_name)
+        is_enabled = addon_is_loaded(addon_name)
+        if (not is_enabled):
+            log_msg_wrn(f"Failed to enable addon {addon_name}")
+            flush_log()
+            return False
+        return True
+    except ModuleNotFoundError:
+        log_msg_wrn(f"Failed to enable addon {addon_name}: A module was not found")
+        flush_log()
+        return False
+    except Exception as e:
+        log_msg_wrn(f"Failed to enable addon {addon_name}: "+str(e))
+        flush_log()
+        return False
+
+def addon_get_search_paths():
+    """
+    Returns a list of all add-on search paths (legacy and extensions).
+    """
+    paths = []
+
+    # User add-ons
+    user_scripts = bpy.utils.script_path_user()
+    if user_scripts:
+        paths.append(os.path.join(user_scripts, "addons"))
+        paths.append(os.path.join(user_scripts, "extensions", "user_default"))
+
+    # System add-ons
+    system_scripts = bpy.utils.script_paths_pref()
+    if system_scripts:
+        paths.append(os.path.join(system_scripts, "addons"))
+        paths.append(os.path.join(system_scripts, "extensions", "system"))
+
+    # Also include Blender’s bundled scripts folder
+    paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), "scripts", "addons"))
+
+    # Deduplicate and keep only existing folders
+    paths = list(dict.fromkeys([p for p in paths if os.path.exists(p)]))
+    return paths
+
+def addon_get_addonList():
+    """
+    Returns a list of all loaded add-on/extension modules.
+    """
+    modules = []
+
+    for addon_data in bpy.context.preferences.addons:
+        module = getattr(addon_data, "module", None)
+        if module:
+            modules.append(module)
+    return modules
+
+def addon_doList(load_3rdParty = False):
     log_msg("ADDONS".center(100, "_"))
     if load_3rdParty:
-        log_msg("Loading  3rd Party add-ons  enabled") 
+        log_msg("##### Auto load of 3rd Party add-ons:  enabled") 
     blenderPath=os.path.dirname(bpy.app.binary_path)
+
     addon_paths = addon_utils.paths()
     log_msg("Add-on search paths: ")        
 
@@ -811,7 +861,7 @@ def list_addons(load_3rdParty = False):
         if (is3rdParty):
             if not title_printed:
                 title_printed= True
-                log_msg("3rd Party add-ons  (outside Blender app folder):  ")
+                log_msg("##### 3rd Party add-ons  (outside Blender app folder):  ")
 
             ver= mod.bl_info.get("version",(-1, -1, -1) )
             if len(ver)==0:
@@ -820,18 +870,17 @@ def list_addons(load_3rdParty = False):
                 ver= ver + (0,)
             
             if (not is_enabled) and load_3rdParty:
-                log_msg("  loading '" + mod.__name__ + "' ...")
-                addon_utils.enable(mod.__name__, persistent= False)
+                addon_enable(mod.__name__)
                 is_enabled = addon_utils.check(mod.__name__)[1]  # [1] returns whether it's loaded
         
-            statusString="      "
+            statusString="  NA  "
             if is_enabled:
                 statusString="ACTIVE"
                 extAddons_loaded_count= extAddons_loaded_count + 1
             else:
                 extAddons_NotLoaded_count= extAddons_NotLoaded_count + 1
                 
-            log_msg(" - {} - '{}' ({}) v{}.{}.{}".format(statusString, mod.bl_info.get("name"), mod.__name__, ver[0], ver[1], ver[2]  ))
+            log_msg("---------- {} - '{}' ({}) v{}.{}.{} -----".format(statusString, mod.bl_info.get("name"), mod.__name__, ver[0], ver[1], ver[2]  ))
         else:
             if is_enabled:
                 blenderAddons_loaded= blenderAddons_loaded + "'{}' ({}),   ".format(mod.bl_info.get("name"), mod.__name__  )  
@@ -842,16 +891,18 @@ def list_addons(load_3rdParty = False):
     blenderAddons_loaded= blenderAddons_loaded + ")     "
     blenderAddons_NotLoaded= blenderAddons_NotLoaded + ")     "
  
-    log_msg("Total  add-on count:            {} ".format(total_count))
-    log_msg("3rd Party   add-ons loaded:     {} ".format(extAddons_loaded_count))
-    log_msg("3rd Party   add-ons not loaded: {} ".format(extAddons_NotLoaded_count))
-    log_msg("Blender app add-ons loaded:     {} ".format(blenderAddons_loaded_count))
-    log_msg(blenderAddons_loaded)
-    log_msg("Blender app add-ons not loaded: {} ".format(blenderAddons_NotLoaded_count))
+    log_msg("##### Total  count:            {} ".format(total_count))
+    log_msg("##### 3rd Party    loaded:     {} ".format(extAddons_loaded_count))
+    log_msg("##### 3rd Party    not loaded: {} ".format(extAddons_NotLoaded_count))
+    log_msg("##### Blender      loaded:     {} \n{}\n".format(blenderAddons_loaded_count,blenderAddons_loaded))
     
     v_major, v_minor, _ = bpy.app.version
-    if v_major > 4 or (v_minor > 2 and v_major == 4):    
-        log_msg(blenderAddons_NotLoaded)
+    if v_major > 4 or (v_minor > 1 and v_major == 4):    
+        log_msg("##### Blender      not loaded: {} \n{}\n".format(blenderAddons_NotLoaded_count,blenderAddons_NotLoaded))
+    else:
+        log_msg("##### Blender      not loaded: {}".format(blenderAddons_NotLoaded_count))
+       
+       
        
   
 
@@ -862,6 +913,10 @@ if __name__ == "__main__":
     log_msg(" Blender started ".center(100, "_"))
     log_msg(" Python version: "+str(sys.version))
 
+
+    #addon_enable("flip_fluids_addon")
+
+
     args = RRArgParser(*sys.argv)
     
     if (len(args.PyModPath)>0):
@@ -871,19 +926,19 @@ if __name__ == "__main__":
     import kso_tcp
     useAllCores()
     
-    log_msg(" Renderer set: "+ args.renderer)
+    log_msg(" Renderer set in commandline: "+ args.renderer)
     
     if args.renderer.lower() == "redshift":
-        if not enable_addon("redshift"):
+        if not addon_enable("redshift"):
             raise Exception("Unable to load renderer")
     elif args.renderer.lower() == "luxcore":
-        if not enable_addon("BlendLuxCore"):
+        if not addon_enable("BlendLuxCore"):
             raise Exception("Unable to load renderer")
     elif args.renderer.lower() == "octane":
-        if not enable_addon("octane"):
+        if not addon_enable("octane"):
             raise Exception("Unable to load renderer")
     
-    list_addons(args.load3rdPartyPlugins)
+    addon_doList(args.load3rdPartyPlugins)
     log_msg("About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
     flush_log()
@@ -933,7 +988,8 @@ if __name__ == "__main__":
         bpy.data.scenes[RENDER_SCENE].render.use_placeholder = args.bl_placeholder
 
     # ensure output dir
-    Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
+    if RENDER_PATH!="":
+        Path(os.path.dirname(RENDER_PATH)).mkdir(parents=True, exist_ok=True)
     flush_log()
     if not wasError_Close:
         if args.kso_mode:

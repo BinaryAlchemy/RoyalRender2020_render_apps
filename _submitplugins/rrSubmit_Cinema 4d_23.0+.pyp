@@ -44,6 +44,7 @@ if sys.version_info.major == 2:
 PLUGIN_ID_ASS = 1038331
 PLUGIN_ID_CAM = 1039082
 PLUGIN_ID = 1027715
+PLUGIN_ID_RoyalRender_RSExport = 1066745
 
 
 ##############################################
@@ -55,7 +56,8 @@ LOGGER = logging.getLogger('rrSubmit')
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
 LOGGER.setLevel(logging.INFO)
-#LOGGER.setLevel(logging.DEBUG)
+if "DEBUG" in os.environ:
+    LOGGER.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -297,11 +299,11 @@ def GetC4DtoAMessage(doc):
     return msg
 
 
-def GetArnoldVersion(doc):
-    msg = GetC4DtoAMessage(doc)
-    if not msg:
-        return ""
-    return msg.GetString(ArnoldSymbols.C4DTOA_MSG_RESP2)
+#def GetArnoldVersion(doc):
+#    msg = GetC4DtoAMessage(doc)
+#    if not msg:
+#        return ""
+#    return msg.GetString(ArnoldSymbols.C4DTOA_MSG_RESP2)
 
 
 def GetC4DtoAVersion(doc):
@@ -372,22 +374,6 @@ def GetRedshiftVersion():
       rs_ver = rs_ver.split(" ")[0]  # remove " Demo" or other suffix
 
       return rs_ver
-
-
-def GetRedshiftPluginVersion():
-    try:
-      import redshift
-      return redshift.GetPluginVersion()
-    except:
-        LOGGER.warning("Error getting RedShift plugin version, perhaps <2.6.23")
-        rs_prefs = c4d.plugins.FindPlugin(1036220, c4d.PLUGINTYPE_PREFS)
-        if not rs_prefs:
-            return ""
-
-        plug_ver = rs_prefs[c4d.PREFS_REDSHIFT_PLUGIN_VERSION]
-        plug_ver = plug_ver.split(",")[0]
-
-        return plug_ver
 
 
 def GetRedshiftVideoPost(render_data):
@@ -650,9 +636,7 @@ class JobProps(object):
     software = "Cinema 4D"
     versionInfo = ""
     rendererVersion = ""
-    Arnold_C4DtoAVersion = ""
     Arnold_DriverOut = False
-    Redshift_C4DtoRSVersion = ""
     waitForPreID = ""
     linearColorSpace = False
     bakeOCIO = False
@@ -778,9 +762,6 @@ class rrJob(JobProps):
         self.subE(jobElement, "Renderer", self.renderer)
         self.subE(jobElement, "Version", self.versionInfo)
         self.subE(jobElement, "rendererVersion", self.rendererVersion)
-        self.subE(jobElement, "customRenVer_Arnold", self.Arnold_C4DtoAVersion)
-        self.subE(jobElement, "customRenVer_ArnoldExportAss", self.Arnold_C4DtoAVersion)
-        #self.subE(jobElement, "customRenVer_Redshift", self.Redshift_C4DtoRSVersion)
         self.subE(jobElement, "Scenename", self.sceneFilename)
         self.subE(jobElement, "IsActive", self.isActive)
         self.subE(jobElement, "Layer", self.layerName)
@@ -807,8 +788,8 @@ class rrJob(JobProps):
         self.subE(jobElement, "ColorSpace_View", self.ColorSpace_View)
         self.subE(jobElement, "ColorSpaceConfigFile", self.ColorSpaceConfigFile)
 
-        # self.subE(jobElement, "preID", self.preID)
-        # self.subE(jobElement, "WaitForPreID", self.WaitForPreID)
+        self.subE(jobElement, "preID", self.preID)
+        self.subE(jobElement, "WaitForPreID", self.waitForPreID)
         return True
 
     def writeToXMLEnd(self, f, rootElement):
@@ -1127,20 +1108,18 @@ def add_RENDERERS_ids():
 
 def reset_job_renderer_version(job):
     job.rendererVersion = rrJob.rendererVersion
-    job.Arnold_C4DtoAVersion = rrJob.Arnold_C4DtoAVersion
-    job.Redshift_C4DtoRSVersion = rrJob.Redshift_C4DtoRSVersion
 
 def set_job_renderer(job, rendererID, doc):
     job.renderer = RENDERER_NAMES.get(rendererID, "RID"+str(rendererID))
 
     if job.renderer == "Arnold":
-        job.rendererVersion = GetArnoldVersion(doc)
-        job.Arnold_C4DtoAVersion = GetC4DtoAVersion(doc)
+        job.rendererVersion = GetC4DtoAVersion(doc)
     elif job.renderer == "Redshift":
         job.rendererVersion = GetRedshiftVersion()
-        job.Redshift_C4DtoRSVersion = GetRedshiftPluginVersion()
     elif job.renderer == "Octane":
         job.rendererVersion = GetOctaneVersion(doc)
+    LOGGER.debug("set_job_renderer: "+str(job.rendererVersion))
+        
 
 
 class RRSubmitBase(object):
@@ -1288,6 +1267,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
     def __init__(self, multi_cam=False):
         super(RRSubmit, self).__init__()
         self.multiCameraMode = multi_cam
+        self.noSubmitCommand = False
 
     def setImageFormat(self, job=None, render_data=None):
         """evaluates the image format extension from the currently selected render settings"""
@@ -2741,7 +2721,8 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             # we have changed the scene while collecting, we should save
             c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
-        self.submitToRR(self.job, False, PID=None, WID=None)
+        if (not self.noSubmitCommand):
+            self.submitToRR(self.job, False, PID=None, WID=None)
 
         return True
 
@@ -2770,7 +2751,7 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
         self.job[0].width = self.renderSettings[c4d.RDATA_XRES]
         self.job[0].height = self.renderSettings[c4d.RDATA_YRES]
         self.job[0].versionInfo = str(int(c4d.GetC4DVersion() / 1000)) + "." + str(int(c4d.GetC4DVersion()/100 % 10)) + "." + str(int(c4d.GetC4DVersion() % 100))
-        self.job[0].Arnold_C4DtoAVersion = GetC4DtoAVersion(doc)
+        self.job[0].rendererVersion = GetC4DtoAVersion(doc)
 
         if isWin():
             self.job[0].osString = "win"
@@ -2803,11 +2784,71 @@ class RRSubmitAssExport(RRSubmitBase, c4d.plugins.CommandData):
         return True
 
 
+class RRSubmitRsExport(RRSubmitBase, c4d.plugins.CommandData):
+    """Launch rrSubmitter for export .rs job"""
+    def Execute(self, doc):
+        print("rrSubmit %rrVersion%")
+
+        self.renderSettings = doc.GetActiveRenderData()
+        rendererID = self.renderSettings[c4d.RDATA_RENDERENGINE]
+        if rendererID != 1036219:
+            gui.MessageDialog("Redshift has to be the renderer of this scene.")
+            LOGGER.warning("Redshift has to be the renderer of this scene.")
+            return False
+
+        
+        defaultSubmit=RRSubmit() 
+        defaultSubmit.noSubmitCommand= True
+        defaultSubmit.Execute(doc)
+        
+        oldJobCount=len(defaultSubmit.job)
+        for ji in range(oldJobCount):
+            newJob= rrJob()
+            newJob= copy.deepcopy(defaultSubmit.job[ji])
+            
+            arcFile=""
+            if (len(defaultSubmit.job[ji].layerName) > 0):
+                arcFile = "<SceneFolder>/rs/<SceneFilename>/<Layer>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__#####"
+            else:
+                arcFile = "<SceneFolder>/rs/<SceneFilename>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__#####"
+            arcFile= arcFile.replace("<SceneFolder>",  doc.GetDocumentPath())
+            arcFile= arcFile.replace("<SceneFilename>",  doc.GetDocumentName())
+            arcFile= arcFile.replace("<Layer>",defaultSubmit.job[ji].layerName)
+
+            #change export job
+            defaultSubmit.job[ji].renderer = "Redshift - Export Rs"
+            defaultSubmit.job[ji].imageName= arcFile
+            defaultSubmit.job[ji].imageFormat= ".rs"
+            defaultSubmit.job[ji].isActive= True
+            defaultSubmit.job[ji].preID=ji
+            
+            #change render job
+            arcFile= arcFile.replace("#####","<FN4>")
+            arcFile= arcFile + ".rs"
+            
+            newJob.software= "Redshift"
+            newJob.renderer= "Cinema4D"
+            sicVer= newJob.versionInfo
+            newJob.versionInfo= newJob.rendererVersion 
+            newJob.rendererVersion= sicVer
+            newJob.sceneFilename= arcFile
+            newJob.isActive= True
+            newJob.preID= ji + oldJobCount
+            newJob.waitForPreID= ji 
+            
+            defaultSubmit.job.append(newJob)
+
+
+        self.submitToRR(defaultSubmit.job, False, PID=None, WID=None)
+
+        return True
+
 if __name__ == '__main__':
     thispath = os.path.dirname(os.path.abspath(__file__))
     icon = bitmaps.BaseBitmap()
     icon.InitWith(os.path.join(thispath, "rrSubmit_Cinema 4d_23.0+.png"))
     # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs) does not work with macOS + R23
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID, "rrSubmit", 0, icon, "rrSubmit", RRSubmit())
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM, "rrSubmit - Select Camera...", 0, icon, "rrSubmit - Select Camera...", RRSubmit(multi_cam=True))
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS, "rrSubmit - Export Arnold .ass files", 0, icon,  "rrSubmit - Export Arnold .ass files", RRSubmitAssExport())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID                      , "rrSubmit...", 0, icon, "rrSubmit...", RRSubmit())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM                  , "rrSubmit - Select Camera..."         , 0, icon,  "rrSubmit - Select Camera..."            , RRSubmit(multi_cam=True))
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS                  , "rrSubmit - Export Arnold .ass files..." , 0, icon,  "rrSubmit - Export Arnold .ass files..." , RRSubmitAssExport())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID_RoyalRender_RSExport , "rrSubmit - Export Redshift .rs files...", 0, icon,  "rrSubmit - Export Redshift .rs files...", RRSubmitRsExport())

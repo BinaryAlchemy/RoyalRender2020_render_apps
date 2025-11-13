@@ -113,13 +113,13 @@ class argParser:
         self.Channel=self.getParam("-Channel")
         self.FPadding=self.getParam("-FPadding")
         self.renderer=self.getParam("-renderer")
-        self.exportmode=self.getParam("-rendererExportMode")
         self.avFrameTime=self.getParam("-avFrameTime")
         self.noFrameLoop=self.getParam("-noFrameLoop")
         self.sceneOS=self.getParam("-sceneOS")
         self.arnoldDriverOut=self.getParam("-arnoldDriverOut")
         self.AAsamplesMultiply=self.getParam("-rAA")
         self.OCIOfix=self.getParam("-OCIOfix")
+        self.exportmode=self.getParam("-rendererExportMode")
 
         # replace RR tokens left for compatibility
         arg.FNameVar = self.FNameVar.replace("<Camera>", self.camera)
@@ -890,7 +890,7 @@ def searchTakes_recursiveLoop(take, name):
         child_take = child_take.GetNext()
 
 
-def arnold_ass_export(fr_start, fr_end, fr_step):
+def archive_export_arnold_ass(fr_start, fr_end, fr_step):
     global arg
     global doc
 
@@ -905,15 +905,117 @@ def arnold_ass_export(fr_start, fr_end, fr_step):
     if (len(arg.FNameVar) > 4):
         options.SetFilename(0, arg.FNameVar + ".ass")
     if (arg.FExt.find(".gz")>0):
-        options.SetInt32(1, True)  # export .gz file
-    options.SetInt32(6, fr_start)  # start frame
-    options.SetInt32(7, fr_end)  # end frame
+        options.SetInt32(1, True)  # Export .gz file
+    options.SetBool(2, False)   # Bounding Box
+    options.SetBool(3, True)    # Binary
+    options.SetBool(4, False)   # Expand Procedurals
+    options.SetInt32(5, 0xFFFF) # Mask
+    options.SetInt32(6, fr_start) # start frame
+    options.SetInt32(7, fr_end)   # end frame
     options.SetInt32(8, fr_step)  # step
-
+    options.SetInt32(11, SCENE_EXPORT_OBJECT_MODE_SELECTED) # Export Type
+    options.SetBool(12, False) # Replace with Procedural
+    options.SetBool(13, True) # Object Hierachy
+    options.SetInt32(14, SCENE_EXPORT_FORMAT_ASS) # Format
+    options.SetBool(15, True) #Absolute Paths
+    #export settings:
     doc.GetSettingsInstance(c4d.DOCUMENTSETTINGS_DOCUMENT).SetContainer(ARNOLD_ASS_EXPORT, options)
 
     c4d.documents.SetActiveDocument(doc)  # required for ass export
+    logMessage( "Exporting .ass: " + str(fr_start) + "-" + str(fr_end) + ":  " + arg.FNameVar + ".ass")
+    c4d.CallCommand(100004767) # Deselect All Object
     c4d.CallCommand(ARNOLD_ASS_EXPORT)
+    logMessage ( "Export done" )
+    
+
+def archive_export_redshift_rs(fr_start, fr_end, fr_step):
+    global arg
+    global doc
+    
+    #if c4d.plugins.FindPlugin(Renderer.ID_REDSHIFT, type=c4d.PLUGINTYPE_ANY) is not None:     //makes no sense. If the plugin is not available, then we cannot export .rs anyway.
+    import redshift
+
+    #from Renderer.constants.redshift_id import *   
+    
+    # Find the Redshift Proxy Export plugin
+    #REDSHIFT_EXPORT_PLUGIN_ID = 1038650
+    plug = c4d.plugins.FindPlugin(redshift.Frsproxyexport, c4d.PLUGINTYPE_SCENESAVER)
+    if plug is None:
+        raise RuntimeError("Pluging not found")
+        
+    # Send MSG_RETRIEVEPRIVATEDATA to the plugin to retrieve the state
+    op = {}
+    if not plug.Message(c4d.MSG_RETRIEVEPRIVATEDATA, op):
+        raise RuntimeError("Error: Unable to retrieve private data.")
+
+    # BaseList2D object stored in "imexporter" key holds the settings
+    imexporter = op.get("imexporter", None)
+    if imexporter is None:
+        raise RuntimeError("Error: Unable to get imexporter.")
+    #if "imexporter" not in op:
+    #    return False
+    #imexporter = op["imexporter"]
+
+    # Keep the default beauty config in the proxy. Used primarily when exporting entire scenes for rendering with the redshiftCmdLine tool
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_AOV_DEFAULT_BEAUTY]	= True
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_EXPORT_LIGHTS] = True
+    
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_AUTOPROXY_CREATE ] = False
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_REMOVE_OBJECTS] = False
+    
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_ANIMATION_RANGE ] = c4d.REDSHIFT_PROXYEXPORT_ANIMATION_RANGE_MANUAL
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_ANIMATION_FRAME_START ] = int(fr_start)
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_ANIMATION_FRAME_END ] = int(fr_end)
+    imexporter[c4d.REDSHIFT_PROXYEXPORT_ANIMATION_FRAME_STEP ] = int(fr_step)
+
+    #create some default filename in case FNameVar is not set to due some unexpected reason
+    fileName=doc.GetDocumentPath() + os.sep + "rr_rs" +os.sep + doc.GetDocumentName() + os.sep + doc.GetDocumentName() + ".rs"
+    fileName.replace(".c4d","");
+    
+    if (len(arg.FNameVar) > 4):
+        fileName= arg.FNameVar  + ".rs"
+    
+    logMessage( "Exporting .rs: " + str(fr_start) + "-" + str(fr_end) + ":  "+fileName)
+    c4d.documents.SaveDocument(doc, fileName, c4d.SAVEDOCUMENTFLAGS_0, 1038650)  
+    logMessage ( "Export done" )
+        
+        
+
+def archive_export_octane_orbx(fr_start, fr_end, fr_step):
+    global arg
+    global doc
+    
+    #create some default filename in case FNameVar is not set to due some unexpected reason
+    doc = c4d.documents.GetActiveDocument()
+    fileName=doc.GetDocumentPath() + os.sep + "rr_orbx" +os.sep + doc.GetDocumentName() + os.sep + doc.GetDocumentName()
+    fileName.replace(".c4d","");
+    if (len(arg.FNameVar) > 4):
+        fileName= arg.FNameVar + ".orbx"
+        
+    oc_vp[c4d.VP_ORBX_SAVE] = True
+    oc_vp[c4d.VP_ORBX_WO_RENDER] = True
+    oc_vp[c4d.VP_ORBX_OPEN_IN_SA] = False
+    oc_vp[c4d.VP_ORBX_SAVEPATH] = fileName
+    
+    c4d.documents.SetActiveDocument(doc)
+    logMessage( "Exporting .orbx: " + str(FrStart) + "-" + str(FrEnd) + ":  "+fileName)
+    c4d.CallButton(oc_vp, c4d.VP_ORBX_EXPORT_BTN)        
+    logMessage ( "Export done" )
+                
+
+
+def archive_export(fr_start, fr_end, fr_step):
+    global arg
+    global doc
+    
+    if arg.renderer.lower() == "arnold":
+        archive_export_arnold_ass(fr_start, fr_end, fr_step)
+    elif arg.renderer.lower() == "redshift":
+        archive_export_redshift_rs(fr_start, fr_end, fr_step)
+    elif arg.renderer.lower() == "octane":
+        archive_export_octane_orbx(fr_start, fr_end, fr_step)
+            
+    
 
 
 def get_videopost(rd, id):
@@ -1451,14 +1553,14 @@ def renderFrames(FrStart, FrEnd, FrStep):
 
 def render_default():
     global arg
-    if arg.renderer=="arnold" and arg.exportmode:
-        arnold_ass_export(arg.FrStart, arg.FrEnd, arg.FrStep)
+    if arg.exportmode:
+        archive_export(arg.FrStart, arg.FrEnd, arg.FrStep)
     else:
         renderFrames(arg.FrStart, arg.FrEnd, arg.FrStep)
 
 def ksoRenderFrame(FrStart, FrEnd, FrStep):
-    if arg.renderer=="arnold" and arg.exportmode:
-        arnold_ass_export(FrStart, FrEnd, FrStep)
+    if arg.exportmode:
+        archive_export(FrStart, FrEnd, FrStep)
     else:
         renderFrames(FrStart, FrEnd, FrStep)
 

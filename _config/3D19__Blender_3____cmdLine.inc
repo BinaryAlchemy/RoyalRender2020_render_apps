@@ -44,10 +44,12 @@ CommandLine=   "<Exe>"
 	-rBlend "<Scene>"
 	-rOut "<ImageDir><ImageFilename>"
 	-rPad "<ImageFramePadding>"
-	-rExt "<ImageExtension>"
+	<COSetFileFormat 
+        -rExt "<ImageExtension>"
+        <CustomFrameFormat -rFormat <CustomFrameFormat>>
+    >
 	<AppRenderer -rRenderer <AppRenderer>>
 	<Layer -rLayer "<Layer>">
-	<CustomFrameFormat -rFormat <CustomFrameFormat>>
 	-rAA <AAsamplesMultiply>
 	<AdditionalCommandlineParam>
     -rPyModPath <rrLocalRenderScripts><EL<PD>>
@@ -75,9 +77,11 @@ KSOlog_FrameDone= rrKSO Frame(s) done
 KSOlog_Quit=rrKSO closed
 
 
-
 ################################## Submitter Settings ##################################    
 COLoadAdd-ons= 1~0
+COSetFileFormat= 1~1
+
+
 
 ################################## Render Settings ################################## 
 
