@@ -1713,8 +1713,13 @@ def init_c4d():
     """Parse command line arguments, setup logging, load scene, setup render
     Return False if no scene argument has been passed, False otherwise"""
 
+    flushLog()
+    logMessage("####################################################################################################")
     logMessage("Start cinema4D render setup. %rrVersion%")
     logMessage("Python version "+str(sys.version))
+    logMessage("####################################################################################################")
+    flushLog()
+    
     timeStart = datetime.datetime.now()
 
     global arg

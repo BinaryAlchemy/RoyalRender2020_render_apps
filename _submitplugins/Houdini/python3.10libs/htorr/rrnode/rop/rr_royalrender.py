@@ -119,7 +119,7 @@ class SubmitterNode(rrNode):
                 # submission.add_option("SeqDivMIN", "1~{}".format(seq_divide_min))
                 # submission.add_option("SeqDivMax", "1~{}".format(seq_divide_max))
                 
-            if self._node.evalParm("rr_seq_devide2_enabled"):
+            if self._node.evalParm("rr_seq_devide_enabled2"):
 
                 seq_divide_min = int(self._node.evalParm("rr_seq_devide2x"))
                 seq_divide_max = int(self._node.evalParm("rr_seq_devide2y"))

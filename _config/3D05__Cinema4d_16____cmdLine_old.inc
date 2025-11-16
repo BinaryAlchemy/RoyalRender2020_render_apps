@@ -41,3 +41,10 @@ CommandLine=
 CommandLine=
 	"<rrBin64>rrKillWait" 1 QTGUIAGENT -this -withoutParent
 
+
+
+
+
+
+ImageSizeCommandline= -oresolution <Width> <Height>
+

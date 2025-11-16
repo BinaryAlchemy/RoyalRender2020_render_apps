@@ -2,8 +2,22 @@
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 
 from hutil.Qt import QtCore
-from PySide2 import QtWidgets
-from PySide2 import QtGui
+
+
+
+try:
+    # Prefer PySide6 if available
+    from PySide6 import QtWidgets
+    from PySide6 import QtGui
+    PYSIDE_VERSION = 6
+except ImportError:
+    # Fallback to PySide2
+    from PySide2 import QtWidgets
+    from PySide2 import QtGui
+    PYSIDE_VERSION = 2
+    
+    
+
 import hou
 
 clients = ["fo","bla","blub","this","that","pc","client"]

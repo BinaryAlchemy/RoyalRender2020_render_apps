@@ -994,6 +994,7 @@ class TakeManager(object):
 
         take_name = take.GetName()
         take_name_full = '*'.join([name for name in (parent_take_name, take_name) if name])
+        take_filename_full = '-'.join([name for name in (parent_take_name, take_name) if name])
 
         new_job = copy.deepcopy(self.main_job)
 
@@ -1026,12 +1027,12 @@ class TakeManager(object):
                     new_job.channelFileName[ch] = insertPathTake(new_job.channelFileName[ch])
 
         new_job.layerName = take_name_full
+        new_job.imageName = new_job.imageName.replace("$take", take_filename_full)  # manual replace as C4D does not replace $take with partent take
         new_job.imageName = convert_filename_tokens(self._doc, take, new_job.imageName)
-        new_job.imageName = new_job.imageName.replace("$take", take_name)  # manual replace for older versions
 
         for ch in range(0, new_job.maxChannels):
+            new_job.channelFileName[ch] = new_job.channelFileName[ch].replace("$take", take_filename_full)
             new_job.channelFileName[ch] = convert_filename_tokens(self._doc, take, new_job.channelFileName[ch])
-            new_job.channelFileName[ch] = new_job.channelFileName[ch].replace("$take", take_name)
 
         reset_job_renderer_version(new_job)
         set_job_renderer(new_job, render_data[c4d.RDATA_RENDERENGINE], self._doc)
@@ -2808,12 +2809,13 @@ class RRSubmitRsExport(RRSubmitBase, c4d.plugins.CommandData):
             
             arcFile=""
             if (len(defaultSubmit.job[ji].layerName) > 0):
-                arcFile = "<SceneFolder>/rs/<SceneFilename>/<Layer>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__#####"
+                arcFile = "<SceneFolder>/rs/<SceneFilename>/<Layer>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__####"
             else:
-                arcFile = "<SceneFolder>/rs/<SceneFilename>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__#####"
+                arcFile = "<SceneFolder>/rs/<SceneFilename>/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "__####"
             arcFile= arcFile.replace("<SceneFolder>",  doc.GetDocumentPath())
             arcFile= arcFile.replace("<SceneFilename>",  doc.GetDocumentName())
             arcFile= arcFile.replace("<Layer>",defaultSubmit.job[ji].layerName)
+            arcFile= arcFile.replace(".c4d",  "")
 
             #change export job
             defaultSubmit.job[ji].renderer = "Redshift - Export Rs"
@@ -2823,7 +2825,7 @@ class RRSubmitRsExport(RRSubmitBase, c4d.plugins.CommandData):
             defaultSubmit.job[ji].preID=ji
             
             #change render job
-            arcFile= arcFile.replace("#####","<FN4>")
+            arcFile= arcFile.replace("####","<FN4>")
             arcFile= arcFile + ".rs"
             
             newJob.software= "Redshift"
@@ -2848,7 +2850,7 @@ if __name__ == '__main__':
     icon = bitmaps.BaseBitmap()
     icon.InitWith(os.path.join(thispath, "rrSubmit_Cinema 4d_23.0+.png"))
     # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs) does not work with macOS + R23
-    result = plugins.RegisterCommandPlugin(PLUGIN_ID                      , "rrSubmit...", 0, icon, "rrSubmit...", RRSubmit())
+    result = plugins.RegisterCommandPlugin(PLUGIN_ID                      , "rrSubmit", 0, icon, "rrSubmit", RRSubmit())
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM                  , "rrSubmit - Select Camera..."         , 0, icon,  "rrSubmit - Select Camera..."            , RRSubmit(multi_cam=True))
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS                  , "rrSubmit - Export Arnold .ass files..." , 0, icon,  "rrSubmit - Export Arnold .ass files..." , RRSubmitAssExport())
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_RoyalRender_RSExport , "rrSubmit - Export Redshift .rs files...", 0, icon,  "rrSubmit - Export Redshift .rs files...", RRSubmitRsExport())

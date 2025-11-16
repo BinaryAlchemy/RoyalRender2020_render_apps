@@ -11,8 +11,6 @@ LicenseFlags=<LicenseFlags>
 
 
 
-ImageSizeCommandline= -oresolution <Width> <Height>
-
 
 
 ################################## Submitter Settings ################################## 

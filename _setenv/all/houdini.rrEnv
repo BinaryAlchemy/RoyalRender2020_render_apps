@@ -46,9 +46,6 @@ echo * HOUDINI_PACKAGE_DIR is set to <HOUDINI_PACKAGE_DIR>
 [copy] SyncNoCreateDir <RR_HOUDINI_PACKAGE_BASE>   =>   <RR_HOUDINI_PACKAGE_LOCAL>
 
 
-PATH= <rrBaseAppPath>\bin;<PATH>
-
-LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
 
 [If] <JOB>  [==]
     [If] <CustomHoudiniJob>  [!=]  
@@ -95,13 +92,16 @@ LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
     HPyVer=<CustomHPyVer>  
 [EndIf]    
 
-#we use this rrEnv file for houdini and usd_stdA, therefore this switch
-[If] <rrJobRenderapp> [==]  Houdini
-    [If] <rrBaseAppPath> [!=]  
+
+[If] <rrBaseAppPath> [!=] -
+    PATH = <rrBaseAppPath>\bin;<PATH>
+    LD_LIBRARY_PATH  =  <rrBaseAppPath>\dsolib;<LD_LIBRARY_PATH>
+    #we use this rrEnv file for houdini and usd_stdA, therefore this switch
+    [If] <rrJobRenderapp> [==]  Houdini
         [If] <RR_NO_HFS>  [==]
             HFS = <rrBaseAppPath>
-            HH = <rrBaseAppPath>/houdini
-            HHP= <rrBaseAppPath>/houdini/python<HPyVerP>libs
+            HH  = <rrBaseAppPath>/houdini
+            HHP = <rrBaseAppPath>/houdini/python<HPyVerP>libs
         [EndIf]    
     [EndIf]    
 [EndIf]    
