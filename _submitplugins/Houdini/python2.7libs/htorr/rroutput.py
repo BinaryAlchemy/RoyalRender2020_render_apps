@@ -46,8 +46,7 @@ class Output(object):
                 exp = 0
                 while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
                     exp += 1
-
-                maxLen
+                
                 self.padding = exp
                 limitLen = min(len(outf1), len(outf2))
                 index_frame_end = [i for i in range(limitLen) if (outf1[i] != outf2[i]) ][0]

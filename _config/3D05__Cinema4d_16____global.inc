@@ -33,9 +33,9 @@ findFrameNoPost=  at
 permanentErrorSearchLine = doesn't support the required sdk
 permanentErrorSearchLine = Please sign into the Maxon App
 permanentErrorSearchLine = Click here to activate the license
-#permanentErrorSearchLine = Invalid License from License Server
 permanentErrorSearchLine = Error running authentication
 permanentErrorSearchLine = Missing serial number
+#permanentErrorSearchLine = Invalid License from License Server
 
 licenseFailLine= Could not get a license
 #licenseFailLine= Invalid License
@@ -43,12 +43,12 @@ licenseFailLine= Could not get a license
 RealTimeAbortLine= Missing serial number
 RealTimeAbortLine= Render failure detected
 RealTimeAbortLine= create stack trace
-#RealTimeAbortLine= CRITICAL: Stop    We cannot detect this error as there are (Arnold, Redshift) scenes that report "CRITICAL: Stop [ge_container.h" and continue without issue.
 RealTimeAbortLine= MacOSException::SuspendAllThreads
 RealTimeAbortLine= aborting render script
 RealTimeAbortLine= Could not get a license
 RealTimeAbortLine= Error running authentication
 RealTimeAbortLine= Invalid License from License Server
+#RealTimeAbortLine= CRITICAL: Stop    We cannot detect this error as there are (Arnold, Redshift) scenes that report "CRITICAL: Stop [ge_container.h" and continue without issue.
 
 
 ErrorSearchLine = Error running authentication
@@ -58,12 +58,12 @@ ErrorSearchLine = Error rendering document
 ErrorSearchLine = Error rendering project
 ErrorSearchLine = Rendering failed
 ErrorSearchLine = aborting render script
-#ErrorSearchLine = Not enough memory... #Disabled as we have a case in which this error is printed on C4D close. And we do not care about that
 ErrorSearchLine = net.maxon.ui.class.osclipboard is missing
 ErrorSearchLine = Invalid License from License Server
-errorSearchLine= Several plugins used in this project are missing
-#errorSearchLine= Plugin '        # We must not enable this as  C4D 2024 adds Redshift even if it is not used as renderer
-errorSearchLine= Could not initialize Renderer
+ErrorSearchLine= Several plugins used in this project are missing
+ErrorSearchLine= Could not initialize Renderer
+#ErrorSearchLine= Plugin '              # We must not enable this as  C4D 2024 adds Redshift even if it is not used as renderer
+#ErrorSearchLine = Not enough memory... # Disabled as we have a case in which this error is printed on C4D close. And we do not care about that
 
 
 RemoveFromLog= Contains ~ Loading file ~ /corelibs/
@@ -79,7 +79,6 @@ RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
 RenderAppWindow_WIN= Application Error ~  ~ 1 ~ Button ~ OK
 
 
-RemoveFromLog= Contains ~ g_licensepassword
 
 ::include(<ConfigFileName>__inhouse.inc)
 

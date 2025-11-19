@@ -584,7 +584,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
             self.h2rrMap.disableAbortAllJobs()
             self.h2rrMap.clear()
             self.jobsCreated=False
-'''
+            '''
            # Set up the callback server / MQ relay
             self.mqinfo.mqusage = self['mqusage'].evaluateInt()
             rrRenderer = os.environ.get('rrJobRenderer', "")
@@ -598,7 +598,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
             logger.info('MQ usage: {}'.format(self.mqinfo.mqusage))
 
             self._initializeMQRelay()
-'''
+            '''
 
             pdg_workingdir = self["pdg_workingdir"].evaluateString()
             self.setWorkingDir(pdg_workingdir, pdg_workingdir)
@@ -648,7 +648,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
         This is also the time to tear down any resources that are set up in onStartCook. 
         """
         logger.info('------------------- onStopCook (cancel is: ' + str(cancel) + ")")
-'''
+        '''
         if self.running_services:
             running_services = []
             for _service in self.running_services:
@@ -675,11 +675,11 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
             
 
         cancel_max_wait = 2
-'''
+        '''
 
         if cancel:
             self.h2rrMap.disableAbortAllJobs()
-'''           
+        '''           
         # Stop relay (new MQ comes before stopping MQ server)
         if self.mqrelay:
             try:
@@ -705,7 +705,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
                     pass
         except:
             traceback.print_exc()                
-'''
+        '''
             
         if (self.useCallBackServer):
             self.stopCallbackServer()            
@@ -726,7 +726,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
         if LOG_FUNCTION_ENTER_EXIT:       
             #logger.debug("------------------- onSchedule:  {};{};{};{}".format(work_item.node.name, work_item.id, work_item.index, work_item.command))
             logger.debug('------------------- onSchedule input: {} - {}'.format(work_item.node.name, work_item.name))
-'''
+        '''
         if (not self.jobsCreated):
             # copy support files since we have at least one job to submit
             self._copyJobSupportFiles()
@@ -744,16 +744,16 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
             # failed the cook.
             logger.warning('mqinfo.mqstate states an error')
             return scheduleResult.Failed            
-'''
+        '''
         # Ensure directories exist and serialize the work item
         self.createJobDirsAndSerializeWorkItems(work_item)
-'''
+        '''
         self.mqinfo.startMQConnectTime()
 
         if self.mqinfo.mqstate == MQState.NONE:
             # No MQ -> launch MQ or connect to existing
             self._launchMQ()
-'''
+        '''
         #Houdini sends 60 tasks per second by default
         #We collect them and send a pack of tasks for each node in onTick() every x seconds
         if not self.h2rrMap.activateWork(work_item, self):
@@ -901,7 +901,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
         return pdg.tickResult.SchedulerReady
 
 
-'''
+    '''
     def _startMQAndConnect(self, job_spec):
         # Go into launched state until relay has connected
         self.mqinfo.mqstate = MQState.LAUNCHED
@@ -1209,7 +1209,7 @@ class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
         self._verboseLog('result: {}', result)
         return result
 
-'''
+    '''
 
     def submitAsJob(self, graph_file, node_path):
         """
