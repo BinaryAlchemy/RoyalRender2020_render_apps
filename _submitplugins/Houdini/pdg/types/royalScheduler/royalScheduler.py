@@ -420,7 +420,7 @@ class houdiniTask2rrJobMapper():
 
 
 
-class RoyalScheduler( CallbackServerMixin, PyScheduler):
+class RoyalScheduler( CallbackServerMixin, MQSchedulerMixin, PyScheduler):
 
     def __init__(self, scheduler, name):
         PyScheduler.__init__(self, scheduler, name)
@@ -434,6 +434,9 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         self.jobVarName=[]
         self.jobVarValue=[]
         self.jobEnvList=""
+     
+        # Info about our Message Queue (MQ)
+        self.mqinfo = MQInfo()
         
 
 
@@ -581,6 +584,21 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             self.h2rrMap.disableAbortAllJobs()
             self.h2rrMap.clear()
             self.jobsCreated=False
+'''
+           # Set up the callback server / MQ relay
+            self.mqinfo.mqusage = self['mqusage'].evaluateInt()
+            rrRenderer = os.environ.get('rrJobRenderer', "")
+            submit_as_job = (rrRenderer.startswith("PDG"))
+            #With submit_as_job you start a new Houdini instance that loads the scene and acts as a server. 
+            #Another job that starts a server makes no sense.
+            if submit_as_job and self.mqinfo.mqusage == MQUsage.FARM:
+                logger.info('Forcing MQ usage from FARM to LOCAL for SubmitAsJob')
+                self.mqinfo.mqusage = MQUsage.LOCAL
+                
+            logger.info('MQ usage: {}'.format(self.mqinfo.mqusage))
+
+            self._initializeMQRelay()
+'''
 
             pdg_workingdir = self["pdg_workingdir"].evaluateString()
             self.setWorkingDir(pdg_workingdir, pdg_workingdir)
@@ -629,12 +647,71 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         In that case the scheduler should cancel them and block until they are actually canceled. 
         This is also the time to tear down any resources that are set up in onStartCook. 
         """
-        logger.info('------------------- onStopCook: cancel = ' + str(cancel))
+        logger.info('------------------- onStopCook (cancel is: ' + str(cancel) + ")")
+'''
+        if self.running_services:
+            running_services = []
+            for _service in self.running_services:
+                running_services.append(_service)
+            for _service in running_services:
+                self.stopService(_service)
+            self.running_services = []
+
+        # Stop all in process items, but make sure
+        # to always reset the scheduler state to
+        # be ready to cook again
+        if self.running_services:
+            running_services = []
+            for _service in self.running_services:
+                running_services.append(_service)
+            for _service in running_services:
+                self.stopService(_service)
+            self.running_services = []
+        try:
+            self._stopSharedServers()
+        except:
+            traceback.print_exc()
+            
+            
+
+        cancel_max_wait = 2
+'''
 
         if cancel:
             self.h2rrMap.disableAbortAllJobs()
+'''           
+        # Stop relay (new MQ comes before stopping MQ server)
+        if self.mqrelay:
+            try:
+                tbut.printLog('Stopping MQ Relay')
+                self.mqrelay.stopAll()
+            except:
+                traceback.print_exc()
+
+        try:
+            # Stop MQ server
+            if self.mqinfo.mqstate != MQState.NONE:
+                # Even if MQ is in error state, it might still be running as a 
+                # job, so try stopping it.
+                if self.mqinfo.mqusage == MQUsage.FARM or self.mqinfo.mqusage == MQUsage.LOCAL:
+                    tbut.printLog('Stopping MQ service')
+                    mqservice = self.getMQService()
+                    MQUtility.stopService(self, mqservice, tbut.printLog)
+                elif self.mqinfo.mqusage == MQUsage.LOCAL:
+                    # Handled in self.stopCallbackServer() below
+                    pass
+                elif self.mqinfo.mqusage == MQUsage.CONNECT:
+                    # Nothing to do when using existing MQ
+                    pass
+        except:
+            traceback.print_exc()                
+'''
+            
         if (self.useCallBackServer):
             self.stopCallbackServer()            
+
+        self.setWorkItemResultServerAddr('')
+            
         if LOG_FUNCTION_ENTER_EXIT:
             logger.debug('-------------------onStopCook--EXIT-----------------')
 
@@ -649,13 +726,34 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
         if LOG_FUNCTION_ENTER_EXIT:       
             #logger.debug("------------------- onSchedule:  {};{};{};{}".format(work_item.node.name, work_item.id, work_item.index, work_item.command))
             logger.debug('------------------- onSchedule input: {} - {}'.format(work_item.node.name, work_item.name))
-        #if len(work_item.command) == 0:
-         #   return pdg.scheduleResult.CookSucceeded
-            
+'''
+        if (not self.jobsCreated):
+            # copy support files since we have at least one job to submit
+            self._copyJobSupportFiles()
 
+            # first time through - init the MQ
+            self.mqinfo.startMQConnectTime()
+            #assert(self.mqinfo.mqstate == MQState.NONE)
+            with self.rpc_lock:
+                mqservice = self.getMQService()
+                job_spec = self._prepareRootJobs(mqservice)
+                self._startRootJobs(mqservice, job_spec)        
+            
+        if self.mqinfo.mqstate == MQState.ERRORED:
+            # Just return failure since previous onSchedule call should have
+            # failed the cook.
+            logger.warning('mqinfo.mqstate states an error')
+            return scheduleResult.Failed            
+'''
         # Ensure directories exist and serialize the work item
         self.createJobDirsAndSerializeWorkItems(work_item)
+'''
+        self.mqinfo.startMQConnectTime()
 
+        if self.mqinfo.mqstate == MQState.NONE:
+            # No MQ -> launch MQ or connect to existing
+            self._launchMQ()
+'''
         #Houdini sends 60 tasks per second by default
         #We collect them and send a pack of tasks for each node in onTick() every x seconds
         if not self.h2rrMap.activateWork(work_item, self):
@@ -802,6 +900,316 @@ class RoyalScheduler( CallbackServerMixin, PyScheduler):
             logger.debug('-------------------onTick--EXIT3-----------------')
         return pdg.tickResult.SchedulerReady
 
+
+'''
+    def _startMQAndConnect(self, job_spec):
+        # Go into launched state until relay has connected
+        self.mqinfo.mqstate = MQState.LAUNCHED
+        
+        # NOTE: The Deadline implementation will continue scheduling jobs which block
+        # on the mq, and will poll for the mq in onTick.  We however will block here instead.
+        # This ensures that any other schedulers in this cook will see a running
+        # MQ service when they are in this function.
+
+        # For Connect and Local we need to wait/connect to it first then submit job
+        if self.mqinfo.mqusage == MQUsage.LOCAL:
+            self.mqinfo.connfile_maxtime = 30
+            try:
+                while True:
+                    if self.context.canceling:
+                        raise CookError("Cancel while starting root job")
+                    time.sleep(0.1)
+                    self._getMQAddressFromConnectionFile()
+                    if self.workItemResultServerAddr():
+                        self._relayConnectToMQ()
+                        break
+            except Exception as e:
+                self.setWorkItemResultServerAddr('')
+                raise
+        elif self.mqinfo.mqusage == MQUsage.FARM:
+            #not supported
+            pass
+            
+
+    def _prepareRootJobs(self, mqservice):
+        """
+        Create and start the top-level Job.
+        """
+
+        self.starting_mq = False
+
+        if self.mqinfo.mqusage == MQUsage.CONNECT:
+            # If it's already running, we don't need to parse the parms because
+            # we can only have one of this named service running, so in this case
+            # the first Scheduler wins.
+            if mqservice.state != serviceState.Running:
+                # User wants to connect to existing MQ. Verify address and ports.
+                mq_host = self['mqaddr'].evaluateString()
+                if not mq_host:
+                    raise CookError('Message Queue address (mqaddr) should be set '
+                        'to the address of the running mqserver')
+
+                mq_relayport = self['mqrelayport'].evaluateInt()
+
+                # RPC port is relay port in pdgnet
+                mq_rpcport = mq_relayport
+                # HTTP port is task callback port in pdgnet
+                mq_httpport = self['taskcallbackport'].evaluateInt()
+
+                if mq_rpcport <= 0 or mq_relayport <= 0:
+                    raise CookError('MQ ports must be positive non-zero')
+
+                # Update service data from parm values
+                MQUtility.setMQServerAddress(mqservice, mq_host,
+                    mq_rpcport, mq_relayport, mq_httpport)
+
+                # The service isn't running
+            else:
+                # The service is already running which means we must have already
+                # created the root job
+                self.root_id = MQUtility.getMQParentJobID(mqservice)
+            
+            # copy existing service info into our local cache
+            MQUtility.updateInfo(mqservice, self.mqinfo)
+            self._updateWorkItemResultServerFromMQInfo()
+        else:
+            # Start MQ on farm or locally
+            # Start the MQ if it's not already running
+            self.starting_mq = mqservice.state != serviceState.Running
+
+            if self.mqinfo.mqusage == MQUsage.LOCAL and self.starting_mq:
+                # No MQ service running, so prep for starting it locally
+                mq_cmd = self._prepMQLocal()
+                MQUtility.setServiceData(mqservice,
+                    MQUtility.MQCommandData, mq_cmd)
+            
+            elif not self.starting_mq:
+                # copy existing service info into our local cache
+                self.root_id = MQUtility.getMQParentJobID(mqservice)
+                MQUtility.updateInfo(mqservice, self.mqinfo)
+                self._updateWorkItemResultServerFromMQInfo()
+
+            if self.starting_mq:
+                # Remove a stale connection file
+                connfile = MQUtility.getConnectionFileLocalPath(mqservice)
+                if os.path.exists(connfile):
+                    os.remove(connfile)
+
+                self.remote_conn_file = MQUtility.getConnectionFileRemotePath(mqservice)
+                if not self.remote_conn_file:
+                    # self.remote_conn_file should have been set in _prepMQLocal / _prepMQFarmJob
+                    self.mqinfo.mqstate = MQState.ERRORED
+                    raise CookError('MQ remote connection file should already have been set')
+        return job_spec
+
+    def _startRootJobs(self, mqservice, job_spec):
+        # Always call startService() to increment use count and trigger call to
+        # PDG_Scheduler.startService().
+        error = None
+        try:
+            MQUtility.startService(self, mqservice, self._verboseLog)
+        except:
+            # Catch error when service fails so we can raise CookError
+            error = traceback.format_exc()
+
+        if not error:
+            # Check if service has error set
+            error = MQUtility.getMQError(mqservice)
+
+        if mqservice.state != serviceState.Running or error:
+            self.mqinfo.mqstate = MQState.ERRORED
+            raise CookError('Failed to start MQ service.\n{}'.format(error))
+
+        if self.starting_mq:
+            self._startMQAndConnect(job_spec)
+        else:
+            # We are using MQUsage.CONNECT, or we are re-using an existing farm/local MQ
+            self._relayConnectToMQ()
+
+        
+    @staticmethod
+    def getMQServiceName(mqusage):
+        """
+        Returns the service name based on mqusage (farm or local)
+        """
+        if mqusage == MQUsage.FARM:
+            return HQueueScheduler.MQServiceNameFarm
+        return MQSchedulerMixin.getMQServiceName(mqusage)
+
+ 
+    def _launchMQ(self):
+        """
+        Starts the MQ server, or connects to it.
+        """
+        if self.mqinfo.mqstate != MQState.NONE:
+            return
+
+        mqservice = self.getMQService()
+
+        if self.mqinfo.mqusage == MQUsage.CONNECT:
+            # User wants to connect to existing MQ. Verify address and ports.
+            self.mqinfo.mq_host = self['mqaddr'].evaluateString()
+            if not self.mqinfo.mq_host:
+                raise CookError('Message Queue address (mqaddr) should be set to the address of the running mqserver')
+
+            self.mqinfo.mq_relayport = self['mqrelayport'].evaluateInt()
+
+            # RPC port is relay port in pdgnet
+            self.mqinfo.mq_rpcport = self.mqinfo.mq_relayport
+            # HTTP port is task callback port in pdgnet
+            self.mqinfo.mq_httpport = self['taskcallbackport'].evaluateInt()
+
+            if self.mqinfo.mq_rpcport <= 0 or self.mqinfo.mq_relayport <= 0:
+                raise CookError('MQ ports must be positive non-zero')
+
+            server_endpoint = (self.mqinfo.mq_host, self.mqinfo.mq_rpcport)
+            self.setWorkItemResultServerAddr('{}:{}'.format(*server_endpoint))
+        else:
+            # Start MQ on farm or locally
+
+            if self.mqinfo.mqusage == MQUsage.FARM:
+                if mqservice.state != serviceState.Running:
+                    raise CookError('MQUsage.FARM not supported')
+
+            elif self.mqinfo.mqusage == MQUsage.LOCAL:
+                if mqservice.state != serviceState.Running:
+                    # No MQ service running, so prep for starting it locally
+                    mq_cmd = self._prepMQLocal()
+                    MQUtility.setServiceData(mqservice, 'mq_cmd', mq_cmd)
+
+            # Always call startService to increment use count and 
+            # start the MQ
+            error = None
+            try:
+                MQUtility.startService(self, mqservice, tbut.printLog)
+            except:
+                # Catch error when service fails so we can raise CookError
+                error = traceback.format_exc()
+                print("error: ", error)
+
+            if not error:
+                # Check if service has error set
+                error = MQUtility.getMQError(mqservice)
+
+            if mqservice.state != serviceState.Running or error:
+                self.mqinfo.mqstate = MQState.ERRORED
+                raise CookError('Failed to start MQ service.\n{}'.format(error))
+
+            self.remote_conn_file = MQUtility.getConnectionFileRemotePath(mqservice)
+            
+            if not self.remote_conn_file:
+                # self.remote_conn_file should already have been set either in
+                # self._prepMQDeadlineJob() or in MQUtility.getConnectionFileRemotePath(mqservice)
+                self.mqinfo.mqstate = MQState.ERRORED
+                raise CookError('MQ remote connection file should already have been set')
+
+        # Go into launched state until relay has connected
+        self.mqinfo.mqstate = MQState.LAUNCHED
+
+
+
+    @staticmethod
+    def hasServiceSupport():
+        """
+        [virtual] Indicates whether the scheduler type supports starting and
+        stopping PDG services
+        """
+        return True
+
+    def startService(self, service):
+        """
+        [virtual] Starts the MQ server if its not already running.
+        This can run MQ locally or remotely on farm, based on the service name.
+        The command used to start MQ should have been set in service.data.
+        Returns True if service is running.
+        """
+        error = None
+        if service.state != serviceState.Running:
+            try:
+                mqjobid = None
+                if MQUtility.isLocalMQ(service):
+                    mqjobid = MQUtility.startLocalMQ(service, self._verboseLog)
+                    if mqjobid:
+                        MQUtility.setMQJobID(service, mqjobid)
+                elif service.name == self.getMQServiceName(MQUsage.FARM):
+                    # Don't actually start anything here, will spool it as part
+                    # of the root job
+                    pass
+                else:
+                    if not service.isInternal:
+                        service.state = serviceState.Starting
+                        self._startService(service)
+                        self.running_services.append(service)
+                        service.state = serviceState.Running
+                        return True
+                service.state = serviceState.Running
+            except:
+                error = traceback.format_exc()
+                print("error: ", error)
+        
+        if error:
+            if MQUtility.isLocalMQ(service) or service.name == self.getMQServiceName(MQUsage.FARM):
+                MQUtility.setMQError(service, error)
+            raise ServiceError(error)
+        
+        return (service.state == serviceState.Running)
+
+    def stopService(self, service):
+        """
+        Stops the given service.
+        First tries to stop it via remote call, then if that fails, kills the 
+        local process or farm job.
+        """
+        result = True
+
+        if service.state == serviceState.Running:
+            if not service.isInternal:
+                try:
+                    self._stopService(service)
+                except:
+                    traceback.print_exc()
+                    result = False
+                finally:
+                    service.state = serviceState.Stopped
+                return result
+
+            # We only manage lifetime of Local or Farm MQ
+            if not (MQUtility.isLocalMQ(service) or
+                    service.name == self.getMQServiceName(MQUsage.FARM)):
+                return result
+
+            use_count = MQUtility.getMQUse(service)
+            if use_count > 0:
+                self._verboseLog("WARNING: Stopping MQ service while use count is not zero: {}".format(use_count))
+
+            # First try stopping it via remote call
+            try:
+                mq_addr = MQUtility.getMQServerAddress(service)
+                relay_port = MQUtility.getMQServerRelayPort(service)
+                rpc_port = MQUtility.getMQServerRPCPort(service)
+                try:
+                    MQUtility.stopMQRemotely(mq_addr, relay_port, rpc_port, self._verboseLog)
+                except Exception as e:
+                    # This is not necessarily an error, the MQ could have been
+                    # manually killed
+                    self._verboseLog('MQ server not reachable: {}'.format(str(e)))
+                    if MQUtility.isLocalMQ(service):
+                        result = MQUtility.killLocalMQ(service, self._verboseLog)
+                    else:
+                        mq_jobid = MQUtility.getMQJobID(service)
+                        self.hqserver.cancelJobs([mq_jobid])
+                    result = False
+            except:
+                traceback.print_exc()
+            finally:
+                # Always set this as otherwise it will keep trying to stopService
+                service.state = serviceState.Stopped
+                MQUtility.clearMQData(service)
+
+        self._verboseLog('result: {}', result)
+        return result
+
+'''
 
     def submitAsJob(self, graph_file, node_path):
         """

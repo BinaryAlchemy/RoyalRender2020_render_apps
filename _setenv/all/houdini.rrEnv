@@ -159,6 +159,11 @@ PXR_PLUGINPATH_NAME = <RR_HTOA_BASE_LOCAL>\arnold\plugins;<PXR_PLUGINPATH_NAME>
 REDSHIFT_USED = FALSE
 RR_REDSHIFT_VERSION= <RR_REDSHIFT_VERSION>
 
+[If] <RR_REDSHIFT_LOAD_FOR_ALL_SCENES>  [==]  1
+    echo * Enabling Redshift env vars
+    REDSHIFT_USED = TRUE
+[EndIf]
+
 [If] <rrJobRenderer>  [contains] redshift
     echo * Rendering with Redshift
     REDSHIFT_USED = TRUE

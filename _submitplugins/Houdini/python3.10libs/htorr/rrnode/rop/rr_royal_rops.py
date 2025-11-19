@@ -402,10 +402,12 @@ class rrDenoiseRop(RenderNode):
     def rr_job_variablesFunc(self):
         parm = self._node.parm("denoiser")
         parmValue = parm.evalAsString() 
+        addFlags="NoSceneExistCheck=True;"
+        
         if (parmValue=="arnold"):
-            return ""
+            return addFlags
         elif (parmValue=="rman"):
-            addFlags=""
+
             alpha = self._node.parm("aov_alpha").evalAsString()
             albedo = self._node.parm("aov_albedo").evalAsString()
             diffuse = self._node.parm("aov_diffuse").evalAsString()
@@ -423,7 +425,6 @@ class rrDenoiseRop(RenderNode):
                 addFlags= addFlags + "SpecularName=" + specular + ";"            
             return addFlags
         else:    
-            addFlags=""
             normal = self._node.parm("hou_normal").evalAsString()
             albedo = self._node.parm("hou_albedo").evalAsString()
             aov = self._node.parm("hou_aov").evalAsString()

@@ -38,8 +38,8 @@ class Output(object):
         
         path_no_ext = ""
         
-        logger.debug("Output for frame 1 is {} (I)".format(str(outf1)))
-        #logger.debug("Output for frame 2 is {} (I)".format(str(outf2)))
+        logger.debug("Output for frame 1 is {} (I)".format(repr(str(outf1))))
+        #logger.debug("Output for frame 2 is {} (I)".format(repr(str(outf2))))
         try:
             if outf2 != outf1:
                 self.static = False
@@ -47,8 +47,10 @@ class Output(object):
                 while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
                     exp += 1
 
+                maxLen
                 self.padding = exp
-                index_frame_end = [i for i in range(len(outf1)) if outf1[i]!=outf2[i]][0]
+                limitLen = min(len(outf1), len(outf2))
+                index_frame_end = [i for i in range(limitLen) if (outf1[i] != outf2[i]) ][0]
                 index_frame_start = index_frame_end - self.padding
 
                 path_no_ext = outf1[:index_frame_start+1]
@@ -72,6 +74,7 @@ class Output(object):
             logger.warning("Error splitting output!")
             logger.warning("Output for frame 1 is {} (I)".format(str(outf1)))
             logger.warning("Output for frame 2 is {} (I)".format(str(outf2)))
+            import traceback
             logger.warning(str(traceback.format_exc()))
             self.dir=""
             self.name=""

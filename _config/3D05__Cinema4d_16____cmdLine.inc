@@ -51,6 +51,7 @@ CommandLine= "<Exe>"
     <AdditionalCommandlineParam>
 	<ClientConfigParam>
 	<COArnoldDriverOut -arnoldDriverOut true>
+    <CODisableRenderError -disableRenderError True>
     <verboseLevel>
     g_prefspath=<rrLocalPrefs><ExeVersion>
 	
@@ -80,6 +81,7 @@ KSOlog_Quit=rrKSO closed
 
 
 COOCIOfix= 1 ~ 1
+CODisableRenderError= 1 ~ 0
 
 
 FlagsRegion= -RegionLeft  <X1 <X1> ?0> -RegionRight <X2 <X2> ? <Width>>  -RegionTop <Y1 <Y1> ? 0 >  -RegionBtm <Y2 <Y2> ? <Height>>

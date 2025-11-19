@@ -41,6 +41,8 @@ def submit(rops=[], gui=True, askForSave=True):
                 rops.append(s)
             elif s.type().category() == hou.lopNodeTypeCategory():
                 rops.append(s)
+            elif s.type().category() == hou.copNodeTypeCategory():
+                rops.append(s)
             else:
                 logger.warning("{}: Selected Node is no ROP/LOP. Type category is '{}' ".format( s.path(), s.type().category()) )
 

@@ -28,6 +28,8 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 # set this var if Redshift should NOT be copied to the local drive (not recommended to change if there is not a good reason)
 # RR_REDSHIFT_NO_LOCAL_SYNC = 1
 
+# By default, RR sets Redshift env vars for scenes that use the renderer Redshift. If you incomment this line, Redshift env vars are set for any Houdini scene
+# RR_REDSHIFT_LOAD_FOR_ALL_SCENES = 1
 
 
 

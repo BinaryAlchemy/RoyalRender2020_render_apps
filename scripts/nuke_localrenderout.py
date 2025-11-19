@@ -67,8 +67,17 @@ def convertPath(writeNode, orgDir, orgDirWinDrive, locDir, createFolder, attrNam
     """Convert output path of writeNode, return True if the destination folder can be created,
     False if creation failed, None if there is no path to create
     """
-    pathScripted= writeNode[attrName].value()
-    #writeInfo("    "+writeNode['name'].value()+":  original value: "+pathScripted)
+    try:
+        pathScripted= writeNode[attrName].value()
+    except:
+        writeInfo("    {}:  Unable to change attribute '{}'".format(writeNode['name'].value(), attrName))
+        import traceback
+        tb = traceback.format_exc()
+        tb_lines = tb.splitlines()
+        indented_tb = "\n".join([tb_lines[0]] + ["        " + line for line in tb_lines[1:]])
+        writeInfo(indented_tb)
+        return
+        
     if ((pathScripted== None) or (len(pathScripted)<3)):
         return
     if ("[string" in pathScripted) or ("[value" in pathScripted) or ("[python" in pathScripted):
@@ -212,20 +221,20 @@ def crossOSConvert_sub(sceneOS, ourOS, write_node_name=None):
                         continue
                     if write_node_name and writeNode['name'].value() != write_node_name:
                         continue
-                    convertPath(writeNode, fromOS[i], fromOS[i], toOS[i], False,"file")
+                    convertPath(writeNode, fromOS[i], fromOS[i], toOS[i], False, "file")
 
 
                 n = getAllReadNodes()
                 for readNode in n:
                     if (readNode['disable'].value()):
                         continue
-                    convertPath(readNode, fromOS[i], fromOS[i], toOS[i], False,"file")
+                    convertPath(readNode, fromOS[i], fromOS[i], toOS[i], False, "file")
 
                 n = getAllNodes("Vectorfield")
                 for node in n:
                     if (node['disable'].value()):
                         continue
-                    convertPath(node, fromOS[i], fromOS[i], toOS[i], False,"vfield_file")
+                    convertPath(node, fromOS[i], fromOS[i], toOS[i], False, "vfield_file")
 
 
 

@@ -126,7 +126,7 @@ class rrNode(object):
 
         # node type name as [namespace::]node_name[::version]
         type_ = node.type().nameComponents()[-2]
-        logger.debug( "{}: Nodetype {} ".format( node.path(), node.type().name() )  )
+        #logger.debug( "{}: Nodetype {} ".format( node.path(), node.type().name() )  )
         
         if type_ in rrNode.REGISTRY:
             return rrNode.REGISTRY[type_](node)
@@ -601,7 +601,7 @@ class RenderNode(rrNode):
             start = int(hou.frame())
             end = int(hou.frame())
             inc = 1
-        # logger.debug("{} frange {}-{},{}    UICurrent: {}".format( self._node.path(), start, end, inc, hou.frame()))
+        #logger.debug("{} frange {}-{},{}    framemode: {}".format( self._node.path(), start, end, inc, framemode))
         return (start, end, inc)
 
     @property

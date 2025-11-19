@@ -63,7 +63,7 @@ def argValid(argValue):
     return (argValue!= None) and (len(str(argValue)) > 0)
 
 class argParser:
-    def getParam(self,argFindName):
+    def getParam(self, argFindName, defaultValue=""):
         argFindName = argFindName.lower()
         for a in range(0,  len(sys.argv)):
             if ((sys.argv[a].lower()==argFindName) and (a+1<len(sys.argv))):
@@ -83,7 +83,7 @@ class argParser:
 
                 logMessage("Flag  "+argFindName.ljust(15)+": '"+str(argValue)+"'")
                 return argValue
-        return ""
+        return defaultValue
 
     def readArguments(self):
         logMessage("Python::sys.stdout.encoding is "+str(sys.stdout.encoding))
@@ -120,6 +120,7 @@ class argParser:
         self.AAsamplesMultiply=self.getParam("-rAA")
         self.OCIOfix=self.getParam("-OCIOfix")
         self.exportmode=self.getParam("-rendererExportMode")
+        self.disableRenderError=self.getParam("-disableRenderError", False)
 
         # replace RR tokens left for compatibility
         arg.FNameVar = self.FNameVar.replace("<Camera>", self.camera)
@@ -1364,9 +1365,9 @@ def renderFrames(FrStart, FrEnd, FrStep):
 
     logMessage("Image res: X:"+str(arg.width)+"   Y: "+str(arg.height))
     rd[c4d.RDATA_FRAMESEQUENCE] = c4d.RDATA_FRAMESEQUENCE_MANUAL
-    rflags = c4d.RENDERFLAGS_EXTERNAL | c4d.RENDERFLAGS_NODOCUMENTCLONE | c4d.RENDERFLAGS_SHOWERRORS
-    #RENDERFLAGS_RENDERQUEUEERRORS
-
+    rflags = c4d.RENDERFLAGS_EXTERNAL | c4d.RENDERFLAGS_NODOCUMENTCLONE
+    if not arg.disableRenderError:
+        rflags = rflags | c4d.RENDERFLAGS_SHOWERRORS
 
     localNoFrameLoop = arg.noFrameLoop
     if (not localNoFrameLoop):

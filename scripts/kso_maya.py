@@ -315,7 +315,7 @@ def renderFrames(arg,FrStart,FrEnd,FrStep,FrOffset,Renderer, Layer):
                 localNoFrameLoop= arg.Renderer in ("redshift", "Octane", "mayaHardware2")
         
         if (localNoFrameLoop):
-            frameCount= ((FrEnd - FrStart) / FrStep ) + 1
+            frameCount= int((FrEnd - FrStart) / FrStep ) + 1
             logMessage("Starting to render frames "+str(FrStart)+" - "+str(FrEnd)+", "+str(FrStep)+" ("+str(frameCount)+" frames)")
             
             beforeFrame=datetime.datetime.now()

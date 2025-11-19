@@ -6,6 +6,7 @@ import os.path
 from htorr.rroutput import Output, ProductOutput
 from htorr.rrnode.base import RenderNode
 import traceback
+from pxr import UsdRender
 
 logger = logging.getLogger("HtoRR")
 
@@ -265,6 +266,23 @@ class UsdStandalone(UsdRop):
     """ child of UsdRop for create+render jobs"""
     name = "usd_render"
 
+    def getStage(self):
+        stage= None
+        import loputils
+        lop = self._node.evalParm('loppath')
+        if self._node.input(0):
+            input = self._node.input(0)
+            stage = input.stage() # Houdini-native HUSD stage
+            #logger.debug("{}: stage from node.input(0)")     
+        elif lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            stage = lop.stage()  # Houdini-native HUSD stage
+            #logger.debug("{}: stage from lop.stage() ")     
+        else:
+            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        return stage
+        
+        
     def setSingleScene(self, isSingle):
         self.sceneIsSingleFile = isSingle
 
@@ -396,17 +414,7 @@ class UsdStandalone(UsdRop):
 
     @property
     def renderproductList(self):
-        stage= None
-        import loputils
-        lop = self._node.evalParm('loppath')
-        if self._node.input(0):
-            input = self._node.input(0)
-            stage = input.stage()
-        elif lop:
-            lop = self._node.parm("loppath").evalAsNode()
-            stage = lop.stage() 
-        else:
-            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        stage= self.getStage()
 
         if (stage== None):
             logger.debug("{}: no stage found! ".format(self._node.path()))     
@@ -418,27 +426,76 @@ class UsdStandalone(UsdRop):
             logger.debug("{}: no render products found! ".format(self._node.path()))     
             return []
         productchildren = products.GetAllChildren()
-        for c in productchildren:
-            name = c.GetName()
-            attribs = c.GetAttributes()
+        for prim in productchildren:
             product = {}
-            product["name"] = name
+            product["name"] = prim.GetName()
             isValidImage=False
-            for a in attribs:
-                if a.GetName().find("productName") > -1:
-                    #logger.debug("renderproductList: productOutname: {}".format(a.Get()))
+            
+            a = prim.GetAttribute("productName")
+            if a:
+                #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
+                product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
+                isValidImage= product["productOutname"].find("checkpoint")<0 
+                product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
+                product["productOutnameB"] = a.Get(999999) 
+                product["attrib"] = a
+                
+            if a:
+                a = prim.GetAttribute("resolution")
+                product["resX"] = a.Get()[0]
+                product["resY"] = a.Get()[1]
+                
+            if (isValidImage):
+                allproducts.append(product)
+                
+
+        renderSettings = stage.GetPrimAtPath("/Render/rendersettings")        
+
+        #Render settings overrides the render product to render    
+        #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
+        settings = UsdRender.Settings(renderSettings)
+        product_paths = settings.GetProductsRel().GetTargets()  # returns list of prim paths
+        if len(product_paths)>0:
+            allproducts = []
+            for path in product_paths:
+                prim = stage.GetPrimAtPath(path)
+                
+                product = {}
+                product["name"] = prim.GetName()
+                isValidImage=False
+                
+                a = prim.GetAttribute("productName")
+                if a:
+                    #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
                     product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
                     isValidImage= product["productOutname"].find("checkpoint")<0 
                     product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
                     product["productOutnameB"] = a.Get(999999) 
                     product["attrib"] = a
-                if a.GetName().find("resolution") > -1:
+                    
+                if a:
+                    a = prim.GetAttribute("resolution")
                     product["resX"] = a.Get()[0]
                     product["resY"] = a.Get()[1]
-            if (isValidImage):
-                allproducts.append(product)
+                
+                if (isValidImage):
+                    allproducts.append(product)
+
+        
+        
+        #Render settings overrides the resolution     
+        res_attr = renderSettings.GetAttribute("resolution")
+        if res_attr:
+            resolution = res_attr.Get()    
+            width  = int(resolution[0])
+            height = int(resolution[1])
+            #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
+            for product in allproducts:
+                product["resX"] = width
+                product["resY"] = height        
+                
         #printList_Debug("renderproductList", allproducts)
-        return allproducts
+        return allproducts    
 
     @property
     def aovs(self):
@@ -452,15 +509,62 @@ class UsdStandalone(UsdRop):
     @property
     def single_output(self):
         return False
+
+    @property
+    def frange(self):
+        """Property for frame range.
+        Returns Tuple (Frame Start, Frame End, Frame Increment)
+        """
+        start = self._node.evalParm("f1")
+        end = self._node.evalParm("f2")
+        inc = self._node.evalParm("f3")
+        try:
+            framemode = self._node.evalParm("trange")
+        except:
+            framemode=1
+        if framemode == 0:  # Render current frame
+            start = int(hou.frame())
+            end = int(hou.frame())
+            inc = 1
+        elif framemode == 3:  # Render stage
+            stage= self.getStage()
+            if (stage != None):
+                tcps = stage.GetTimeCodesPerSecond()
+                fps = hou.fps()
+                #other function available in case this does not work: "Houdini-native HUSD stage: use timeRange() frame_range = stage.timeRange()"
+                start = stage.GetStartTimeCode()
+                end = stage.GetEndTimeCode()
+                
+                start = int(start * fps / tcps) - self._node.evalParm("foffset1")
+                end   = int(  end * fps / tcps) + self._node.evalParm("foffset2")
             
-        
-        
+        #logger.debug("{} frange {}-{},{}    framemode: {}".format( self._node.path(), start, end, inc, framemode))
+        return (start, end, inc)  
 
 class UsdRenderRop(RenderNode):
     """ USD ROP to render """
 
     name = "usdrender"
-
+    
+    
+    def getStage(self):
+        stage= None
+        import loputils
+        lop = self._node.evalParm('loppath')
+        if self._node.input(0):
+            input = self._node.input(0)
+            stage = input.stage() # Houdini-native HUSD stage
+            #logger.debug("{}: stage from node.input(0)")     
+        elif lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            stage = lop.stage()  # Houdini-native HUSD stage
+            #logger.debug("{}: stage from lop.stage() ")     
+        else:
+            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        
+        return stage
+            
+            
     @property
     def output_parm(self):
         #logger.debug("{}: output_parm is set to {} ".format(self._node.path(), self._node.parm("outputimage").eval() ) )        
@@ -557,17 +661,7 @@ class UsdRenderRop(RenderNode):
         
     @property
     def renderproductList(self):
-        stage= None
-        import loputils
-        lop = self._node.evalParm('loppath')
-        if self._node.input(0):
-            input = self._node.input(0)
-            stage = input.stage()
-        elif lop:
-            lop = self._node.parm("loppath").evalAsNode()
-            stage = lop.stage() 
-        else:
-            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        stage= self.getStage()
 
         if (stage== None):
             logger.debug("{}: no stage found! ".format(self._node.path()))     
@@ -579,27 +673,109 @@ class UsdRenderRop(RenderNode):
             logger.debug("{}: no render products found! ".format(self._node.path()))     
             return []
         productchildren = products.GetAllChildren()
-        for c in productchildren:
-            name = c.GetName()
-            attribs = c.GetAttributes()
+        for prim in productchildren:
             product = {}
-            product["name"] = name
+            product["name"] = prim.GetName()
             isValidImage=False
-            for a in attribs:
-                if a.GetName().find("productName") > -1:
-                    #logger.debug("renderproductList: productOutname: {}".format(a.Get()))
+            
+            a = prim.GetAttribute("productName")
+            if a:
+                #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
+                product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
+                isValidImage= product["productOutname"].find("checkpoint")<0 
+                product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
+                product["productOutnameB"] = a.Get(999999) 
+                product["attrib"] = a
+                
+            if a:
+                a = prim.GetAttribute("resolution")
+                product["resX"] = a.Get()[0]
+                product["resY"] = a.Get()[1]
+                
+            if (isValidImage):
+                allproducts.append(product)
+                
+
+        renderSettings = stage.GetPrimAtPath("/Render/rendersettings")        
+
+        #Render settings overrides the render product to render    
+        #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
+        settings = UsdRender.Settings(renderSettings)
+        product_paths = settings.GetProductsRel().GetTargets()  # returns list of prim paths
+        if len(product_paths)>0:
+            allproducts = []
+            for path in product_paths:
+                prim = stage.GetPrimAtPath(path)
+                
+                product = {}
+                product["name"] = prim.GetName()
+                isValidImage=False
+                
+                a = prim.GetAttribute("productName")
+                if a:
+                    #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
                     product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
                     isValidImage= product["productOutname"].find("checkpoint")<0 
                     product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
                     product["productOutnameB"] = a.Get(999999) 
                     product["attrib"] = a
-                if a.GetName().find("resolution") > -1:
+                    
+                if a:
+                    a = prim.GetAttribute("resolution")
                     product["resX"] = a.Get()[0]
                     product["resY"] = a.Get()[1]
-            if (isValidImage):
-                allproducts.append(product)
+                
+                if (isValidImage):
+                    allproducts.append(product)
+
+        
+        
+        #Render settings overrides the resolution     
+        res_attr = renderSettings.GetAttribute("resolution")
+        if res_attr:
+            resolution = res_attr.Get()    
+            width  = int(resolution[0])
+            height = int(resolution[1])
+            #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
+            for product in allproducts:
+                product["resX"] = width
+                product["resY"] = height        
+                
         #printList_Debug("renderproductList", allproducts)
-        return allproducts        
+        return allproducts     
+
+
+    @property
+    def frange(self):
+        """Property for frame range.
+        Returns Tuple (Frame Start, Frame End, Frame Increment)
+        """
+        start = self._node.evalParm("f1")
+        end = self._node.evalParm("f2")
+        inc = self._node.evalParm("f3")
+        try:
+            framemode = self._node.evalParm("trange")
+        except:
+            framemode=1
+        if framemode == 0:  # Render current frame
+            start = int(hou.frame())
+            end = int(hou.frame())
+            inc = 1
+        elif framemode == 3:  # Render stage
+            stage= self.getStage()
+            if (stage != None):
+                tcps = stage.GetTimeCodesPerSecond()
+                fps = hou.fps()
+                #other function available in case this does not work: "Houdini-native HUSD stage: use timeRange() frame_range = stage.timeRange()"
+                start = stage.GetStartTimeCode()
+                end = stage.GetEndTimeCode()
+                
+                start = int(start * fps / tcps) - self._node.evalParm("foffset1")
+                end   = int(  end * fps / tcps) + self._node.evalParm("foffset2")
+            
+        #logger.debug("{} frange {}-{},{}    framemode: {}".format( self._node.path(), start, end, inc, framemode))
+        return (start, end, inc)       
+                
 
 class UsdRenderRop_LOP(UsdRenderRop):
     """ USD stage/LOP ROP to render """
@@ -612,6 +788,22 @@ class Karma_LOP(RenderNode):
 
     name = "karma"
 
+    def getStage(self):
+        stage= None
+        import loputils
+        lop = self._node.evalParm('loppath')
+        if self._node.input(0):
+            input = self._node.input(0)
+            stage = input.stage() # Houdini-native HUSD stage
+            #logger.debug("{}: stage from node.input(0)")     
+        elif lop:
+            lop = self._node.parm("loppath").evalAsNode()
+            stage = lop.stage()  # Houdini-native HUSD stage
+            #logger.debug("{}: stage from lop.stage() ")     
+        else:
+            logger.error("{}: loppath not set: {}".format(self._node.path(), self._node.evalParm('loppath')))     
+        return stage
+        
     @property
     def output_parm(self):
         return "picture"
@@ -651,6 +843,36 @@ class Karma_LOP(RenderNode):
         #use same function as Subnet Node 
         return self._node.inputs() + self._node.children()    
 
+    @property
+    def frange(self):
+        """Property for frame range.
+        Returns Tuple (Frame Start, Frame End, Frame Increment)
+        """
+        start = self._node.evalParm("f1")
+        end = self._node.evalParm("f2")
+        inc = self._node.evalParm("f3")
+        try:
+            framemode = self._node.evalParm("trange")
+        except:
+            framemode=1
+        if framemode == 0:  # Render current frame
+            start = int(hou.frame())
+            end = int(hou.frame())
+            inc = 1
+        elif framemode == 3:  # Render stage
+            stage= self.getStage()
+            if (stage != None):
+                tcps = stage.GetTimeCodesPerSecond()
+                fps = hou.fps()
+                #other function available in case this does not work: "Houdini-native HUSD stage: use timeRange() frame_range = stage.timeRange()"
+                start = stage.GetStartTimeCode()
+                end = stage.GetEndTimeCode()
+                
+                start = int(start * fps / tcps) - self._node.evalParm("foffset1")
+                end   = int(  end * fps / tcps) + self._node.evalParm("foffset2")
+            
+        #logger.debug("{} frange {}-{},{}    framemode: {}".format( self._node.path(), start, end, inc, framemode))
+        return (start, end, inc)  
 
     
 class USDStitchClips_ROP(RenderNode):
