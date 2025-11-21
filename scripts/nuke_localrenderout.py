@@ -69,15 +69,10 @@ def convertPath(writeNode, orgDir, orgDirWinDrive, locDir, createFolder, attrNam
     """
     try:
         pathScripted= writeNode[attrName].value()
-    except:
-        writeInfo("    {}:  Unable to change attribute '{}'".format(writeNode['name'].value(), attrName))
-        import traceback
-        tb = traceback.format_exc()
-        tb_lines = tb.splitlines()
-        indented_tb = "\n".join([tb_lines[0]] + ["        " + line for line in tb_lines[1:]])
-        writeInfo(indented_tb)
+    except Exception as e:
+        #writeInfo("    {}:  Unable to change attribute '{}' {}".format(writeNode['name'].value(), attrName, e))
         return
-        
+    #writeInfo("    "+writeNode['name'].value()+":  original value: "+pathScripted)
     if ((pathScripted== None) or (len(pathScripted)<3)):
         return
     if ("[string" in pathScripted) or ("[value" in pathScripted) or ("[python" in pathScripted):
@@ -121,7 +116,7 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, wri
     """Set output paths to the RR local directory. If specified, only the Write Node
     named 'write_node_name' is  processed
     """
-    writeInfo("-----------------LocalRenderOut-----------------")
+    writeInfo("-----------------LocalRenderOut -----------------")
     orgDir=orgDir.replace("\\","/")
     locDir=locDir.replace("\\","/")
     orgDirWinDrive=orgDirWinDrive.replace("\\","/")
@@ -183,7 +178,10 @@ def makeLocalRenderOut(orgDir, orgDirWinDrive, locDir, write_node_name=None, wri
     for readNode in n:
         if (readNode['disable'].value()):
             continue
-        pathScripted=readNode['file'].value()
+        try:
+            pathScripted=readNode['file'].value()
+        except:
+            continue
         if ((pathScripted== None) or (len(pathScripted)<3)):
             continue
         if ("[string" in pathScripted) or ("[value" in pathScripted) or ("[python" in pathScripted):
@@ -215,26 +213,28 @@ def crossOSConvert_sub(sceneOS, ourOS, write_node_name=None):
                 toOS[i]=toOS[i].replace("\\","/")
                 writeInfo("OS conversion:  %-30s  =>  %-30s" % (fromOS[i] , toOS[i]) )
 
+                writeInfo("getAllWriteNodes" )
                 n = getAllWriteNodes()
                 for writeNode in n:
                     if (writeNode['disable'].value()):
                         continue
                     if write_node_name and writeNode['name'].value() != write_node_name:
                         continue
-                    convertPath(writeNode, fromOS[i], fromOS[i], toOS[i], False, "file")
+                    convertPath(writeNode, fromOS[i], fromOS[i], toOS[i], False,"file")
 
-
+                writeInfo("getAllReadNodes" )
                 n = getAllReadNodes()
                 for readNode in n:
                     if (readNode['disable'].value()):
                         continue
-                    convertPath(readNode, fromOS[i], fromOS[i], toOS[i], False, "file")
+                    convertPath(readNode, fromOS[i], fromOS[i], toOS[i], False,"file")
 
+                writeInfo("Vectorfield" )
                 n = getAllNodes("Vectorfield")
                 for node in n:
                     if (node['disable'].value()):
                         continue
-                    convertPath(node, fromOS[i], fromOS[i], toOS[i], False, "vfield_file")
+                    convertPath(node, fromOS[i], fromOS[i], toOS[i], False,"vfield_file")
 
 
 
@@ -270,6 +270,7 @@ def crossOSConvert(pyModPath, sceneOS, write_node_name=None):
 
 
 if __name__ == "__main__":
+    writeInfo("----------------- %rrVersion% -----------------")
     srcFilename = sys.argv[1]  # original scene path (<SceneOrg>)
     locFileName = sys.argv[2]  # local path for the converted scene (<Scene>)
     srcBasePath = sys.argv[3]  # path on the fileserver, last few folders truncated (<rrLocalRenderoutOrg>)
