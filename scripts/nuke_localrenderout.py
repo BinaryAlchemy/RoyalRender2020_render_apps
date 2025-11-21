@@ -315,4 +315,5 @@ if __name__ == "__main__":
     nuke.scriptOpen(srcFilename)
     crossOSConvert(locRenderScripts, sceneOSstr, write_node_name=layer)
     makeLocalRenderOut(srcBasePath, srcBasePath_DriveLetter, locOutputPath, write_node_name=layer, write_node_output=image_name, use_shotgun= (shotgun_path!=None))
+    print('Saving '+locFileName+ '...') 
     nuke.scriptSaveAs(locFileName, 1)
