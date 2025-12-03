@@ -53,3 +53,10 @@ _REZ_NO_KILLPG = true
 	echo HOME is set to "<HOME>"
 
 [EndIf]
+
+
+[If] <rrExeOS>  [==] mac
+	echo session running with CPU architecture:
+	[Exec] uname -m
+[EndIf]    
+    
