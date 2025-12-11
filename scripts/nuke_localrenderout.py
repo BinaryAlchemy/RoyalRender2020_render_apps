@@ -36,7 +36,7 @@ def ireplaceStartsWith(text, old, new ):
     return text
 
 
-
+#This function was added to support custom Gizmos with file nodes in them
 def getAllNodes(typeName):
     allNo=nuke.allNodes()
     fileNodes=[]

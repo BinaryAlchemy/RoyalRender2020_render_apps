@@ -595,7 +595,13 @@ def setRenderSettings_VRay(arg):
     try:
         logSetAttr('vraySettings.globopt_cache_bitmaps',1)
     except Exception as e:
-        logMessage(str(e))        
+        logMessage(str(e))      
+    try:
+        if (argValid(arg.Verbose)):
+            logSetAttr('vraySettings.sys_message_level',int(arg.Verbose))
+    except Exception as e:
+        logMessageError(e)
+        
     try:
         logSetAttr('defaultRenderGlobals.skipExistingFrames',0)
         logSetAttr('vraySettings.animation',True)
