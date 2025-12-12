@@ -114,20 +114,20 @@ echo * HOUDINI_PACKAGE_DIR is set to <HOUDINI_PACKAGE_DIR>
 # we cannot use contains inside an other if because of the Windows delayed expansion
 RR_HTOA_VERSION=<RR_HTOA_VERSION>
 [If] <rrJobRenderer>  [contains] arnold
+    echo * Rendering with Arnold
     [If] <RR_HTOA_VERSION>  [==] 
-        echo * Rendering with Arnold
         RR_HTOA_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]
 [If] <rrJobRenderer>  [==]  HtoA
+    echo * Rendering with Arnold
     [If] <RR_HTOA_VERSION>  [==] 
-        echo * Rendering with Arnold
         RR_HTOA_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]
 [If] <rrJobRenderer>  [contains] createASS
+    echo * Creating with Arnold
     [If] <RR_HTOA_VERSION>  [==] 
-        echo * Creating with Arnold
         RR_HTOA_VERSION  =  <rrJobRendererVersion>
     [EndIf]
 [EndIf]

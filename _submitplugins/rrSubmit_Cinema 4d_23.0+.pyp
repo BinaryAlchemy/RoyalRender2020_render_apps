@@ -2720,7 +2720,11 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
         elif doc.GetChanged():
             # we have changed the scene while collecting, we should save
-            c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
+            # Add: Reading takes with overrides "changes" the scene as well as we switch takes.
+            # So we have to ask as we got a report about some 10GB scene file that takes ages to save.
+            rvalue = gui.QuestionDialog("Save Scene?")
+            if rvalue:            
+                c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
         if (not self.noSubmitCommand):
             self.submitToRR(self.job, False, PID=None, WID=None)
