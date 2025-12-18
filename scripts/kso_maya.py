@@ -70,7 +70,8 @@ def logMessageError(msg, location=""):
         isException= True
     logMessageError_noRaise(msg, location)
     if isException and (sys.version_info.major != 2):
-        raise RuntimeError("An error has occured before. Aborting RR render script...") from None
+        # Use exec to avoid syntax error on file load in Python 2
+        exec('raise RuntimeError("An error has occured before. Aborting RR render script...") from None')
     else:
         raise RuntimeError("An error has occured before. Aborting RR render script...")
     
