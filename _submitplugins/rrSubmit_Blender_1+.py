@@ -194,7 +194,12 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             return
 
         out_nodes = []
-        for node in scn.node_tree.nodes:
+        try:
+            nodes = scn.compositing_node_group.nodes
+        except AttributeError:
+            nodes = scn.node_tree.nodes
+
+        for node in nodes:
             if node.type != 'OUTPUT_FILE':
                 continue
             if node.mute:
