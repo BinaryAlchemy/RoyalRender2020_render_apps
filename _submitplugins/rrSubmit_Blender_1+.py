@@ -197,7 +197,7 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         try:
             node_container = scn.compositing_node_group
         except AttributeError:
-            node_container = scn.node_tree.nodes
+            node_container = scn.node_tree
 
         if not node_container:
             return
@@ -217,22 +217,44 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         if not out_nodes:
             return
 
-        # create tmp scene to take advantage of Scene.rernder.file_extension
+        # create tmp scene to take advantage of Scene.render.file_extension
         tmp_resolve = bpy.data.scenes.new(f'_rr_tmp_resolve_')
 
         for node in out_nodes:
-            base_path = node.base_path
+            try:
+                base_path = node.directory  # blender 5.0
+            except AttributeError:
+                base_path = node.base_path
+
             tmp_resolve.render.image_settings.file_format = node.format.file_format
             node_extension = tmp_resolve.render.file_extension
-            for i, out_slot in enumerate(node.file_slots):
+
+            try:
+                base_filename = node.file_name  # blender 5.0
+                file_items = node.file_output_items
+            except AttributeError:
+                base_filename = ""
+                file_items = node.file_slots
+            for i, out_slot in enumerate(file_items):
                 if not node.inputs[i].links:
                     continue
-                if out_slot.use_node_format:
-                    slot_extension = node_extension
-                else:
+
+                try:
+                    override_format = out_slot.override_node_format
+                except AttributeError:
+                    override_format = not out_slot.use_node_format
+
+                if override_format:
                     tmp_resolve.render.image_settings.file_format = out_slot.format.file_format
                     slot_extension = tmp_resolve.render.file_extension
-                out_name = out_slot.path
+                else:
+                    slot_extension = node_extension
+
+                try:
+                    out_tail = out_slot.name
+                except AttributeError:
+                    out_tail = out_slot.path
+                out_name = base_filename + out_tail
                 self.writeNodeStr(fileID, "ChannelFilename", os.path.join(base_path, out_name))
                 self.writeNodeStr(fileID, "ChannelExtension", slot_extension)
 
