@@ -25,6 +25,7 @@ import logging
 import os
 import sys
 import tempfile
+import configparser
 from subprocess import call
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
@@ -122,6 +123,46 @@ RENDERER_NAMES = {
     1035287: "cycles",
     1030480: "Corona",
 }
+
+
+# User config
+
+class UserConfig:
+    def __init__(self):
+        self.parent_in_take = True
+        self.show_ui = True
+
+        script_path, _ = os.path.splitext(os.path.realpath(__file__))
+        self._ini_path = f"{script_path}__inhouse.ini"
+        self.read_config()
+
+    @staticmethod
+    def read_cfg_bool(ini_value, default=False):
+        try:
+            val = int(ini_value)
+        except ValueError:
+            return default
+        
+        return val == 1
+
+    def read_config(self):
+        config = configparser.ConfigParser()
+        config.read(self._ini_path)
+
+        try:
+            parent_in_take = config['SUBMISSION']['parent_in_take_token']
+        except KeyError:
+            self.parent_in_take = True
+        else:
+            self.parent_in_take = self.read_cfg_bool(parent_in_take, default=self.parent_in_take)
+            LOGGER.info(f"User configuration for 'parent_in_take', {self.parent_in_take}")
+        try:
+            show_ui = config['SUBMISSION']['submit_ui']
+        except KeyError:
+            self.show_ui = True
+        else:
+            self.show_ui = self.read_cfg_bool(show_ui, default=self.show_ui)
+            LOGGER.info(f"User configuration for 'show_ui', {self.show_ui}")
 
 
 # Arnold
@@ -961,7 +1002,7 @@ def convert_filename_tokens(doc, take, filename, exclude=[]):
 
 
 class TakeManager(object):
-    def __init__(self, rr_submit, doc, is_archive=False):
+    def __init__(self, rr_submit, doc, is_archive=False, parent_in_token=True):
         """
         :param rr_submit: submitter class
         :param doc: c4d document
@@ -970,6 +1011,7 @@ class TakeManager(object):
         self._submitter = rr_submit
         self._doc = doc
         self._is_archive = is_archive
+        self.parent_in_token = parent_in_token
 
         self._takedata = self._doc.GetTakeData()
 
@@ -1027,7 +1069,9 @@ class TakeManager(object):
                     new_job.channelFileName[ch] = insertPathTake(new_job.channelFileName[ch])
 
         new_job.layerName = take_name_full
-        new_job.imageName = new_job.imageName.replace("$take", take_filename_full)  # manual replace as C4D does not replace $take with partent take
+
+        if self.parent_in_token:
+            new_job.imageName = new_job.imageName.replace("$take", take_filename_full)  # manual replace as C4D does not replace $take with partent take
         new_job.imageName = convert_filename_tokens(self._doc, take, new_job.imageName)
 
         for ch in range(0, new_job.maxChannels):
@@ -1269,6 +1313,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
         super(RRSubmit, self).__init__()
         self.multiCameraMode = multi_cam
         self.noSubmitCommand = False
+        self.user_cfg = UserConfig()
 
     def setImageFormat(self, job=None, render_data=None):
         """evaluates the image format extension from the currently selected render settings"""
@@ -2655,6 +2700,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
 
     def Execute(self, doc):
         print("rrSubmit %rrVersion%")
+        
         del self.job[:]
         self.job.append(rrJob())
 
@@ -2705,7 +2751,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
             gui.MessageDialog('Output Path not set, please check Render Setting')
             return False
 
-        take_manager = TakeManager(self, doc)
+        take_manager = TakeManager(self, doc, parent_in_token=self.user_cfg.parent_in_take)
         take_manager.add_takes()
 
         if self.multiCameraMode:
@@ -2727,7 +2773,7 @@ class RRSubmit(RRSubmitBase, c4d.plugins.CommandData):
                 c4d.documents.SaveDocument(doc, self.job[0].sceneFilename, c4d.SAVEDOCUMENTFLAGS_DONTADDTORECENTLIST, c4d.FORMAT_C4DEXPORT)
 
         if (not self.noSubmitCommand):
-            self.submitToRR(self.job, False, PID=None, WID=None)
+            self.submitToRR(self.job, not self.user_cfg.show_ui, PID=None, WID=None)
 
         return True
 
