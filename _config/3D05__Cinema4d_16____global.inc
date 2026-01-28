@@ -36,6 +36,7 @@ permanentErrorSearchLine = Click here to activate the license
 permanentErrorSearchLine = Error running authentication
 permanentErrorSearchLine = Missing serial number
 #permanentErrorSearchLine = Invalid License from License Server
+permanentErrorSearchLine = err: OperationCancelled
 
 licenseFailLine= Could not get a license
 #licenseFailLine= Invalid License
@@ -48,7 +49,7 @@ RealTimeAbortLine= aborting render script
 RealTimeAbortLine= Could not get a license
 RealTimeAbortLine= Error running authentication
 RealTimeAbortLine= Invalid License from License Server
-#RealTimeAbortLine= CRITICAL: Stop    We cannot detect this error as there are (Arnold, Redshift) scenes that report "CRITICAL: Stop [ge_container.h" and continue without issue.
+#RealTimeAbortLine= CRITICAL: Stop    This error happens with new C4D installations as well: "CRITICAL: Stop [ge_container.cpp(1111)]". C4D continues without issue afterwards.
 
 
 ErrorSearchLine = Error running authentication
@@ -73,6 +74,8 @@ RemoveFromLog= Contains ~ g_licenseusername
 RemoveFromLog= Contains ~ g_licensepassword
 RemoveFromLog_NotDebugVerbose= StartsWith ~ CRITICAL: CONSTSTRING not freed:
 RemoveFromLog_NotDebugVerbose= StartsWith ~ Warning: Unknown arguments
+RemoveFromLog_NotDebugVerbose= StartsWith ~ CRITICAL: Stop [ge_container.cpp
+RemoveFromLog_NotDebugVerbose= Contains ~ datareader_binary_impl.cpp
 
 
 RenderAppWindow_WIN= Plugin Error ~  ~ 1 ~ Button ~ OK
