@@ -32,11 +32,13 @@ tcp = rr._rrTCP("")
 tcp.setServer(rrGlobal.rrServer(), 7773)
 tcp.setLogin(args.authStr, "")
 
-if not tcp.jobList_GetSend(int (args.jid)):
-  print("Error jobList_GetSend: " + tcp.errorMessage())
+#transfer job data from rrServer into our python module class tcp.jobs
+if not tcp.jobList_GetInfo(int (args.jid)):
+  print("Error jobList_GetInfo: " + tcp.errorMessage())
   sys.exit()
   
-jobData= tcp.jobs.getJobSend(int (args.jid))
+#access the local data
+jobData= tcp.jobs.getJobInfo(int (args.jid))
 print("Scene Name: " + jobData.sceneName)
 
 

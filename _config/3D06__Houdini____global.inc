@@ -4,6 +4,7 @@ REZ_EXE_WIN=   hython.exe
 REZ_EXE_LX=    hython
 REZ_EXE_MAC=   hython-bin
 
+NoLowerMinorVersion= True
 
 
 IconApp=3D06__Houdini.png

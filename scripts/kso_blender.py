@@ -487,7 +487,7 @@ def render_frame_range(start, end, step, movie=False):
     
     global NO_FRAME_LOOP
     if not (movie or NO_FRAME_LOOP):
-        log_msg(f"Rendering Frames: {start} - {end}")
+        log_msg(f"Rendering Frames: {start} - {end}, {step}")
         for fr in range(start, end + 1, step):
             if RENDER_PATH!="":
                 kso_tcp.writeRenderPlaceholder_nr(RENDER_PATH, fr, RENDER_PADDING, scene.render.file_extension)
@@ -499,7 +499,7 @@ def render_frame_range(start, end, step, movie=False):
             scene.frame_end = fr
             bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
     else:
-        log_msg(f"Rendering Frames: {start} - {end}   (no 'frame by frame' loop)")
+        log_msg(f"Rendering Frames: {start} - {end}, {step}   (no 'frame by frame' loop)")
         set_frame_range(start, end, step)
         flush_log()
         bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)

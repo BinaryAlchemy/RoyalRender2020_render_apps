@@ -59,8 +59,8 @@ _jobTypeNone=0
 _jobTypeHoudini=1
 _jobTypePython=2
 
-_typePython_SplitJobs = ["tracker.py", "placeholder"]
-_typePython_IsServerJob = ["tracker.py", "placeholder2"]
+_typePython_SplitJobs = ["tracker.py", "placeholderForFuture"]
+_typePython_IsServerJob = ["tracker.py", "placeholderForFuture2"]
 
 class houdiniTask2rrJobMapper_node():
     
@@ -76,6 +76,7 @@ class houdiniTask2rrJobMapper_node():
         self.hjobTypeDetailed= ""
         self.hjobPythonSingle = False
         self.hjobIsServer = False
+        self.hjobIsServer_desc = ""
         self.activeFrames= []
         self.minFrame= -1
         self.maxFrame= 0
@@ -94,12 +95,18 @@ class houdiniTask2rrJobMapper_node():
         self.hNodeName= work_item.node.name
         self.hjobType= workJobType
         self.hjobTypeDetailed= self.getDetailedJobType(work_item)
-        if (workJobType==_jobTypePython):
+        if (workJobType == _jobTypePython):
+            #check if the commandline contains command XY to decide which kind of job it is
             for cmd in _typePython_SplitJobs:
-                self.hjobPythonSingle= self.hjobPythonSingle or (cmd in work_item.command)
+                if (cmd in work_item.command):
+                    self.hjobPythonSingle= True
             for cmd in _typePython_IsServerJob:
-                self.hjobIsServer= self.hjobIsServer or (cmd in work_item.command)
-        self.addEnv("PDG_ITEM_ID", "<FN>");
+                if (cmd in work_item.command):
+                    self.hjobIsServer= True                    
+                    if ("-stop" in work_item.command):
+                        self.hjobIsServer_desc = " stop"
+                    
+        self.addEnv("PDG_ITEM_ID", "<FN>")
         itemName= str(work_item.name)
         itemName= itemName[: len(itemName) - len(str(work_item.id)) ] 
         itemName= itemName + "<PDG_ITEM_ID>"
@@ -123,6 +130,8 @@ class houdiniTask2rrJobMapper_node():
         self.cmdFlags= self.cmdFlags.replace("__PDG_HYTHON__", "")
         self.cmdFlags= self.cmdFlags.replace("\"\"", "")
         self.cmdFlags= self.cmdFlags.replace("__PDG_SCRIPTDIR__", "<OSEnv <PD/PDG_SCRIPTDIR>>")
+        #if self.hjobIsServer:
+        #    self.cmdFlags= self.cmdFlags + " --verbose"
         self.cmdFlags= self.cmdFlags.strip()
         #self.addEnv("RR_PDG_COMMAND", self.cmdFlags);
         self.addCustomVar("CommandLine", self.cmdFlags)
@@ -277,7 +286,7 @@ class houdiniTask2rrJobMapper():
                 newJob.layer= self.nodes[i].hNodeName
                 if self.nodes[i].hjobIsServer:
                     renderApp.rendererName="pyServer"  
-                    newJob.layer="PDG Server"
+                    newJob.layer="PDG Server" + self.nodes[i].hjobIsServer_desc
                     newJob.customDataAppend_Str("rrSubmitterParameter", ' "Priority=1~80" ' )
                 elif (self.nodes[i].hjobType==_jobTypePython):
                     renderApp.rendererName="PDGpy"  
