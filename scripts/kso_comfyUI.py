@@ -288,8 +288,7 @@ def launch_comfy(args):
         print("ComfyUI is up and running.")
         return True
     else:
-        print(f"Launch failed: {result} - {msg}")
-        if server_proc: server_proc.terminate()
+        raise Exception(f"Launch failed: {result} - {msg}")
         return False
 
 
@@ -451,29 +450,30 @@ def validate_and_extract_api(workflow_input, args):
         # Entferne nur das "ID" Präfix, falls es existiert
         if target_node_id.startswith("ID"):
             target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
-        title = parts[0] if parts[0] else "Untitled"
+        if (int(target_node_id)>=0):
+            title = parts[0] if parts[0] else "Untitled"
 
-        # Existiert die Node im extrahierten API-Format?
-        node = api_workflow.get(target_node_id)
-        
-        if node is None:
-            # Falls Node-ID nicht direkt gefunden, schauen wir in den _meta Daten nach dem Titel
-            # (Manchmal ändert sich die ID, aber der Titel bleibt)
-            found_id = None
-            for nid, n_data in api_workflow.items():
-                if n_data.get("_meta", {}).get("title") == title:
-                    found_id = nid
-                    break
+            # Existiert die Node im extrahierten API-Format?
+            node = api_workflow.get(target_node_id)
             
-            if found_id:
-                print(f"Note: Node ID {target_node_id} not found, but found Node with title '{title}' at ID {found_id}.")
-                args.rrLayer = f"{title}__{found_id}"
-            else:
-                print(f"Error: Output Node #{target_node_id} ('{title}') not found in the workflow!")
-                return None
+            if node is None:
+                # Falls Node-ID nicht direkt gefunden, schauen wir in den _meta Daten nach dem Titel
+                # (Manchmal ändert sich die ID, aber der Titel bleibt)
+                found_id = None
+                for nid, n_data in api_workflow.items():
+                    if n_data.get("_meta", {}).get("title") == title:
+                        found_id = nid
+                        break
+                
+                if found_id:
+                    print(f"Note: Node ID {target_node_id} not found, but found Node with title '{title}' at ID {found_id}.")
+                    args.rrLayer = f"{title}__{found_id}"
+                else:
+                    print(f"Error: Output Node #{target_node_id} ('{title}') not found in the workflow!")
+                    return None
 
-        # Falls wir hier sind, ist die Node valide
-        print(f"Validation: Node #{target_node_id} exists.")
+            # Falls wir hier sind, ist die Node valide
+            print(f"Validation: Node #{target_node_id} exists.")
 
     # Wir geben das reine API-Format zurück
     return api_workflow
@@ -554,29 +554,29 @@ def modify_workflow(api_workflow, args, frame):
         if target_node_id.startswith("ID"):
             target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
         title = parts[0] if parts[0] else "Untitled"
-        
-        target_node = api_workflow.get(target_node_id)
-        if target_node:
-            class_type = target_node.get("class_type", "")
-            
-            if "filename_prefix" in target_node.get("inputs", {}):
+        if (int(target_node_id)>=0):
+            target_node = api_workflow.get(target_node_id)
+            if target_node:
+                class_type = target_node.get("class_type", "")
                 
-                # Check if it is a custom RR node or a standard ComfyUI node
-                is_rr_node = class_type in ["rrSaveImage", "rrSaveVideo"]
-                
-                # Generate path based on node type
-                new_prefix = get_out_path(args, is_rr_node, frame)
-                
-                old_prefix = target_node["inputs"]["filename_prefix"]
-                target_node["inputs"]["filename_prefix"] = new_prefix
-                
-                print(f"Node {target_node_id} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
+                if "filename_prefix" in target_node.get("inputs", {}):
+                    
+                    # Check if it is a custom RR node or a standard ComfyUI node
+                    is_rr_node = class_type in ["rrSaveImage", "rrSaveVideo"]
+                    
+                    # Generate path based on node type
+                    new_prefix = get_out_path(args, is_rr_node, frame)
+                    
+                    old_prefix = target_node["inputs"]["filename_prefix"]
+                    target_node["inputs"]["filename_prefix"] = new_prefix
+                    
+                    print(f"Node {target_node_id} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
+                else:
+                    print(f"Warning: Node {target_node_id} has no 'filename_prefix' input.")
+                    return False
             else:
-                print(f"Warning: Node {target_node_id} has no 'filename_prefix' input.")
+                print(f"Error: Target node {target_node_id} not found in workflow while applying parameters.")
                 return False
-        else:
-            print(f"Error: Target node {target_node_id} not found in workflow while applying parameters.")
-            return False
 
     return True
         
