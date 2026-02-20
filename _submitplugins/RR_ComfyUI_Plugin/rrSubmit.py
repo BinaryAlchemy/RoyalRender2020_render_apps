@@ -1,5 +1,5 @@
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
-# Last change: %rrVersion%
+# Last change: v9.1.23
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 #
 # Installation:
@@ -223,7 +223,7 @@ class rrJob(object):
 
     def writeToXMLJob(self, rootElement):
         jobElement = self.subE(rootElement, "Job", "")
-        self.subE(jobElement, "rrSubmitterPluginVersion", "%rrVersion%")
+        self.subE(jobElement, "rrSubmitterPluginVersion", "v9.1.23")
         self.subE(jobElement, "Software", self.software)
         self.subE(jobElement, "Renderer", self.renderer)
         self.subE(jobElement, "RequiredLicenses", self.RequiredLicenses)
@@ -1062,9 +1062,9 @@ def workflow_getOutput(workflow: Dict):
     found_output = False
     found_input_checkpoint = False
     
-    out_name = None
-    out_ext = None
-    out_node = None
+    out_name = "noDir/no.frame"
+    out_ext = ".check"
+    out_node_ID = -1
     is_video = False
 
     # Detect if we are dealing with a UI-style list or API-style dict
@@ -1079,7 +1079,7 @@ def workflow_getOutput(workflow: Dict):
                 found_output = True
                 if out_name is None:
                     out_name, out_ext, is_video = _get_output_info(node)
-                    out_node= node.get("id")
+                    out_node_ID= node.get("id")
 
             if class_type in CHECKPOINT_TYPES:
                 found_input_checkpoint = True
@@ -1095,20 +1095,21 @@ def workflow_getOutput(workflow: Dict):
                 found_output = True
                 if out_name is None:
                     out_name, out_ext, is_video = _get_output_info(node)
-                    out_node= node.get("id")
+                    out_node_ID= node.get("id")
 
             if class_type in CHECKPOINT_TYPES:
                 found_input_checkpoint = True
 
     # Error handling
     if not found_output:
-        raise Exception("[rrSubmit] No output nodes found in workflow.")
+        print("[rrSubmit] No output nodes found in workflow.")
     if not found_input_checkpoint:
-        raise Exception("[rrSubmit] No checkpoint loader found in workflow.")
+        print("[rrSubmit] No checkpoint loader found in workflow.")
     if out_name is None:
-        raise Exception("[rrSubmit] Found output node, but could not extract filename.")
+        out_node_name= node.get("class_type", "")
+        print(f"[rrSubmit] Found output node {out_node_name}, but could not extract filename.")
 
-    return out_node, out_name, out_ext, is_video
+    return out_node_ID, out_name, out_ext, is_video
     
     import json
     
@@ -1314,7 +1315,7 @@ def print_exception(e, location):
 
 def submit_workflow(workflowHybrid, workflowName):
     try:
-        writeInfo(f"-------------------- rrSubmit version %rrVersion% --------------------")
+        writeInfo(f"-------------------- rrSubmit version v9.1.23 --------------------")
         global DEBUG
         DEBUG_BREAK= DEBUG
         
@@ -1402,12 +1403,13 @@ def submit_workflow(workflowHybrid, workflowName):
             newJob.renderer="Portable"
         
         newJob.layer="__ID" + str(outNodeID)
-        node_info = workflowUI.get(str(outNodeID))
-        if node_info:
-            user_title = node_info.get("_meta", {}).get("title", newJob.layer)
-            newJob.layer= user_title + newJob.layer
-        else:
-            writeError(f"Node mit ID {outNodeID} not found.")
+        if (outNodeID>0):
+            node_info = workflowUI.get(str(outNodeID))
+            if node_info:
+                user_title = node_info.get("_meta", {}).get("title", newJob.layer)
+                newJob.layer= user_title + newJob.layer
+            else:
+                writeError(f"Node mit ID {outNodeID} not found.")
     
         newJob.sceneName = filepath
         newJob.seqStart = 1

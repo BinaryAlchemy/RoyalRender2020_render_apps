@@ -706,6 +706,8 @@ server_address = f"127.0.0.1:{args.port}"
 
 #replicate default folders
 try:
+    if (not argValid(args.base_directory)):
+        logMessageError(f"base-directory commandline flag not set!", True, False)
     rrMakedirs(args.base_directory)
     rrMakedirs(os.path.join(args.base_directory,"custom_nodes"))
     rrMakedirs(os.path.join(args.base_directory,"input"))
