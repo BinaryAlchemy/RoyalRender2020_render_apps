@@ -36,14 +36,14 @@ def get_rr_bin_folder():
     """Return the path of Royal Render's bin folder. Only works if RR was installed on the machine,
      as it relies on the env var RR_ROOT"""
     #for beta sites that use some RR9 apps, but farm is still RR8
-    if ('RR_ROOT9' in os.environ):
-        rr_path= os.environ['RR_ROOT9']
-    else:
-        if not ('RR_ROOT' in os.environ):
-            raise RR_EnvironNotFound("env var RR_ROOT required to find module search path,"
-                                    " please run rrWorkstationInstaller")
-            return ""
-        rr_path=os.environ['RR_ROOT']
+    #if ('RR_ROOT9' in os.environ):
+    #    rr_path= os.environ['RR_ROOT9']
+    #else:
+    if not ('RR_ROOT' in os.environ):
+        raise RR_EnvironNotFound("env var RR_ROOT required to find module search path,"
+                                " please run rrWorkstationInstaller")
+        return ""
+    rr_path=os.environ['RR_ROOT']
 
     #for sites that use some RRv9 apps, but farm is still RRv8
     if (not 'rrIsDebug' in os.environ):
@@ -189,6 +189,15 @@ def cache_module_locally(module_folder=None, target_folder=None):
         raise RR_FolderNotFound(module_folder)
         
     logger.info("RR source folder ({})".format(module_folder))
+    if (('RR_PYTHON_NO_LOCAL_CACHE' in os.environ) and os.environ['RR_PYTHON_NO_LOCAL_CACHE']=='1'):
+        module_path= module_folder
+        module_path = os.path.join(module_path, "lib")
+        if sys.platform.lower() == "darwin":
+            py_version = sys.version_info
+            module_path = os.path.join(module_path, 'python', "any")
+        sys.path.append(module_path)
+        logger.info("added module path " + module_path)
+        return
     
     # Get the default temp folder
     tmp_folder = tempfile.gettempdir()
@@ -216,7 +225,7 @@ def cache_module_locally(module_folder=None, target_folder=None):
     module_path = tmp_folder
     if sys.platform.lower() == "darwin":
         py_version = sys.version_info
-        module_path = os.path.join(module_path, 'python', "{0}{1}".format(py_version.major, py_version.minor))
+        module_path = os.path.join(module_path, 'python', "any")
 
     sys.path.append(module_path)
     logger.info("added module path " + module_path)

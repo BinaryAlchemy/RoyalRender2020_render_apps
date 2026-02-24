@@ -74,19 +74,23 @@ def server_connect(user_name=None, password=None, askForlogin=False):
 
     logger.debug("server_connect:setLogin")
     if not user_name:
-        tcp.setLogin("", "")
+        pass
     elif not password:
         tcp.setLogin(user_name, "")
     else:
         tcp.setLogin(user_name, password)
 
     logger.debug("server_connect:connectAndAuthorize")
-    if not tcp.connectAndAuthorize():
-        logger.warning("connectAndAuthorize failed")
-        if askForlogin:
-            server_login(tcp, user_name, password)
-        else:
-            raise RR_ConnectionError(tcp.errorMessage())
+    connnectSuccess= tcp.connectAndAuthorize()
+    
+    if not connnectSuccess:
+        errMsg= tcp.errorMessage()
+        failedConnect= True
+        if failedConnect:
+            if askForlogin:
+                server_login(tcp, user_name, password)
+            else:
+                raise RR_ConnectionError(tcp.errorMessage())
     logger.debug("server_connect: done")
     return tcp
 

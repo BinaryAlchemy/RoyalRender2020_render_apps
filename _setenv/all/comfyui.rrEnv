@@ -31,3 +31,10 @@ echo * ComfyUI source custom_nodes path is set to <RR_COMFYUI_NODES>
 
 [copy] SyncCreateDir <RR_COMFYUI_MODELS>   =>   <RR_COMFYUI_MODELS_LOCAL>
 [copy] SyncCreateDir <RR_COMFYUI_NODES>   =>   <RR_COMFYUI_NODES_LOCAL>
+
+
+
+#There was a ComfyUI custom_node that printed unicode Emojis.
+#And this crashed the logger at it was not able to convert that letter into the console encodings\cp1252.py.
+#Using UTF8 works fine and is shown as Emoji in rrControl as well
+PYTHONUTF8 = 1

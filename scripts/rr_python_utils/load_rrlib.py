@@ -28,8 +28,20 @@ elif (sys.version_info.major == 3):
     elif (sys.version_info.minor == 10):
         import libpyRR310 as rrLib
         loaded_rrLib= True
+    elif (sys.version_info.minor == 11):
+        import libpyRR311 as rrLib
+        loaded_rrLib= True
+    elif (sys.version_info.minor == 12):
+        import libpyRR312 as rrLib
+        loaded_rrLib= True
+    elif (sys.version_info.minor == 13):
+        import libpyRR313 as rrLib
+        loaded_rrLib= True
+    elif (sys.version_info.minor == 14):
+        import libpyRR314 as rrLib
+        loaded_rrLib= True
 if (not loaded_rrLib):
     raise RR_GenericError("\n    Unable to load RR module for python version {}.{}.\n".format(sys.version_info.major,sys.version_info.minor))
 else:
-    rrLogger.info("libpyRR loaded ({})".format(rrLib.__file__))
+    rrLogger.info("libpyRR v{} loaded ({})".format(rrLib.getRRModuleVersion(),rrLib.__file__))
     pass

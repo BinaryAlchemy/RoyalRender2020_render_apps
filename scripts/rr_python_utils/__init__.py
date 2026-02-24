@@ -15,9 +15,11 @@ Different versions of Python require to import a different Royal Render library:
 ==============  =====================  ============================  =========================
 Python Version   Royal Render Module        Data Module                 Submission Module
 ==============  =====================  ============================  =========================
-    2.7              libpyRR2            libpyRR2_datafiles             libpyRR2_submit
-    3.7              libpyRR37           libpyRR37_datafiles            libpyRR37_submit
-    3.9          :mod:`libpyRR39`       :mod:`libpyRR39_datafiles`    :mod:`libpyRR39_submit`
+    2.7              libpyRR2           libpyRR2_datafiles             libpyRR2_submit
+    3.7              libpyRR37          libpyRR37_datafiles            libpyRR37_submit
+    3.9           :mod:`libpyRR39`      :mod:`libpyRR39_datafiles`    :mod:`libpyRR39_submit`
+    3.10          :mod:`libpyRR310`     :mod:`libpyRR310_datafiles`   :mod:`libpyRR310_submit`
+    3.11          :mod:`libpyRR311`     :mod:`libpyRR311_datafiles`   :mod:`libpyRR311_submit`
 ==============  =====================  ============================  =========================
 
 Helper modules can make the import easier and ensure script compatibility between Python versions:
