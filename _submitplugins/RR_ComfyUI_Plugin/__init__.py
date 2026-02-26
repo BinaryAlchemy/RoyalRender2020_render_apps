@@ -8,63 +8,32 @@
 # Note: If the RR_ROOT environment variable ist not defined (created when installing something via rrWorkstationInstaller), 
 # then you need to edit the function "def getRR_Root()" top update the path to RR.
 #
-# custom_nodes/
-#     └── RR_ComfyUI_Plugin/
-#         ├── __init__.py
-#         ├── rrSubmit.py
-#         ├── rrNodes.py
-#         └── js/
-#             ├── rr_seed.js
-#             └── rr_ui.js
 
 
-
+from . import rrWorkflow
 from . import rrSubmit
 from . import rrNodes
-import os
 from server import PromptServer
 from aiohttp import web
 import asyncio
 import traceback
 import sys
 
-'''
-import importlib.metadata
-try:
-    dist = importlib.metadata.distribution('comfyui-frontend-package')
-    # Der Pfad zu den Metadaten (.dist-info)
-    metadata_path = dist._path
-    # Der Ort, an dem das eigentliche Paket liegt
-    package_location = dist.locate_file('') 
-
-    print(f"\n" + "="*50)
-    print(f"DEBUG: Frontend Package found!")
-    print(f"Metadata Path: {metadata_path}")
-    print(f"Package Location: {package_location}")
-    print(f"Python Executable: {sys.executable}")
-    print(f"Sys Path: {sys.path}")
-    print("="*50 + "\n")
-    
-    # Optional: In eine Datei schreiben, damit dein C++ Programm es lesen kann
-    with open("frontend_path_found.txt", "w") as f:
-        f.write(str(package_location))
-except Exception as e:
-    print(f"DEBUG: Plugin could not find frontend package: {e}")
-'''    
 
 
 @PromptServer.instance.routes.post("/rr/submit")
 async def submit_handler(request):
     try:
         data = await request.json()
-        workflow = data.get("workflow") # This is the dict from the browser
+        workflowHybrid = data.get("workflow") # This is the dict from the browser
         filename = data.get("filename", "unknown_workflow")
+        submit_node_id = data.get("submit_node_id", -1)
 
         # Safety Fallback: Check if UI mode is even possible
         # It is not possible if the Comfy webserver is located "in the basement" and I am at my workstation.
         client_ip = request.remote   # Get the IP address of the user's browser
         is_local = client_ip in ("127.0.0.1", "localhost", "::1")  # Check if the user is local (Workstation)
-        settings = rrSubmit.get_workflow_settings(workflow)
+        settings = rrSubmit.get_workflow_settings(workflowHybrid["ui"], rrSubmit.getRR_Root())
         if settings.get("ui_submit") and not is_local:
             raise Exception(
                 f"UI rrSubmitter is only available if the Comfy webserver runs on your Workstation (Localhost). "
@@ -78,7 +47,7 @@ async def submit_handler(request):
         
         # Execute your existing function in a separate thread
         result = await loop.run_in_executor(
-            None, rrSubmit.submit_workflow, workflow, filename
+            None, rrSubmit.submit_workflow, workflowHybrid, filename, submit_node_id
         )
         submit_success, processed_workflow = result
 
@@ -90,7 +59,10 @@ async def submit_handler(request):
 
         # Only attach the workflow if the user setting is enabled
         if settings.get("load_farm_workflow", False):
+            print("[rrSubmit-submit_handler] Adding workflow to response")
             response_data["workflow"] = processed_workflow
+        else:
+            print("[rrSubmit-submit_handler] No workflow requested")
 
         return web.json_response(
             response_data, 
@@ -127,7 +99,7 @@ async def get_schema_handler(request):
                 "label": info.get("label", key),
                 "type": info.get("type", "str"),
                 "choices": info.get("choices", []),
-                "default": rrSubmit.settings_compute_default(key),
+                "default": rrWorkflow.settings_compute_default(key, rrSubmit.getRR_Root()),
                 "section": info.get("section", "left") 
             })
         
@@ -136,6 +108,19 @@ async def get_schema_handler(request):
     except Exception as e:
         print(f"[rrSubmit] API Error: {str(e)}")
         return web.json_response([])
+    
+    
+# Den Endpoint registrieren
+@PromptServer.instance.routes.post("/royalrender/add_seed")
+async def add_seed_endpoint(request):
+    json_data = await request.json()
+    workflow = json_data.get("workflow")
+    
+    # Deine Logik ausführen
+    modified_workflow = rrSubmit.add_rrSeed(workflow)
+    
+    return web.json_response(modified_workflow)
+
     
 
 # This tells ComfyUI to look into the 'js' folder and serve it to the browser

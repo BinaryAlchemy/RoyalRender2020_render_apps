@@ -354,6 +354,11 @@ else:
         Job._template_parms.append(Parm(name, label, None))
 
 
+def hasEnvDebugMode():
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if debug_val in ["TRUE", "ON", "1"]:
+        return True
+
 class Submission(object):
     """Class to describe a Submission, which stores Jobs and SubmitOptions.
     Instances of this class can be submitted"""
@@ -420,7 +425,7 @@ class Submission(object):
         """
         serializer.start("rrJob_submitFile", {"syntax_version": "6.0"})
 
-        if "DEBUG" not in os.environ:
+        if hasEnvDebugMode():
             serializer.add("DeleteXML", "1")
 
         logger.debug("Submission submitoptions serialize")

@@ -21,7 +21,10 @@ logger = logging.getLogger("rrS")
 #fh.setLevel(logging.WARNING)
 #fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-level = logging.DEBUG if "DEBUG" in os.environ else logging.INFO
+level = logging.INFO
+debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+if debug_val in ["TRUE", "ON", "1"]:
+    level = logging.DEBUG
 ch.setLevel(level)
 # create formatter and add it to the handlers
 formatter = logging.Formatter("%(asctime)s %(name)s| %(levelname)s:  %(message)s", "%M:%S")

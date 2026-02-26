@@ -7,33 +7,33 @@
 # Note: If the RR_ROOT environment variable ist not defined (created when installing something via rrWorkstationInstaller), 
 # then you need to edit the function "def getRR_Root()" top update the path to RR.
 #
-# custom_nodes/
-#     └── RR_ComfyUI_Plugin/
-#         ├── __init__.py
-#         ├── rrSubmit.py
-#         ├── rrNodes.py
-#         └── js/
-#             ├── rr_nodes.js
-#             └── rr_ui.js
-
 
 import os
 import json
-import torch
 import numpy as np
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+import time
 
 #####################################################################################
 # This function has to be changed if an app should show info and error dialog box   #
 #####################################################################################
 
+
+def hasEnvDebugMode():
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if (debug_val in ["TRUE", "ON", "1"]) or True:
+        return True
+
 def writeInfo(msg):
-    print(msg)
+    print("[rrSubmit] "+str(msg))
 
 def writeError(msg):
-    print(msg)
+    print("[rrSubmit-ERROR]: "+str(msg))
 
+def writeDebug(msg):
+    if (hasEnvDebugMode()):
+        print("[rrSubmit-DGB] "+str(msg))
 
 
 
@@ -51,17 +51,25 @@ class rrSeed:
             "required": {
                 "base_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "iteration_idx": ("INT", {"default": 1, "min": 0, "max": 999999}),
+                "iteration_mode_UI": (["fixed", "increment"], {"default": "increment", "label": "iteration mode UI"}),
+                "max_seed": ("INT", {"default":  0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
+                "max_seed2": ("INT", {"default": 0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
             },
-            "hidden": {"is_commandline": ("BOOLEAN", {"default": False})}
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT")
-    RETURN_NAMES = ("SEED", "SEED_2", "iteration_idx")
+    RETURN_TYPES = ("INT", "INT", "INT", "STRING")
+    RETURN_NAMES = ("SEED", "SEED_2", "iteration_idx", "iteration_idx_str")
     FUNCTION = "generate_seed"
     CATEGORY = "RoyalRender"
+    OUTPUT_NODE = True # We tell Comfy that we send data back
 
-    def generate_seed(self, base_seed, iteration_idx, is_commandline=False):
+    @classmethod
+    def IS_CHANGED(cls, iteration_mode_UI, **kwargs):
+        if iteration_mode_UI == "increment":
+            return time.time() #float("NaN") # NaN ist niemals gleich sich selbst -> erzwingt immer Update
+        return "" # Verhält sich normal (nutzt Cache), wenn nicht im Inkrement-Modus
         
+    def generate_seed(self, base_seed, iteration_idx, iteration_mode_UI, max_seed, max_seed2):
         
         def calc(seed, iteration, offset):
             mask = 0xFFFFFFFFFFFFFFFF
@@ -70,18 +78,26 @@ class rrSeed:
             # Simulate 32-bit multiplication overflow
             scrambled_iter = iteration * prime           
             s = (seed ^ scrambled_iter ^ offset) & mask
-            if s == 0: s = 0x5B6A6A55544C46B7
+            if s == 0: 
+                s = 0x5B6A6A55544C46B7
             s ^= (s >> 12) & mask
             s ^= (s << 25) & mask
             s ^= (s >> 27) & mask
             return (s * 0x2545f4914f6cdd1d) & mask
 
-        # Berechne zwei verschiedene Seeds
         seed_1 = calc(base_seed, iteration_idx, 0)
-        seed_2 = calc(base_seed, iteration_idx, 0xACE) # Ein fester Offset für den zweiten Seed
-        #Debug print to the console
-        print(f"[rrSeed] Start: {base_seed} | Iter: {iteration_idx} | Final: {seed_1}")
-        return  (seed_1, seed_2, iteration_idx)
+        seed_2 = calc(base_seed, iteration_idx, 0xACE) 
+        seed_1= seed_1 % max_seed
+        seed_2= seed_2 % max_seed2
+        writeDebug(f"[rrSeed] Start: {base_seed} | Iter: {iteration_idx} | Final: {seed_1} | update_iter: {iteration_idx + 1}")
+        iteration_idx_str=str(iteration_idx)
+        
+        return {
+            "ui": {
+                "update_iter": [iteration_idx + 1]  # Hier die Klammern [ ] hinzufügen, damit es eine Liste ist
+            },
+            "result": (seed_1, seed_2, iteration_idx, iteration_idx_str)
+        }
         
         
 class rrSaveImage:
@@ -96,7 +112,9 @@ class rrSaveImage:
                 "filename_prefix": ("STRING", {"default": "Comfy"}),
                 "iteration_idx": ("INT", {"default": 1, "min": 0, "max": 999999}),
             },
-            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+            "hidden": {
+                "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
+            },
         }
 
     RETURN_TYPES = ()

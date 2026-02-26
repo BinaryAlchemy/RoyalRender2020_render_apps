@@ -22,7 +22,12 @@ logger = logging.getLogger("HtoRR")
 #fh.setLevel(logging.WARNING)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-level = logging.DEBUG if "DEBUG" in os.environ else logging.INFO
+level = logging.INFO
+debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+if debug_val in ["TRUE", "ON", "1"]:
+    level = logging.DEBUG
+
+
 ch.setLevel(level)
 
 # create formatter and add it to the handlers

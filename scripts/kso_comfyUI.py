@@ -21,9 +21,6 @@ import os
 import sys
 import argparse
 import datetime
-import struct
-import math
-import socket
 import ctypes
 import copy
 
@@ -31,9 +28,6 @@ DEBUG= False
 if "DEBUG" in os.environ:
     DEBUG= True
    
-
-if sys.version_info.major == 2:
-    range = xrange
    
 def logMessageGen(lvl, msg):
     if (len(lvl)==0):
@@ -72,7 +66,7 @@ def logMessageError(msg, doRaise, printTraceback):
 
 
 def argValid(argValue):
-    return ((argValue!= None) and (len(str(argValue))>0))
+    return ((argValue is not None) and (len(str(argValue))>0))
 
 
 
@@ -172,9 +166,11 @@ class ComfyLogManager:
 
     def wait_for_strings(self, success_strings, error_strings=None, timeout=60):
         """Wartet blockierend (mit Polling) auf bestimmte Strings."""
-        if isinstance(success_strings, str): success_strings = [success_strings]
+        if isinstance(success_strings, str): 
+            success_strings = [success_strings]
         error_strings = error_strings or []
-        if isinstance(error_strings, str): error_strings = [error_strings]
+        if isinstance(error_strings, str): 
+            error_strings = [error_strings]
 
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -570,12 +566,12 @@ def modify_workflow(api_workflow, args, frame):
                     old_prefix = target_node["inputs"]["filename_prefix"]
                     target_node["inputs"]["filename_prefix"] = new_prefix
                     
-                    print(f"Node {target_node_id} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
+                    print(f"Node {target_node_id} {title} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
                 else:
-                    print(f"Warning: Node {target_node_id} has no 'filename_prefix' input.")
+                    print(f"Warning: Node {target_node_id} {title} has no 'filename_prefix' input.")
                     return False
             else:
-                print(f"Error: Target node {target_node_id} not found in workflow while applying parameters.")
+                print(f"Error: Target node {target_node_id} {title} not found in workflow while applying parameters.")
                 return False
 
     return True
@@ -602,7 +598,7 @@ def render_frame(frame):
     
     logMessageDebug("render_frame: before send_prompt")
     prompt_id = send_prompt(current_workflow, server_address, client_id)
-    if prompt_id== None:
+    if prompt_id is None:
         raise Exception("ERROR: ComfyUI did not load workflow")
     
     logMessageDebug("render_frame: Progress & Log-Manager Loop")
@@ -631,7 +627,7 @@ def render_frame(frame):
                 # Ende der Ausführung prüfen
                 if message['type'] == 'executing':
                     if message['data']['node'] is None and message['data']['prompt_id'] == prompt_id:
-                        logMessage(f"Progress: Finished")
+                        logMessage("Progress: Finished")
                         finished = True
                         break
         
@@ -707,7 +703,7 @@ server_address = f"127.0.0.1:{args.port}"
 #replicate default folders
 try:
     if (not argValid(args.base_directory)):
-        logMessageError(f"base-directory commandline flag not set!", True, False)
+        logMessageError("base-directory commandline flag not set!", True, False)
     rrMakedirs(args.base_directory)
     rrMakedirs(os.path.join(args.base_directory,"custom_nodes"))
     rrMakedirs(os.path.join(args.base_directory,"input"))
@@ -736,7 +732,7 @@ try:
         workflow = json.load(f)
     
     workflow = validate_and_extract_api(workflow, args)
-    if workflow==None:
+    if workflow is None:
         raise Exception("Invalid Workflow")
     
     #we do a test replacement before we start the ComfyUI webserver and then realize it does not work

@@ -56,9 +56,12 @@ LOGGER = logging.getLogger('rrSubmit')
 # reload plugin creates another handler, so remove all at script start
 for h in list(LOGGER.handlers):
     LOGGER.removeHandler(h)
-LOGGER.setLevel(logging.INFO)
-if "DEBUG" in os.environ:
-    LOGGER.setLevel(logging.DEBUG)
+
+level = logging.INFO
+debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+if debug_val in ["TRUE", "ON", "1"]:
+    level = logging.DEBUG
+LOGGER.setLevel(level)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
