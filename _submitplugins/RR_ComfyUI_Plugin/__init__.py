@@ -20,7 +20,6 @@ import traceback
 import sys
 
 
-
 @PromptServer.instance.routes.post("/rr/submit")
 async def submit_handler(request):
     try:
@@ -33,7 +32,7 @@ async def submit_handler(request):
         # It is not possible if the Comfy webserver is located "in the basement" and I am at my workstation.
         client_ip = request.remote   # Get the IP address of the user's browser
         is_local = client_ip in ("127.0.0.1", "localhost", "::1")  # Check if the user is local (Workstation)
-        settings = rrSubmit.get_workflow_settings(workflowHybrid["ui"], rrSubmit.getRR_Root())
+        settings = rrWorkflow.get_workflow_settings(workflowHybrid["ui"], rrSubmit.getRR_Root())
         if settings.get("ui_submit") and not is_local:
             raise Exception(
                 f"UI rrSubmitter is only available if the Comfy webserver runs on your Workstation (Localhost). "
@@ -93,7 +92,7 @@ async def submit_handler(request):
 async def get_schema_handler(request):
     try:
         schema = []
-        for key, info in rrSubmit.SETTINGS_FIELDS.items():
+        for key, info in rrWorkflow.SETTINGS_FIELDS.items():
             schema.append({
                 "id": key,
                 "label": info.get("label", key),
@@ -116,9 +115,21 @@ async def add_seed_endpoint(request):
     json_data = await request.json()
     workflow = json_data.get("workflow")
     
-    # Deine Logik ausführen
-    modified_workflow = rrSubmit.add_rrSeed(workflow)
-    
+    settings = rrWorkflow.get_workflow_settings(workflow, rrSubmit.getRR_Root())
+    modified_workflow = rrWorkflow.add_rrSeed(workflow)
+
+    '''DEBUG other function
+    # Use run_in_executor to prevent the 10-second EXE call 
+    # from freezing the entire ComfyUI server.
+    loop = asyncio.get_event_loop()
+    # Execute your existing function in a separate thread    
+    infoData = await loop.run_in_executor(
+        None, 
+        rrWorkflow.analyze_workflow_detailed, 
+        modified_workflow
+    )
+    rrWorkflow.print_workflow_analysis(infoData)    
+    '''
     return web.json_response(modified_workflow)
 
     
@@ -130,3 +141,8 @@ NODE_CLASS_MAPPINGS = rrNodes.NODE_CLASS_MAPPINGS
 NODE_DISPLAY_NAME_MAPPINGS = rrNodes.NODE_DISPLAY_NAME_MAPPINGS
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+
+print("[rrSubmit] %rrVersion% loaded.")
+
+#print(f"[rrSubmit] folder_paths.base_path is {folder_paths.base_path}.")
+

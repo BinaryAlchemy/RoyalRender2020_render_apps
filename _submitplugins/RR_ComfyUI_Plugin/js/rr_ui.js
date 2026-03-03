@@ -210,16 +210,31 @@ class RRController {
         }
     }
 
+
+}
+
+// --- 3. UI TOPBAR CLASS ---
+class RRTopBar {
+    constructor(controller) {
+        this.controller = controller;
+        this.element = document.createElement("div");
+        this.element.className = "comfyui-button-group";
+        Object.assign(this.element.style, {
+            display: "flex", gap: "2px", backgroundColor: "#1e1e1e", 
+            padding: "2px", borderRadius: "4px", margin: "0 8px"
+        });
+        this.menu = null;
+    }
+
     createRow(param, currentValue) {
         const row = document.createElement("div");
         Object.assign(row.style, { marginBottom: "12px", display: "flex", flexDirection: "column" });
         if (param.type === "separator") {
-            row.style.gridColumn = "1 / span 2";
-            row.innerHTML = `<div style="margin-top:10px; border-bottom:1px solid #3b82f6; font-size:10px; font-weight:bold; color:#3b82f6; padding-bottom:3px;">${param.label}</div>`;
-            return row;
+            row.style.gridColumn = "1 / span 3"; // Changed from span 2 to span 3
+            row.innerHTML = `<div style="margin-top:10px; border-bottom:1px solid #3b82f6; font-size:10px; font-weight:bold; color:#3b82f6; padding-bottom:3px;">${param.label}</div>`;            return row;
         }
         const label = document.createElement("label");
-        label.textContent = param.label;
+        label.innerHTML = param.label;
         label.style.cssText = "font-size:11px; color:#888; margin-bottom:4px;";
         let input;
         const val = currentValue !== undefined ? currentValue : param.default;
@@ -237,20 +252,6 @@ class RRController {
         input.className = "rr-setting-input"; input.id = `rr-field-${param.id}`; input.dataset.type = param.type;
         Object.assign(input.style, { background: "#222", border: "1px solid #444", color: "#eee", padding: "6px", borderRadius: "4px" });
         row.append(label, input); return row;
-    }
-}
-
-// --- 3. UI TOPBAR CLASS ---
-class RRTopBar {
-    constructor(controller) {
-        this.controller = controller;
-        this.element = document.createElement("div");
-        this.element.className = "comfyui-button-group";
-        Object.assign(this.element.style, {
-            display: "flex", gap: "2px", backgroundColor: "#1e1e1e", 
-            padding: "2px", borderRadius: "4px", margin: "0 8px"
-        });
-        this.menu = null;
     }
 
     init() {
@@ -275,6 +276,8 @@ class RRTopBar {
             justifyContent: "center", alignItems: "center", padding: "0"
         });
 
+     
+    
         // Menu Erstellung
         this.menu = document.createElement("div");
         Object.assign(this.menu.style, {
@@ -284,30 +287,37 @@ class RRTopBar {
             boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
         });
 
-        const itemSettings = document.createElement("div");
-        itemSettings.innerText = "Workflow Settings";
-        Object.assign(itemSettings.style, {
-            padding: "10px 15px", cursor: "pointer", fontSize: "13px", color: "#eee"
-        });
-        itemSettings.onmouseover = () => itemSettings.style.backgroundColor = "#3b82f6";
-        itemSettings.onmouseout = () => itemSettings.style.backgroundColor = "transparent";
-        itemSettings.onclick = (e) => {
-            e.stopPropagation();
-            this.menu.style.display = "none";
-            this.showSettings();
+        // Hilfsfunktion für Menü-Einträge (spart Redundanz)
+        const createMenuItem = (text, onClickAction) => {
+            const item = document.createElement("div");
+            item.innerText = text;
+            Object.assign(item.style, {
+                padding: "10px 15px", cursor: "pointer", fontSize: "13px", color: "#eee"
+            });
+            item.onmouseover = () => item.style.backgroundColor = "#3b82f6";
+            item.onmouseout = () => item.style.backgroundColor = "transparent";
+            item.onclick = (e) => {
+                e.stopPropagation();
+                this.menu.style.display = "none";
+                onClickAction();
+            };
+            return item;
         };
 
+        // 1. Eintrag: Workflow Settings
+        const itemSettings = createMenuItem("RR Settings in Workflow", () => this.showSettings());
         this.menu.appendChild(itemSettings);
-        
-        
+
         // 2. Eintrag: Add rrSeed (Dein neuer Wunsch-Eintrag)
         const itemAddSeed = createMenuItem("Add rrSeed", async () => {
             const currentWorkflow = app.graph.serialize();
-            const response = await api.fetchApi("/royalrender/add_seed", {
+            const response = await fetch("/royalrender/add_seed", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ workflow: currentWorkflow }),
             });
+            
+            const result = await response.json();
 
             if (response.ok) {
                 const data = await response.json();
@@ -360,9 +370,14 @@ class RRTopBar {
                     <h3 style="margin:0; font-size:14px; color:#3b82f6;">RR SETTINGS</h3>
                     <button id="rr-close" style="background:none; border:none; color:#888; cursor:pointer; font-size:20px;">&times;</button>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div id=\"rr-col-left\"></div><div id=\"rr-col-right\"></div>
-                    <div id=\"rr-row-bottom\" style=\"grid-column: 1 / span 2; border-top: 1px solid #333; padding-top: 10px;\"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <div id="rr-col-left"></div>
+                    <div id="rr-col-middle"></div>
+                    <div id="rr-col-right"></div>
+
+                    <div id="rr-row-bottom"
+                        style="grid-column: 1 / span 3; border-top: 1px solid #333; padding-top: 10px;">
+                    </div>
                 </div>
                 <button id="rr-save" style="width:100%; margin-top:20px; padding:10px; background:#3b82f6; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">SAVE SETTINGS</button>
             `;
@@ -383,13 +398,31 @@ class RRTopBar {
         overlay.style.display = "flex";
         fetch("/rr/get_schema").then(r => r.json()).then(schema => {
             const current = app.graph.extra?.[this.controller.SETTINGS_KEY] || {};
-            const left = overlay.querySelector("#rr-col-left"); 
-            const right = overlay.querySelector("#rr-col-right"); 
+            const left = overlay.querySelector("#rr-col-left");
+            const middle = overlay.querySelector("#rr-col-middle");
+            const right = overlay.querySelector("#rr-col-right");
             const bottom = overlay.querySelector("#rr-row-bottom");
-            [left, right, bottom].forEach(c => c.innerHTML = "");
+
+            [left, middle, right, bottom].forEach(c => c.innerHTML = "");
+
             schema.forEach(p => {
-                const row = this.controller.createRow(p, current[p.id]);
-                const target = p.section === "right" ? right : (p.section === "bottom" ? bottom : left);
+                const row = this.createRow(p, current[p.id]);
+
+                let target;
+                switch (p.section) {
+                    case "middle":
+                        target = middle;
+                        break;
+                    case "right":
+                        target = right;
+                        break;
+                    case "bottom":
+                        target = bottom;
+                        break;
+                    default:
+                        target = left;
+                }
+
                 target.appendChild(row);
             });
         });

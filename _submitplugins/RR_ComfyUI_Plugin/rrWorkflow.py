@@ -12,27 +12,94 @@
 import os
 from typing import Dict, Optional, Tuple
 import time
+from datetime import datetime
 import uuid
 from server import PromptServer
 from aiohttp import web
+import json
+from pathlib import Path
+import folder_paths
+import argparse
+import sys
+import nodes
+import inspect
+
 
 ##############################################
 # Settings and their default                 #
 ##############################################
+
+
+def get_model_config_path():
     
+    DEBUG_ALL= True
+    ret_yaml_path=""
+
+    try:
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--extra-model-paths-config", action='append', nargs='*')
+        args, _ = parser.parse_known_args()
+
+        if args.extra_model_paths_config:
+            flat_configs = [item for sublist in args.extra_model_paths_config for item in sublist]
+            if flat_configs:
+                cmd_path = os.path.realpath(flat_configs[-1])
+                print(f"[rrSubmit] Commandline flag location {cmd_path}.")
+                if os.path.isfile(cmd_path):
+                    ret_yaml_path = cmd_path
+                    print(f"[rrSubmit] Commandline flag, found in {ret_yaml_path}.")
+                    if not DEBUG_ALL:
+                        return ret_yaml_path
+    except Exception as e:
+        print(f"[rrSubmit] Error parsing arguments: {e}")
+
+    main_mod = sys.modules.get('__main__')
+    if main_mod and hasattr(main_mod, '__file__'):
+        main_dir = os.path.dirname(os.path.realpath(main_mod.__file__))
+        yaml_path= os.path.join(main_dir, "extra_model_paths.yaml")
+        print(f"[rrSubmit] main_dir location {yaml_path}.")
+        if os.path.isfile(yaml_path):
+            ret_yaml_path= yaml_path
+            print(f"[rrSubmit] main_dir, found in {ret_yaml_path}.")
+            if not DEBUG_ALL:
+                return ret_yaml_path
+
+    if sys.argv and sys.argv[0]:
+        argv_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        yaml_path = os.path.join(argv_dir, "extra_model_paths.yaml")
+        print(f"[rrSubmit] sys.argv[0] location {yaml_path}.")
+        if os.path.isfile(yaml_path):
+            ret_yaml_path= yaml_path
+            print(f"[rrSubmit] sys.argv[0], found in {ret_yaml_path}.")
+            if not DEBUG_ALL:
+                return ret_yaml_path
+
+    return ret_yaml_path
+
+def get_workflow_path_RR():
+    user_base_path = folder_paths.get_user_directory()
+    workflow_path = os.path.join(user_base_path, "default", "workflows", "RR")
+    return workflow_path
+
+
+
+
+
 SETTINGS_KEY = "rrSubmit_CFG"
 
 # Definition: intern_key -> {"default": value, "label": UI-Label, "type": "str/int/bool"}
 SETTINGS_FIELDS = {
     "group_general": {"label": "General", "type": "separator", "section": "left"},
     "iteration_idxs_count": {"label": "Number of interations to process", "type": "int", "section": "left"},
-    "seq_div_min": {"label": "Sequence Divide Min", "type": "int", "section": "left"},
+    "seq_div_min": {"label": "Iterations to process  (RR Sequence Divide)", "type": "int", "section": "left"},
+    "gpu_mem_min": {"label": "Required GPU memory in GB", "type": "int", "section": "left"},
 
     "group_path": {"label": "Paths", "type": "separator", "section": "bottom"},
-    "farm_workflow_path": {"label": "Optional: Path to save workflow dublicate for RR", "type": "str", "section": "bottom"},
-    "output_path": {"label": "OPTIONAL: Override path to save output to", "type": "str", "section": "bottom"},
+    "farm_workflow_path": {"label": "Path to save workflow dublicate for render farm", "type": "str", "section": "bottom"},
+    "output_path": {"label": f"OPTIONAL: Override path to save output to<br>DEFAULT:  {folder_paths.get_output_directory()}", "type": "str", "section": "bottom"},
+    "model_config_yaml": {"label": f"OPTIONAL: Set extra_model_paths.yaml<br>DEFAULT:  None.  Your file: {get_model_config_path()}", "type": "str", "section": "bottom"},
 
-    "group_model": {"label": "Copy model files", "type": "separator", "section": "bottom"},
+    "model_group": {"label": "N/A yet<br> Copy local models to fileserver", "type": "separator", "section": "bottom"},
     "model_sync_mode": {
         "label": "N/A - Copy Mode",
         "type": "choice",
@@ -43,40 +110,72 @@ SETTINGS_FIELDS = {
                 ],
         "section": "bottom"
     },
-    "local_model_dir": {"label": "OPTIONAL: Override local model path", "type": "str", "section": "bottom"},
-    "farm_model_dir": {"label": "Fileserver model path", "type": "str", "section": "bottom"},
+    "model_dir_local": {"label": f"OPTIONAL: Override local model path<br>DEFAULT:  {folder_paths.models_dir}", "type": "str", "section": "bottom"},
+    "model_dir_farm": {"label": "Fileserver model path", "type": "str", "section": "bottom"},
 
-    "group_misc": {"label": "Misc", "type": "separator", "section": "right"},
-    "ui_submit": {"label": "Use UI rrSubmitter", "type": "bool", "section": "right"},
-    "replace_fileout": {"label": "N/A - Replace fileout nodes with RR nodes", "type": "bool", "section": "right"},
-    "add_seed": {"label": "N/A - Add rrSeed to all KSampler seed inputs", "type": "bool", "section": "right"},
-    "load_farm_workflow": {"label": "DEBUG: ask to load farm workflow after submission", "type": "bool", "section": "right"},
+    "nodes_group": {"label": "N/A yet<br> Copy local Custom Nodes to fileserver", "type": "separator", "section": "bottom"},
+    "nodes_sync_mode": {
+        "label": "N/A - Copy Mode",
+        "type": "choice",
+        "choices": [
+                ("Do nothing", "none"),
+                ("Add local models to existing", "Copy"),
+                ("Sync local model (delete non-existing)", "Sync")
+                ],
+        "section": "bottom"
+    },
+    "nodes_dir_local": {"label": f"OPTIONAL: Override local custom_nodes path<br>DEFAULT:  {folder_paths.get_folder_paths("custom_nodes")[0]}", "type": "str", "section": "bottom"},
+    "nodes_dir_farm": {"label": "Fileserver custom_nodes path", "type": "str", "section": "bottom"},
+
+
+    "group_misc": {"label": "Misc", "type": "separator", "section": "middle"},
+    "ui_submit": {"label": "UI rrSubmitter (off: Console)", "type": "bool", "section": "middle"},
+    "replace_fileout": {"label": "N/A yet<br> (Replace fileout nodes with RR nodes)", "type": "bool", "section": "middle"},
+    "add_seed": {"label": "Add rrSeed to all seed inputs", "type": "bool", "section": "middle"},
+    "load_farm_workflow": {"label": "DEBUG: view farm workflow after submission", "type": "bool", "section": "middle"},
+
+    "group_farm": {"label": "Farm settings", "type": "separator", "section": "right"},
+    "use_portable": {"label": "Don't use ComfyUI Desktop, use ComfyUI Portable", "type": "bool", "section": "right"},
+    "sync_models": {"label": "Sync fileserver model dir to local drive", "type": "bool", "section": "right"},
+    "sync_nodes": {"label": "Sync fileserver custom_nodes dir to local drive", "type": "bool", "section": "right"},
+    "auto_install_modules": {"label": "N/A yet<br> Auto install missing py modules for custom_nodes", "type": "bool", "section": "right"},
 }
 
 def settings_compute_default(key, RR_ROOT):
     if key == "iteration_idxs_count":
-        return 1
+        return 5
 
     if key == "seq_div_min":
         return 1
-
+    
+    if key == "gpu_mem_min":
+        return 8
+    
     if key == "farm_workflow_path":
-        return os.path.join(RR_ROOT,"inhouse/compfyUI/")
+        return get_workflow_path_RR()
+        #return os.path.join(RR_ROOT,"inhouse/compfyUI/")
 
     if key == "output_path":
         return "" 
-        #This is an OPTIONAL OVERRIDE. We do not want to hardcode anything as someone might copy the file to some other location/workstation/project
+    if key == "model_config":
+        return "" 
 
     if key == "model_sync_mode":
-        return SETTINGS_FIELDS["model_sync_mode"]["choices"][1][1] 
+        return SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] 
+    if key == "nodes_sync_mode":
+        return SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] 
 
-    if key == "local_model_dir":
+    if key == "model_dir_local":
+        return "" 
+    if key == "nodes_dir_local":
         return "" 
         #This is an OPTIONAL OVERRIDE. We do not want to hardcode anything as someone might copy the file to some other location/workstation/project
         #return folder_paths.models_dir
 
-    if key == "farm_model_dir":
+    if key == "model_dir_farm":
         return os.path.join(RR_ROOT, "render_apps/renderer_plugins/ComfyUI/models_<rrJobVerMajor>")
+    if key == "nodes_dir_farm":
+        return os.path.join(RR_ROOT, "render_apps/renderer_plugins/ComfyUI/custom_nodes_<rrJobVerMajor>")
 
     if key == "ui_submit":
         return True
@@ -90,6 +189,14 @@ def settings_compute_default(key, RR_ROOT):
     if key == "load_farm_workflow":
         return False
 
+    if key == "use_portable":
+        return False
+    if key == "sync_models":
+        return False
+    if key == "sync_nodes":
+        return False
+    if key == "auto_install_modules":
+        return True
 
     return None
     
@@ -680,16 +787,17 @@ def add_rrSeed(workflow):
     nodes = workflow["nodes"]
     links = workflow.get("links", [])
     
+    # 1. rrSeed Node finden oder erstellen
     seed_node_id = None
-    #We do not add a new one if there is already one
-    rrSeed_node = next((n for n in nodes if n["type"] == "rrSeed"), None)
+    rrSeed_node = next((n for n in nodes if n.get("type") == "rrSeed"), None)
+    
     if not rrSeed_node:
-        seed_node_id = 999999
+        seed_node_id = 999999 # Deine gewählte ID
         rrSeed_node = {
             "id": seed_node_id,
             "type": "rrSeed",
             "pos": [100, 100], 
-            "widgets_values": [0, 1], # [base_seed, iteration_idx]
+            "widgets_values": [0, 1],
             "inputs": [],
             "flags": {},
             "order": 0 
@@ -698,44 +806,386 @@ def add_rrSeed(workflow):
     else:
         seed_node_id = rrSeed_node["id"]
 
-    # --- PART 2: Connection to Random Nodes  ---
-    if seed_node_id:
-        for node in nodes:
-            current_id = str(node.get("id"))
-            current_type = node.get("type") # In manchen Formaten auch 'class_type'
-            inputs = node.get("inputs", {})
+    # 2. Nodes durchlaufen und verbinden
+    for node in nodes:
+        current_type = node.get("type")
+        node_inputs = node.get("inputs", []) # Das ist hier eine LISTE
+        
+        target_slot = None
 
-            target_slot = None
+        # Slot-Name basierend auf Typ bestimmen
+        if current_type == "KSampler":
+            target_slot = "seed"
+        elif current_type in ["KSamplerAdvanced", "RandomNoise"]:
+            target_slot = "noise_seed"
+        elif current_type in ["Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]:
+            target_slot = "seed"
+        elif any(isinstance(i, dict) and i.get("name") == "seed" for i in node_inputs):
+            target_slot = "seed"
+
+        if target_slot:
+            # --- FIXED CHECK (widgets_values) ---
+            # In deiner JSON (z.B. ID 18) ist 'fixed' der 2. Wert in widgets_values
+            widgets = node.get("widgets_values", [])
+            is_fixed = False
             
-            # 1. Identifiziere den korrekten Slot-Namen
-            if current_type == "KSampler":
-                target_slot = "seed"
-            elif current_type in ["KSamplerAdvanced", "RandomNoise"]:
-                target_slot = "noise_seed"
-            elif current_type in ["Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]:
-                target_slot = "seed"
-            elif inputs and "seed" in inputs:
-                # Dynamischer Check: Falls die Node ein Input-Feld namens "seed" hat
-                target_slot = "seed"
-            elif current_type and "KSampler" in current_type:
-                target_slot = "seed"
+            # Bei KSamplern steht das control-Widget meist an Index 1
+            if len(widgets) > 1:
+                control_val = str(widgets[1]).lower()
+                if control_val == "fixed":
+                    is_fixed = True
 
-            # 2. Wenn ein Slot gefunden wurde, prüfe die "Fixed"-Bedingung
-            if target_slot:
-                control_setting = inputs.get("control_after_generation")
-                
-                # Nur injecten, wenn es NICHT auf 'fixed' steht
-                # Wir prüfen auf 'fixed' als String (case-insensitive)
-                is_fixed = control_setting and str(control_setting).lower() == "fixed"
-                
-                if not is_fixed:
-                    # Verbindung von Output 0 der rrSeed Node zum Ziel-Slot der aktuellen Node
-                    # Das ersetzt den statischen Wert durch die rrSeed-Logik
-                    inject_link(seed_node_id, 0, node["id"], target_slot, links, node)
-                    writeInfo(f"Connected rrSeed to Node {current_id} ({current_type}) on slot '{target_slot}'.")
-                else:
-                    writeDebug(f"Skipped Node {current_id} because seed is set to 'fixed'.")
+            if not is_fixed:
+                # Nutze deine inject_link Funktion
+                inject_link(seed_node_id, 0, node["id"], target_slot, links, node)
+                writeInfo(f"Connected rrSeed to {current_type} (ID {node['id']})")
+            else:
+                writeDebug(f"Node {node['id']} is FIXED, skipping.")
 
     workflow["nodes"] = nodes
     workflow["links"] = links
     return workflow
+
+
+def safe_make_dirs_for_file(file_path_str):
+    """
+    Ensures the directory for a given file path exists, but only if the 
+    base structure (3 levels up from the file) is already present.
+    Example: For '.../share/projekt/comfyUI/temp/file.json', it checks if '.../share/projekt/' exists.
+    """
+    file_path = Path(file_path_str)
+    # .parent is the folder 'tempfiles'
+    target_dir = file_path.parent
+    # .parent.parent.parent is the base 'projekt'
+    base_structure = target_dir.parent.parent
+    
+    if base_structure.exists() and base_structure.is_dir():
+        if not target_dir.exists():
+            # Create the folder structure up to 'tempfiles'
+            os.makedirs(target_dir, exist_ok=True)
+            writeDebug(f"Directory created: {target_dir}")
+        return True
+    else:
+        # Safety trigger: Base structure is missing
+        error_msg = f"Safety Error: Base path '{base_structure}' not found. Check your server connection or mapping."
+        writeError(error_msg)
+        # You might want to raise an exception here to catch it in your handler
+        raise Exception(error_msg)
+        
+
+def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflowUI, INFO_outNodeID, INFO_outFixedFilename):
+        final_json = workflowHybrid 
+        if (workflowApiRR):
+            final_json["api_format_rr"] = workflowApiRR 
+        else:
+            try:
+                del final_json["api_format_rr"]
+            except Exception:
+                pass
+        if (workflowUI):
+            final_json["ui"] = workflowUI 
+        else:
+            try:
+                del final_json["ui"]
+            except Exception:
+                pass
+        
+        if "rr_metadata" not in final_json:
+            final_json["rr_metadata"] = {}
+        final_json["rr_metadata"].update({
+            "version": "1.0",
+            "layer_node_id": str(INFO_outNodeID),
+            "fixed_filename": str(INFO_outFixedFilename)
+            })
+
+        
+        #save dublicate of workflow 
+        timestamp = datetime.now().strftime("%m%d-%H%M%S") #datetime.now().strftime("%y%m%d-%H%M%S")
+        filename = f"RR_{workflowName}__{timestamp}.json"
+        if len(filepath) <3: 
+            raise Exception("farm_workflow_path not set in RRs workflow settings")
+        filepath = os.path.join(filepath, filename)
+        success = safe_make_dirs_for_file(filepath)
+        if not success:
+            raise Exception("Unable to create folder "+str(filepath))
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(final_json, f, indent=2)
+        writeInfo(f"Workflow saved to {filepath}")
+
+        if hasEnvDebugMode():
+            if (workflowApiRR):
+                with open(filepath.replace(".json","")+"_apiRR.json", "w", encoding="utf-8") as f:
+                    json.dump(workflowApiRR, f, indent=2)
+            if workflowHybrid.get("api_export_comfy", {}):
+                with open(filepath.replace(".json","")+"_apiComfy.json", "w", encoding="utf-8") as f:
+                    json.dump(workflowHybrid.get("api_export_comfy", {}), f, indent=2)
+            if ("rr_metadata" in workflowHybrid) and ("summary" in workflowHybrid["rr_metadata"]):
+                with open(filepath.replace(".json","")+"_summary.json", "w", encoding="utf-8") as f:
+                    json.dump(workflowHybrid["rr_metadata"]["summary"], f, indent=2)
+            if (workflowUI):
+                with open(filepath.replace(".json","")+"_UI.json", "w", encoding="utf-8") as f:
+                    json.dump(workflowUI, f, indent=2)
+        return filepath
+        
+
+
+
+
+import os
+import inspect
+import importlib
+import importlib.metadata
+import nodes
+import folder_paths
+
+# -----------------------------
+# Node Info Extraction
+# -----------------------------
+def get_node_info(node_type):
+    mapping = getattr(nodes, "NODE_CLASS_MAPPINGS", {})
+    node_class = mapping.get(node_type)
+
+    if not node_class:
+        return {
+            "installed": False,
+            "path": "",
+            "module_name": "",
+            "package_name": "",
+            "module_version": "",
+            "is_custom_node": False,
+        }
+
+    try:
+        file_path = inspect.getfile(node_class)
+        abs_path = os.path.abspath(file_path)
+
+        module_name = node_class.__module__
+        is_custom_node = "custom_nodes" in abs_path
+
+        module = importlib.import_module(module_name)
+        module_version = getattr(module, "__version__", "")
+
+        package_name = module_name.split(".")[0]
+        try:
+            package_version = importlib.metadata.version(package_name)
+        except Exception:
+            package_version = ""
+
+        return {
+            "installed": True,
+            "path": abs_path,
+            "module_name": module_name,
+            "package_name": package_name,
+            "module_version": module_version or package_version,
+            "is_custom_node": is_custom_node,
+        }
+
+    except Exception:
+        return {
+            "installed": True,
+            "path": "Core / Built-in",
+            "module_name": "",
+            "package_name": "",
+            "module_version": "",
+            "is_custom_node": False,
+        }
+
+# -----------------------------
+# Workflow Analyzer
+# -----------------------------
+def analyze_workflow_detailed(workflow):
+ 
+    analysis = {"nodes": [], "models": [], "summary": {}}
+
+    seen_node_types = set()
+
+    #UI format. It contains missing nodes, but is bad to extract data 
+    if not isinstance(workflow, dict) or "nodes" in workflow:
+        # 1. Schritt: Unbekannte Nodes direkt aus dem UI-Workflow sichern
+        # Bevor sie bei der Konvertierung verloren gehen
+        if isinstance(workflow, dict) and "nodes" in workflow:
+            mapping = getattr(nodes, "NODE_CLASS_MAPPINGS", {})
+            for node in workflow.get("nodes", []):
+                node_type = node.get("type")
+                if node_type and node_type not in mapping:
+                    if node_type not in seen_node_types:
+                        analysis["nodes"].append({
+                            "type": node_type,
+                            "installed": False,
+                            "path": "",
+                            "module_name": "Unknown (Not Installed)",
+                            "is_custom_node": True
+                        })
+                        seen_node_types.add(node_type)
+
+        save_workflow("e:\\2D\\temp", "DEBUG_UI__", workflow, None, None, None, None)
+
+        
+        workflow = convert_ui_to_api_dynamic(workflow)
+
+    save_workflow("e:\\2D\\temp", "DEBUG_API_", workflow, None, None, None, None)
+
+
+
+    seen_nodes = set()
+    seen_models = set()
+    node_outputs = {}  # node_id -> list of (filename, category)
+    mapping = getattr(nodes, "NODE_CLASS_MAPPINGS", {})
+
+    # -----------------------------
+    # Pass 1: detect loader nodes
+    # -----------------------------
+    for node_id, node_data in workflow.items():
+        node_type = node_data.get("class_type")
+        if not node_type:
+            continue
+
+        node_id = str(node_id)  # normalize
+
+        # Node info
+        if node_type not in seen_nodes:
+            node_info = get_node_info(node_type)
+            analysis["nodes"].append({"type": node_type, **node_info})
+            seen_nodes.add(node_type)
+
+        inputs = node_data.get("inputs", {})
+        loader_output = []
+
+        # Map known loader nodes to category
+        if node_type == "CheckpointLoaderSimple":
+            ckpt = inputs.get("ckpt_name")
+            if ckpt:
+                loader_output.append((ckpt, "checkpoints"))
+        elif node_type == "VAEFileLoader":
+            vae = inputs.get("vae")
+            if vae:
+                loader_output.append((vae, "vae"))
+        elif node_type == "LoraLoader":
+            lora = inputs.get("lora_file")
+            if lora:
+                loader_output.append((lora, "loras"))
+        elif node_type == "ControlNetLoader":
+            cn = inputs.get("model")
+            if cn:
+                loader_output.append((cn, "controlnets"))
+        elif node_type == "CLIPTextEncode":
+            emb = inputs.get("clip")
+            if emb and isinstance(emb, str):
+                loader_output.append((emb, "embeddings"))
+        elif node_type in ["CheckpointLoaderXL", "CheckpointLoaderSDXL"]:
+            ckpt = inputs.get("ckpt_name")
+            if ckpt:
+                loader_output.append((ckpt, "checkpoints"))
+
+        if loader_output:
+            node_outputs[node_id] = loader_output
+
+    # -----------------------------
+    # Pass 2: Direkte Modell-Erkennung (API-Format optimiert)
+    # -----------------------------
+    # Mapping von Input-Keys zu folder_paths Kategorien
+    model_key_map = {
+        "ckpt_name": "checkpoints",
+        "lora_name": "loras",
+        "lora_file": "loras",
+        "vae_name": "vae",
+        "vae": "vae",
+        "control_net_name": "controlnets",
+        "model_name": "checkpoints", # Manche Custom Nodes nutzen dies
+        "clip_name": "clip",
+        "upscale_model": "upscale_models"
+    }
+
+    for node_id, node_data in workflow.items():
+        inputs = node_data.get("inputs", {})
+        
+        for input_name, input_value in inputs.items():
+            # Wir prüfen nur Strings (Dateinamen)
+            if isinstance(input_value, str):
+                category = model_key_map.get(input_name)
+                
+                # Falls der Key unbekannt ist, machen wir einen heuristischen Check:
+                # Endet die Datei auf eine Modell-Endung?
+                if not category:
+                    if any(input_value.lower().endswith(ext) for ext in folder_paths.supported_pt_extensions):
+                        # Wir raten die Kategorie basierend auf dem Node-Typ oder suchen alle durch
+                        for cat in folder_paths.folder_names_and_paths.keys():
+                            if folder_paths.get_full_path(cat, input_value):
+                                category = cat
+                                break
+                
+                if category:
+                    key = (category, input_value)
+                    if key not in seen_models:
+                        full_path = folder_paths.get_full_path(category, input_value)
+                        analysis["models"].append({
+                            "category": category,
+                            "filename": input_value,
+                            "found": bool(full_path),
+                            "path": os.path.abspath(full_path) if full_path else ""
+                        })
+                        seen_models.add(key)
+
+    # -----------------------------
+    # Summary
+    # -----------------------------
+    total_nodes = len(analysis["nodes"])
+    custom_nodes = sum(1 for n in analysis["nodes"] if n.get("is_custom_node"))
+    missing_nodes = sum(1 for n in analysis["nodes"] if not n.get("installed"))
+    total_models = len(analysis["models"])
+    models_missing = sum(1 for m in analysis["models"] if not m.get("found"))
+
+    analysis["summary"] = {
+        "total_nodes": total_nodes,
+        "custom_nodes": custom_nodes,
+        "missing_nodes": missing_nodes,
+        "total_models": total_models,
+        "models_missing": models_missing
+    }
+
+    return analysis
+
+
+
+def print_workflow_analysis(analysis_dict):
+    """Gibt die Analyse in einer sauberen Tabelle aus. Header erscheinen immer."""
+    
+    # --- NODES SEKTION ---
+    print("\n" + "="*120)
+    print(f"{'Node Name (Title)':<25} | {'Class Type':<25} | {'Status / Path'}")
+    print("-" * 120)
+
+    nodes_data = analysis_dict.get("nodes", [])
+    if not nodes_data:
+        print(f"{'---':<25} | {'---':<25} | No nodes found")
+    else:
+        for n in nodes_data:
+            n_title = str(n.get("title") or n.get("type") or "Unknown")[:25]
+            n_type = str(n.get("type", "Unknown"))[:25]
+            
+            if n.get("installed"):
+                display_path = n.get("path") if n.get("path") else "No Path found"
+            else:
+                display_path = "!NOT INSTALLED!"
+            
+            print(f"{n_title:<25} | {n_type:<25} | {display_path}")
+
+    # --- MODELS SEKTION ---
+    print("\n" + "="*120)
+    print(f"{'Model Filename':<53} | {'Status / Path'}")
+    print("-" * 120)
+
+    models_data = analysis_dict.get("models", [])
+    if not models_data:
+        # Hier war der Fehler: Jetzt wird auch bei leeren Listen eine Zeile ausgegeben
+        print(f"{'---':<53} |No models found.")
+    else:
+        for m in models_data:
+            m_name = str(m.get("filename", "Unknown"))[:53]
+            display_m_path = m.get("path") if m.get("found") else "!FILE NOT FOUND!"
+            print(f"{m_name:<53} | {display_m_path}")
+
+    print(analysis_dict.get("summary", []))
+
+    print("="*120 + "\n")

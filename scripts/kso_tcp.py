@@ -106,7 +106,7 @@ def rrKSO_logger_init():
     global USE_DEFAULT_PRINT
     global PRINT_DEBUG
     global USE_LOGGER
-    LOGGER_WAS_SETUP= True
+    #LOGGER_WAS_SETUP= True
     if USE_LOGGER:
         pass
     elif USE_DEFAULT_PRINT:

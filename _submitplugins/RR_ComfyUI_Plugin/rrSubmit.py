@@ -12,9 +12,7 @@
 
 import os
 import sys
-import json
 import tempfile
-from datetime import datetime
 import folder_paths
 import subprocess #it is imported now as the CompfyUI security/vulnerability check  
 import traceback
@@ -62,6 +60,9 @@ def print_exception(e, location):
         writeError(f"FULL DEBUG STACK:\n{full_stack}")
         raise Exception(error_msg)    
 
+
+def argValid(argValue):
+    return ((argValue is not None) and (len(str(argValue))>0))
 
 ##############################################
 # JOB CLASS                                  #
@@ -625,31 +626,6 @@ def safe_make_dirs(target_path_str):
         writeError(f"Safety Error: Base path '{grandparent}' not found. Directory will not be created.")
         return False
         
-def safe_make_dirs_for_file(file_path_str):
-    """
-    Ensures the directory for a given file path exists, but only if the 
-    base structure (3 levels up from the file) is already present.
-    Example: For '.../share/projekt/comfyUI/temp/file.json', it checks if '.../share/projekt/' exists.
-    """
-    file_path = Path(file_path_str)
-    # .parent is the folder 'tempfiles'
-    target_dir = file_path.parent
-    # .parent.parent.parent is the base 'projekt'
-    base_structure = target_dir.parent.parent
-    
-    if base_structure.exists() and base_structure.is_dir():
-        if not target_dir.exists():
-            # Create the folder structure up to 'tempfiles'
-            os.makedirs(target_dir, exist_ok=True)
-            writeDebug(f"Directory created: {target_dir}")
-        return True
-    else:
-        # Safety trigger: Base structure is missing
-        error_msg = f"Safety Error: Base path '{base_structure}' not found. Check your server connection or mapping."
-        writeError(error_msg)
-        # You might want to raise an exception here to catch it in your handler
-        raise Exception(error_msg)
-        
 ##############################################
 #                                            #
 ##############################################        
@@ -734,42 +710,6 @@ def submit_job_to_royalrender(newJob,  consoleMode):
  
     
     
-def save_workflow(settings, workflowName, workflowHybrid, workflowApiRR, workflowUI, outNodeID, outFixedFilename):
-        final_json = workflowHybrid 
-        final_json["api_format_rr"] = workflowApiRR 
-        final_json["ui"] = workflowUI 
-        final_json["rr_metadata"] = {
-            "version": "1.0",
-            "layer_node_id": outNodeID,
-            "fixed_filename": outFixedFilename
-        }
-        
-        #save dublicate of workflow 
-        timestamp = datetime.now().strftime("%m%d-%H%M%S") #datetime.now().strftime("%y%m%d-%H%M%S")
-        filename = f"RR_{workflowName}__{timestamp}.json"
-        filepath= settings['farm_workflow_path']
-        if len(filepath) <3: 
-            raise Exception("farm_workflow_path not set in submission settings")
-        filepath = os.path.join(filepath, filename)
-        success = safe_make_dirs_for_file(filepath)
-        if not success:
-            raise Exception("Unable to create folder "+str(filepath))
-
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(final_json, f, indent=2)
-        writeInfo(f"Workflow saved to {filepath}")
-
-        if hasEnvDebugMode():
-            with open(filepath.replace(".json","")+"_apiRR.json", "w", encoding="utf-8") as f:
-                json.dump(workflowApiRR, f, indent=2)
-            with open(filepath.replace(".json","")+"_apiComfy.json", "w", encoding="utf-8") as f:
-                json.dump(workflowHybrid.get("api_export_comfy", {}), f, indent=2)
-            with open(filepath.replace(".json","")+"_UI.json", "w", encoding="utf-8") as f:
-                json.dump(workflowUI, f, indent=2)
-        
-        return filepath
-        
-        
 
 def submit_workflow(workflowHybrid, workflowName, submit_node_id):
     try:
@@ -779,6 +719,25 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         outFixedFilename="none"
         
         workflowUI= workflowHybrid["ui"]
+    
+
+        DEBUG_BREAK= hasEnvDebugMode()
+        ourConversionBreaksFile= False
+        #we verify that our function convert_ui_to_api_dynamic works with this workflow
+        try:
+            workflowApiRR = rrWorkflow.convert_ui_to_api_dynamic(workflowUI)
+        except Exception as e:
+            print_exception(e, "submit_workflow")
+                
+        try:
+            rrWorkflow.compare_workflows(workflowApiRR, workflowHybrid.get("api_export_comfy", {}))
+            writeInfo("submit_workflow: Validation SUCESS (1)")
+        except Exception as e:
+            ourConversionBreaksFile= True
+            writeError("WARNING: submit_workflow: Validation failed (1): "+str(e))
+        if DEBUG_BREAK:
+            return False, None
+
         settings = rrWorkflow.get_workflow_settings(workflowUI, getRR_Root()) 
         
         if (submit_node_id >= 0):
@@ -791,29 +750,9 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
 
 
         workflowHybrid["api_export_comfy"] = rrWorkflow.sort_comfy_api_workflow(workflowHybrid.get("api_export_comfy", {}) )
-        
-        '''
-        DEBUG_BREAK= hasEnvDebugMode()
-        ourConversionBreaksFile= False
-        #we verify that our function convert_ui_to_api_dynamic works with this workflow
-        try:
-            workflowApiRR = convert_ui_to_api_dynamic(workflowUI)
-        except Exception as e:
-            print_exception(e, "submit_workflow")
-                
-        try:
-            compare_workflows(workflowApiRR, workflowHybrid.get("api_export_comfy", {}))
-            writeInfo("submit_workflow: Validation SUCESS (1)")
-        except Exception as e:
-            ourConversionBreaksFile= True
-            try:
-                save_workflow(settings, workflowName, workflowHybrid, workflowApiRR, workflowUI, outNodeID, outFixedFilename)
-            except:
-                pass
-            writeError("WARNING: submit_workflow: Validation failed (1): "+str(e))
-            if DEBUG_BREAK:
-                return False, None
-        '''
+
+        summaryData= rrWorkflow.analyze_workflow_detailed(workflowUI)
+        rrWorkflow.print_workflow_analysis(summaryData) 
 
         outNodeID, outName, outExt, isVideo = rrWorkflow.workflow_getOutput(workflowUI, submit_node_id)
         
@@ -834,8 +773,15 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
 
         ###################### we have collected all settings, time to change stuff ###################### 
 
-            
-        rrWorkflow.disable_Outputs(submit_node_id)
+        #add some stats. IN some future version we might be able to copy only custom nodes and models that are used
+        if "rr_metadata" not in workflowHybrid:
+            workflowHybrid["rr_metadata"] = {}
+        workflowHybrid["rr_metadata"].update({
+            "summary": summaryData,
+            })
+
+
+        workflowUI= rrWorkflow.disable_Outputs(workflowUI, submit_node_id)
         
         #workflowApiComfy_Changed=workflowHybrid.get("api_export_comfy", {})
         workflowUI, outFixedFilename = rrWorkflow.swap_to_rr_nodes(workflowUI, outNodeID, outName, outExt, isVideo, global_output_path, settings)
@@ -848,7 +794,7 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         workflowApiRR =  rrWorkflow.convert_ui_to_api_dynamic(workflowUI)
         
         
-        filepath= save_workflow(settings, workflowName, workflowHybrid, workflowApiRR, workflowUI, outNodeID, outFixedFilename)
+        filepath= rrWorkflow.save_workflow(settings['farm_workflow_path'], workflowName, workflowHybrid, workflowApiRR, workflowUI, outNodeID, outFixedFilename)
 
         '''
         try:
@@ -859,13 +805,13 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             return False, workflowUI        
         '''
 
-        #create rrJob
+        ########################### create rrJob  ########################### 
         newJob=rrJob()
         newJob.software = "ComfyUI"
         newJob.sceneOS = getOSString()
         
         newJob.version = get_comfyui_DesktopApp_version()
-        if len(newJob.version) >0:
+        if (len(newJob.version) >0) and not settings['use_portable']:
             newJob.rendererVersion= get_comfyui_core_version()
             newJob.renderer="Desktop"
         else:
@@ -886,20 +832,47 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         newJob.seqEnd = settings['iteration_idxs_count']
         newJob.imageFileName = outName
         newJob.imageExtension = outExt
-        newJob.customVars["Comfy_OutDir"]=global_output_path
+        newJob.customVars["Comfy_OutDir"]=global_output_path #we need to know the base directory for any relative path in any output node
         newJob.imageSingleOutput = isVideo
-        if len(settings['local_model_dir']) > 1:
-            newJob.customVars["OnSubmit_CopyLocalDir"]=settings['local_model_dir']
-        else:
-            newJob.customVars["OnSubmit_CopyLocalDir"]=folder_paths.models_dir
-            
-        newJob.customVars["OnSubmit_CopyDestDir"]=settings['farm_model_dir']
-        newJob.customVars["OnSubmit_CopyMode"]=settings['model_sync_mode']
-        
-        newJob.submitOptions["SeqDivMIN"]= "0~" + str(settings['seq_div_min'])
         if (not outFixedFilename):
             newJob.submitOptions["DoNotCheckForFrames"]= "0~1"
+
+        if (argValid(settings['model_dir_local']) and argValid(settings['model_dir_farm']) and argValid(settings['model_sync_mode'])  and settings['model_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
+            newJob.customVars["OnSubmit_CopyLocalDir"]=settings['model_dir_local']
+            newJob.customVars["OnSubmit_CopyDestDir"]=settings['model_dir_farm']
+            newJob.customVars["OnSubmit_CopyMode"]=settings['model_sync_mode']
+            newJob.customVars["OnSubmit_CopyExclude"]="*.pyc;/__pycache__/"
+        if (argValid(settings['nodes_dir_local']) and argValid(settings['nodes_dir_farm']) and argValid(settings['nodes_sync_mode'])  and settings['nodes_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
+            newJob.customVars["OnSubmit_CopyLocalDi2"]=settings['nodes_dir_local']
+            newJob.customVars["OnSubmit_CopyDestDir2"]=settings['nodes_dir_farm']
+            newJob.customVars["OnSubmit_CopyMode2"]=settings['nodes_sync_mode']
+            newJob.customVars["OnSubmit_CopyExclude2"]="*.pyc;/__pycache__/"
+
+        if (argValid(settings['seq_div_min'])):
+            newJob.submitOptions["SeqDivMINComp"]= "0~" + str(settings['seq_div_min'])
+            newJob.submitOptions["SeqDivMAXComp"]= "0~" + str(settings['seq_div_max'])
+        if (argValid(settings['gpu_mem_min'])):
+            newJob.submitOptions["RequiredGPUMemory"]= "0~" + str(settings['gpu_mem_min'])
        
+        if (argValid(settings['model_config_yaml'])):
+            newJob.customVars["modelConfigYaml"]=settings['model_config_yaml']
+
+        if (argValid(settings['auto_install_modules'])):
+            if (settings['auto_install_modules']):
+                newJob.submitOptions["COAutoInstallModules"]= "0~1"
+            else:
+                newJob.submitOptions["COAutoInstallModules"]= "0~0"
+        if (argValid(settings['sync_models'])):
+            if (settings['sync_models']):
+                newJob.submitOptions["COLocalSyncModels"]= "0~1"
+            else:
+                newJob.submitOptions["COLocalSyncModels"]= "0~0"
+        if (argValid(settings['sync_nodes'])):
+            if (settings['sync_nodes']):
+                newJob.submitOptions["COLocalSyncNodes"]= "0~1"
+            else:
+                newJob.submitOptions["COLocalSyncNodes"]= "0~0"
+        
         
         #we return the path to the new workflow file to ask within UI to open the copy
         if "extra" not in workflowUI:

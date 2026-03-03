@@ -9,8 +9,6 @@
 # 
 ######################################################################
 
-
-
 import subprocess
 import time
 import json
@@ -27,8 +25,7 @@ import copy
 DEBUG= False
 if "DEBUG" in os.environ:
     DEBUG= True
-   
-   
+                        
 def logMessageGen(lvl, msg):
     if (len(lvl)==0):
         print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrComfy      : " + str(msg))
