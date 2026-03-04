@@ -482,4 +482,10 @@ echo * HOUDINI_SCRIPT_PATH is set to "<HOUDINI_SCRIPT_PATH>"
 echo * HOUDINI_DSO_PATH is set to "<HOUDINI_DSO_PATH>"
 echo * PXR_PLUGINPATH_NAME is set to "<PXR_PLUGINPATH_NAME>"
 
+[If] <RR_SIDEFX_LICTEST>  [==] 1
+    [Exec] "<rrExeBaseDir>/bin/hserver" --info
+[EndIf]
+ 
+
+
 

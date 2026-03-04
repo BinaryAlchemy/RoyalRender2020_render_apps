@@ -225,6 +225,9 @@ def launch_comfy(args):
         "--output-directory", args.output_directory, 
         "--base-directory", args.base_directory, 
         ]
+    
+  #--mmap-torch-files    Use mmap when loading ckpt/pt files.
+  #--disable-mmap        Don't use mmap when loading safetensors.    
     # ::win   --windows-standalone-build #Windows standalone build: Enable convenient things that most people using the standalone windows build will probably enjoy (like auto opening the page on startup).
     #Flag	Nutzen für Batch/C++
     #--disable-smart-memory	Verhindert, dass ComfyUI Modelle aggressiv aus dem VRAM entlädt. Gut, wenn du viele Bilder nacheinander mit demselben Modell renderst.
@@ -513,31 +516,31 @@ def modify_workflow(api_workflow, args, frame):
                 print(f"Node {node_id} (rrSeed): iteration_idx {old_idx} -> {frame}")
                 rrSeed_changed= True
                 
-    #if not rrSeed_changed:
-    target_node_types = ["KSampler", "KSamplerAdvanced", "Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]
-    for node_id, node in api_workflow.items():
-        node_type = node.get("class_type")
-        inputs = node.get("inputs", {})
+    if not rrSeed_changed:
+        target_node_types = ["KSampler", "KSamplerAdvanced", "Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]
+        for node_id, node in api_workflow.items():
+            node_type = node.get("class_type")
+            inputs = node.get("inputs", {})
 
-        # Check if this node is a KSampler or a known Seed node
-        if node_type in target_node_types or "seed" in inputs:
-            
-            # Logic: Check "control_after_generation" 
-            # In the API format, this is often an input value
-            control_setting = inputs.get("control_after_generation")
-            print(f"Node {node_id} {node_type} control_setting: {control_setting}.")
-
-            
-            # We only change if it's NOT "fixed"
-            # Note: Sometimes it's lowercase, sometimes uppercase depending on custom nodes
-            if not control_setting or str(control_setting).lower() != "fixed":
+            # Check if this node is a KSampler or a known Seed node
+            if node_type in target_node_types or "seed" in inputs:
                 
-                # Update the seed (e.g., to -1 for random or a specific new seed)
-                # Setting it to -1 tells ComfyUI to generate a new one on next run
-                # if the node supports it, otherwise we generate a random int here.
-                new_seed = frame* 10000
-                inputs["seed"] = new_seed
-                print(f"Updated Node {node_id} {node_type} to new seed {new_seed}.")
+                # Logic: Check "control_after_generation" 
+                # In the API format, this is often an input value
+                control_setting = inputs.get("control_after_generation")
+                print(f"Node {node_id} {node_type} control_setting: {control_setting}.")
+
+                
+                # We only change if it's NOT "fixed"
+                # Note: Sometimes it's lowercase, sometimes uppercase depending on custom nodes
+                if not control_setting or str(control_setting).lower() != "fixed":
+                    
+                    # Update the seed (e.g., to -1 for random or a specific new seed)
+                    # Setting it to -1 tells ComfyUI to generate a new one on next run
+                    # if the node supports it, otherwise we generate a random int here.
+                    new_seed = frame* 10000
+                    inputs["seed"] = new_seed
+                    print(f"Updated Node {node_id} {node_type} to new seed {new_seed}.")
 
     # 2. Den filename_prefix für die spezifische rrLayer-Node ändern
     if argValid(args.rrLayer):
@@ -668,6 +671,7 @@ parser.add_argument("--extra-model-paths-config", required=False, type=str, defa
 parser.add_argument("--output-directory", required=True, type=str, default="")
 parser.add_argument("--rrDirName", required=True, type=str, default="")
 parser.add_argument("--rrFileName", required=True, type=str, default="")
+parser.add_argument("--rrAutoInstallModules", required=False, type=bool, default="")
 
 #parser.add_argument("--user-directory", type=str, default="")
 #parser.add_argument("--input-directory ", type=str, default="")

@@ -535,8 +535,8 @@ def get_comfyui_core_version():
                                 return ret_version
                 except Exception as e:
                     writeInfo("comfy_coreVer,vpy_err: open "+str(target_vpy)+" "+str(e))
-            else:
-                writeInfo("comfy_coreVer,vpy_err: does not exist "+str(target_vpy))
+            #else:
+            #    writeInfo("comfy_coreVer,vpy_err: does not exist "+str(target_vpy))
 
             # Target 2: pyproject.toml (Project source)
             target_toml = os.path.join(root, "pyproject.toml")
@@ -721,6 +721,7 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         workflowUI= workflowHybrid["ui"]
     
 
+        '''
         DEBUG_BREAK= hasEnvDebugMode()
         ourConversionBreaksFile= False
         #we verify that our function convert_ui_to_api_dynamic works with this workflow
@@ -737,6 +738,7 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             writeError("WARNING: submit_workflow: Validation failed (1): "+str(e))
         if DEBUG_BREAK:
             return False, None
+        '''
 
         settings = rrWorkflow.get_workflow_settings(workflowUI, getRR_Root()) 
         
@@ -782,10 +784,14 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
 
 
         workflowUI= rrWorkflow.disable_Outputs(workflowUI, submit_node_id)
-        
-        #workflowApiComfy_Changed=workflowHybrid.get("api_export_comfy", {})
+        rrWorkflow.save_workflow("e:\\2D\\temp", "DEBUG_UI2__", workflowUI, None, None, None, None)
+
         workflowUI, outFixedFilename = rrWorkflow.swap_to_rr_nodes(workflowUI, outNodeID, outName, outExt, isVideo, global_output_path, settings)
         
+        if (settings.get('add_seed')):
+            workflowUI = rrWorkflow.add_rrSeed(workflowUI)
+
+
         #We wanted the workflow in UI format to the able to load it in ComfyUI FrontEnd to verify what we have done.
         #But the ComfyUI core/backend does not know this format at all. They use a different API format. 
         #So we need the API format for rendering
@@ -810,12 +816,11 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         newJob.software = "ComfyUI"
         newJob.sceneOS = getOSString()
         
-        newJob.version = get_comfyui_DesktopApp_version()
+        newJob.version = get_comfyui_core_version()
+        #newJob.version = get_comfyui_DesktopApp_version()
         if (len(newJob.version) >0) and not settings['use_portable']:
-            newJob.rendererVersion= get_comfyui_core_version()
             newJob.renderer="Desktop"
         else:
-            newJob.version = get_comfyui_core_version()
             newJob.renderer="Portable"
         
         newJob.layer="__ID" + str(outNodeID)
@@ -841,21 +846,28 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             newJob.customVars["OnSubmit_CopyLocalDir"]=settings['model_dir_local']
             newJob.customVars["OnSubmit_CopyDestDir"]=settings['model_dir_farm']
             newJob.customVars["OnSubmit_CopyMode"]=settings['model_sync_mode']
-            newJob.customVars["OnSubmit_CopyExclude"]="*.pyc;/__pycache__/"
+            newJob.customVars["OnSubmit_CopyExclude"]="*.pyc;/__pycache__/;/tests/;/testing/"
         if (argValid(settings['nodes_dir_local']) and argValid(settings['nodes_dir_farm']) and argValid(settings['nodes_sync_mode'])  and settings['nodes_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
             newJob.customVars["OnSubmit_CopyLocalDi2"]=settings['nodes_dir_local']
             newJob.customVars["OnSubmit_CopyDestDir2"]=settings['nodes_dir_farm']
             newJob.customVars["OnSubmit_CopyMode2"]=settings['nodes_sync_mode']
-            newJob.customVars["OnSubmit_CopyExclude2"]="*.pyc;/__pycache__/"
+            newJob.customVars["OnSubmit_CopyExclude2"]="*.pyc;/__pycache__/;/tests/;/testing/"
+
+        #Even if you do not copy the files from local on submission, we need it as source at render time
+        if argValid(settings['model_dir_farm']):
+            newJob.customVars["ModelDir"]=settings['model_dir_farm']
+        if argValid(settings['nodes_dir_farm']):
+            newJob.customVars["NodesDir"]=settings['nodes_dir_farm']
+
 
         if (argValid(settings['seq_div_min'])):
             newJob.submitOptions["SeqDivMINComp"]= "0~" + str(settings['seq_div_min'])
-            newJob.submitOptions["SeqDivMAXComp"]= "0~" + str(settings['seq_div_max'])
+            newJob.submitOptions["SeqDivMAXComp"]= "0~" + str(settings['seq_div_min'])
         if (argValid(settings['gpu_mem_min'])):
             newJob.submitOptions["RequiredGPUMemory"]= "0~" + str(settings['gpu_mem_min'])
        
         if (argValid(settings['model_config_yaml'])):
-            newJob.customVars["modelConfigYaml"]=settings['model_config_yaml']
+            newJob.customVars["ModelConfigYaml"]=settings['model_config_yaml']
 
         if (argValid(settings['auto_install_modules'])):
             if (settings['auto_install_modules']):

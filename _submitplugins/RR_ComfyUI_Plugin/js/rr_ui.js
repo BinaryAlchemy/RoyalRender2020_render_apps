@@ -308,23 +308,74 @@ class RRTopBar {
         const itemSettings = createMenuItem("RR Settings in Workflow", () => this.showSettings());
         this.menu.appendChild(itemSettings);
 
+        const saveToFile = (data, filename) => {
+        // Generate timestamp: YYYYMMDD-HHMMSS
+            const now = new Date();
+            const timestamp = (now.getMonth() + 1).toString().padStart(2, '0') + 
+                            now.getDate().toString().padStart(2, '0') + "-" + 
+                            now.getHours().toString().padStart(2, '0') + 
+                            now.getMinutes().toString().padStart(2, '0') + 
+                            now.getSeconds().toString().padStart(2, '0');
+
+            // Attach timestamp to the filename (before the extension)
+            const stampedFilename = `${timestamp}_${filename.replace('.json', '')}.json`;
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = stampedFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
         // 2. Eintrag: Add rrSeed (Dein neuer Wunsch-Eintrag)
         const itemAddSeed = createMenuItem("Add rrSeed", async () => {
             const currentWorkflow = app.graph.serialize();
+            /*
+            const result=currentWorkflow;
+            //saveToFile(result, "before");
+
+            //result.id = "test-workflow-id-123";
+            //saveToFile(result, "after");
+            //app.graph.stop();
+            //app.graph.clear();
+            app.graph.configure(result);
+
+            app.graph.afterChange();
+            app.graph.setDirtyCanvas(true, true);
+            //app.canvas.draw(true, true);
+            
+            
+            //app.graph.start();
+            //app.graph.processChange();
+            */
+
             const response = await fetch("/royalrender/add_seed", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ workflow: currentWorkflow }),
             });
             
-            const result = await response.json();
-
             if (response.ok) {
                 const data = await response.json();
                 const newGraph = data.workflow || data;
-                await app.loadGraphData(newGraph);
-            } else {
-                console.error("Failed to add rrSeed");
+                //saveToFile(newGraph, "workflow_RECV_from_JS.json");
+
+                app.graph.configure(newGraph);
+                //app.graph.setDirtyCanvas(true, true);
+                api.dispatchEvent(new CustomEvent("graphChanged"))
+                //reload was the only way to fix the issue that link lines are not properly drawn. 
+                // comfyUIs Undo has the same issue, so i assume there is no fix.
+                // (But I keep all functions I tried here commented out)
+                setTimeout(() => {
+                    window.location.reload();
+                }, 300);
+
+                } else {
+                    console.error("Failed to add rrSeed");
             }
         });
         this.menu.appendChild(itemAddSeed);

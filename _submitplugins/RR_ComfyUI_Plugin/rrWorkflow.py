@@ -23,6 +23,8 @@ import argparse
 import sys
 import nodes
 import inspect
+import importlib
+import importlib.metadata
 
 
 ##############################################
@@ -95,13 +97,14 @@ SETTINGS_FIELDS = {
     "gpu_mem_min": {"label": "Required GPU memory in GB", "type": "int", "section": "left"},
 
     "group_path": {"label": "Paths", "type": "separator", "section": "bottom"},
-    "farm_workflow_path": {"label": "Path to save workflow dublicate for render farm", "type": "str", "section": "bottom"},
-    "output_path": {"label": f"OPTIONAL: Override path to save output to<br>DEFAULT:  {folder_paths.get_output_directory()}", "type": "str", "section": "bottom"},
+    "farm_workflow_path": {"label": "directory to save workflow dublicate for render farm", "type": "str", "section": "bottom"},
+    "output_path": {"label": f"OPTIONAL: Override directory to save output to<br>DEFAULT:  {folder_paths.get_output_directory()}", "type": "str", "section": "bottom"},
     "model_config_yaml": {"label": f"OPTIONAL: Set extra_model_paths.yaml<br>DEFAULT:  None.  Your file: {get_model_config_path()}", "type": "str", "section": "bottom"},
 
-    "model_group": {"label": "N/A yet<br> Copy local models to fileserver", "type": "separator", "section": "bottom"},
+    "model_group": {"label": "Models", "type": "separator", "section": "bottom"},
+    "model_dir_farm": {"label": "Fileserver model directory", "type": "str", "section": "bottom"},
     "model_sync_mode": {
-        "label": "N/A - Copy Mode",
+        "label": "!!!N/A yet!!!<br> Copy Mode",
         "type": "choice",
         "choices": [
                 ("Do nothing", "none"),
@@ -110,12 +113,12 @@ SETTINGS_FIELDS = {
                 ],
         "section": "bottom"
     },
-    "model_dir_local": {"label": f"OPTIONAL: Override local model path<br>DEFAULT:  {folder_paths.models_dir}", "type": "str", "section": "bottom"},
-    "model_dir_farm": {"label": "Fileserver model path", "type": "str", "section": "bottom"},
+    "model_dir_local": {"label": f"OPTIONAL: Override local model directory for copy<br>DEFAULT:  {folder_paths.models_dir}", "type": "str", "section": "bottom"},
 
-    "nodes_group": {"label": "N/A yet<br> Copy local Custom Nodes to fileserver", "type": "separator", "section": "bottom"},
+    "nodes_group": {"label": "Custom Nodes", "type": "separator", "section": "bottom"},
+    "nodes_dir_farm": {"label": "Fileserver custom_nodes directory", "type": "str", "section": "bottom"},
     "nodes_sync_mode": {
-        "label": "N/A - Copy Mode",
+        "label": "!!!N/A yet!!!<br> Copy Mode",
         "type": "choice",
         "choices": [
                 ("Do nothing", "none"),
@@ -124,26 +127,25 @@ SETTINGS_FIELDS = {
                 ],
         "section": "bottom"
     },
-    "nodes_dir_local": {"label": f"OPTIONAL: Override local custom_nodes path<br>DEFAULT:  {folder_paths.get_folder_paths("custom_nodes")[0]}", "type": "str", "section": "bottom"},
-    "nodes_dir_farm": {"label": "Fileserver custom_nodes path", "type": "str", "section": "bottom"},
+    "nodes_dir_local": {"label": f"OPTIONAL: Override local custom_nodes directory for copy<br>DEFAULT:  {folder_paths.get_folder_paths("custom_nodes")[0]}", "type": "str", "section": "bottom"},
 
 
     "group_misc": {"label": "Misc", "type": "separator", "section": "middle"},
     "ui_submit": {"label": "UI rrSubmitter (off: Console)", "type": "bool", "section": "middle"},
-    "replace_fileout": {"label": "N/A yet<br> (Replace fileout nodes with RR nodes)", "type": "bool", "section": "middle"},
+    "replace_fileout": {"label": "!!!N/A yet!!!<br> (Replace fileout nodes with RR nodes)", "type": "bool", "section": "middle"},
     "add_seed": {"label": "Add rrSeed to all seed inputs", "type": "bool", "section": "middle"},
     "load_farm_workflow": {"label": "DEBUG: view farm workflow after submission", "type": "bool", "section": "middle"},
 
     "group_farm": {"label": "Farm settings", "type": "separator", "section": "right"},
     "use_portable": {"label": "Don't use ComfyUI Desktop, use ComfyUI Portable", "type": "bool", "section": "right"},
-    "sync_models": {"label": "Sync fileserver model dir to local drive", "type": "bool", "section": "right"},
-    "sync_nodes": {"label": "Sync fileserver custom_nodes dir to local drive", "type": "bool", "section": "right"},
-    "auto_install_modules": {"label": "N/A yet<br> Auto install missing py modules for custom_nodes", "type": "bool", "section": "right"},
+    "sync_models": {"label": "Sync fileserver model directory to local drive", "type": "bool", "section": "right"},
+    "sync_nodes": {"label": "Sync fileserver custom_nodes directory to local drive", "type": "bool", "section": "right"},
+    "auto_install_modules": {"label": "!!!N/A yet!!!<br> Auto install missing py modules for custom_nodes", "type": "bool", "section": "right"},
 }
 
 def settings_compute_default(key, RR_ROOT):
     if key == "iteration_idxs_count":
-        return 5
+        return 1
 
     if key == "seq_div_min":
         return 1
@@ -482,7 +484,7 @@ def disable_Outputs(workflow: Dict, submit_node_id: int):
     """
     # Validierung: Wenn keine spezifische Node gewählt wurde, brechen wir ab
     if submit_node_id < 0:
-        return
+        return workflow
 
     nodes_data = workflow.get("nodes")
     submit_node_str = str(submit_node_id)
@@ -522,7 +524,7 @@ def disable_Outputs(workflow: Dict, submit_node_id: int):
         for node_id in to_delete:
             del workflow[node_id]
             writeInfo(f"Removed output node from API-Workflow: {node_id}")
-
+    return workflow
 
 
  
@@ -557,6 +559,9 @@ def convert_ui_to_api_dynamic(workflow_ui):
     """
     Triggert die Konvertierung im JS-Frontend und wartet auf das Ergebnis.
     """
+    if ("nodes" not in workflow_ui) or (not isinstance(workflow_ui["nodes"], list)):
+        print("convert_ui_to_api_dynamic: Not an UI format")
+
     # 1. Eindeutige ID für diesen spezifischen Request erstellen
     request_id = str(uuid.uuid4())
     
@@ -666,27 +671,8 @@ def sort_comfy_api_workflow(api_workflow):
     
 
 
-def inject_link(src_id, src_out_idx, dst_id, dst_input_name, links, dst_node):
-    # (English comment) Utility to ensure an input is a link and not a widget
-    if "inputs" not in dst_node:
-        dst_node["inputs"] = []
-    
-    # (English comment) Find or create the input slot
-    existing_input = next((i for i in dst_node["inputs"] if i["name"] == dst_input_name), None)
-    new_link_id = int(str(uuid.uuid4().int)[:8])
-    
-    if not existing_input:
-        dst_node["inputs"].append({"name": dst_input_name, "type": "INT", "link": new_link_id})
-    else:
-        # (English comment) Cleanup old links
-        old_link = existing_input["link"]
-        links[:] = [lk for lk in links if lk[0] != old_link]
-        existing_input["link"] = new_link_id
-    
-    # (English comment) Update the global links list
-    slot_idx = next(idx for idx, i in enumerate(dst_node["inputs"]) if i["name"] == dst_input_name)
-    links.append([new_link_id, src_id, src_out_idx, dst_id, slot_idx, "INT"])
-    
+
+
 
 
 def swap_to_rr_nodes(workflow, outNodeID, outName, outExt, isVideo, global_output_path, settings):
@@ -780,71 +766,120 @@ def swap_to_rr_nodes(workflow, outNodeID, outName, outExt, isVideo, global_outpu
     return workflow, outFixedFilename
 
 
+def inject_link(src_id, src_out_idx, dst_id, dst_input_name, links, dst_node, src_node):
+    if "inputs" not in dst_node:
+        dst_node["inputs"] = []
+    
+    # 1. Neue Link-ID generieren
+    valid_links = [lk for lk in links if lk]
+    new_link_id = max([lk[0] for lk in valid_links] or [0]) + 1
+    
+    writeDebug(f"[inject_link] Creating link {new_link_id}") # English comment: Generating link ID
+
+    # 2. Ziel-Input setzen
+    target_input = next((i for i in dst_node["inputs"] if i.get("name") == dst_input_name), None)
+    if not target_input:
+        target_input = {"name": dst_input_name, "type": "INT", "link": new_link_id}
+        dst_node["inputs"].append(target_input)
+    else:
+        target_input["link"] = new_link_id
+
+    slot_idx = next(idx for idx, i in enumerate(dst_node["inputs"]) if i["name"] == dst_input_name)
+    
+    # 3. Source Node (rrSeed) Outputs - Hier liegt der Fix für die Geister-Verschiebung
+    if "outputs" not in src_node or not src_node["outputs"]:
+        # Initialisierung mit None statt [] für ungenutzte Links
+        src_node["outputs"] = [
+            {"name": "SEED", "type": "INT", "links": None, "slot_index": 0},
+            {"name": "SEED_2", "type": "INT", "links": None, "slot_index": 1},
+            {"name": "iteration_idx", "type": "INT", "links": None, "slot_index": 2},
+            {"name": "iteration_idx_str", "type": "STRING", "links": None, "slot_index": 3}
+        ]
+    
+    # Link eintragen: Wenn None, dann Liste erstellen, sonst anhängen
+    target_out = src_node["outputs"][src_out_idx]
+    if target_out.get("links") is None:
+        target_out["links"] = [new_link_id]
+    else:
+        if new_link_id not in target_out["links"]:
+            target_out["links"].append(new_link_id)
+    
+    # 4. Globalen Link-Eintrag hinzufügen
+    links.append([new_link_id, src_id, src_out_idx, dst_id, slot_idx, "INT"])
+    return new_link_id
+
+
+
 def add_rrSeed(workflow):
-    if "nodes" not in workflow:
-        return workflow
-        
-    nodes = workflow["nodes"]
-    links = workflow.get("links", [])
+    writeDebug("--- add_rrSeed Start ---") # English comment: Start seed injection with safety check
+    if hasEnvDebugMode(): 
+        save_workflow("e:\\2D\\temp", "DEBUG_rrSeed_a_", workflow, None, None, None, None)    
+
+    #import copy
+    #clean_workflow = copy.deepcopy(workflow)
+    #return clean_workflow
+   
+    nodes = workflow.get("nodes", [])
+    links = workflow.get("links", []) or []
     
     # 1. rrSeed Node finden oder erstellen
-    seed_node_id = None
-    rrSeed_node = next((n for n in nodes if n.get("type") == "rrSeed"), None)
+    rr_node = next((n for n in nodes if n and n.get("type") == "rrSeed"), None)
     
-    if not rrSeed_node:
-        seed_node_id = 999999 # Deine gewählte ID
-        rrSeed_node = {
-            "id": seed_node_id,
-            "type": "rrSeed",
-            "pos": [100, 100], 
-            "widgets_values": [0, 1],
-            "inputs": [],
-            "flags": {},
-            "order": 0 
+    if not rr_node:
+        seed_node_id = max([n.get("id", 0) for n in nodes] or [0]) + 1
+        rr_node = {
+            "id": seed_node_id, 
+            "type": "rrSeed", 
+            "pos": [100, 100],
+            "size": [315, 150],
+            "widgets_values": [0, None, 1, "increment", 1152921504606847000, 1152921504606847000],
+            "outputs": [
+                {"name": "SEED", "type": "INT", "links": None, "slot_index": 0, "localized_name": "SEED"},
+                {"name": "SEED_2", "type": "INT", "links": None, "slot_index": 1, "localized_name": "SEED_2"},
+                {"name": "iteration_idx", "type": "INT", "links": None, "slot_index": 2, "localized_name": "iteration_idx"},
+                {"name": "iteration_idx_str", "type": "STRING", "links": None, "slot_index": 3, "localized_name": "iteration_idx_str"}
+            ],
+            "inputs": [], "flags": {}, "order": 0,
+            "properties": {"Node name for S&R": "rrSeed"}
         }
-        nodes.append(rrSeed_node)
-    else:
-        seed_node_id = rrSeed_node["id"]
+        nodes.append(rr_node)
+        workflow["last_node_id"] = max(workflow.get("last_node_id", 0), seed_node_id)
+        writeDebug(f"Created rrSeed {seed_node_id}") # English comment: Log node creation
+    
+    seed_node_id = rr_node["id"]
 
-    # 2. Nodes durchlaufen und verbinden
+    # 2. Sampler loopen
     for node in nodes:
-        current_type = node.get("type")
-        node_inputs = node.get("inputs", []) # Das ist hier eine LISTE
+        if not node or node["id"] == seed_node_id: continue
         
         target_slot = None
-
-        # Slot-Name basierend auf Typ bestimmen
-        if current_type == "KSampler":
-            target_slot = "seed"
-        elif current_type in ["KSamplerAdvanced", "RandomNoise"]:
-            target_slot = "noise_seed"
-        elif current_type in ["Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]:
-            target_slot = "seed"
-        elif any(isinstance(i, dict) and i.get("name") == "seed" for i in node_inputs):
-            target_slot = "seed"
-
+        current_type = node.get("type")
+        if current_type == "KSampler": target_slot = "seed"
+        elif current_type in ["KSamplerAdvanced", "RandomNoise"]: target_slot = "noise_seed"
+        
         if target_slot:
-            # --- FIXED CHECK (widgets_values) ---
-            # In deiner JSON (z.B. ID 18) ist 'fixed' der 2. Wert in widgets_values
-            widgets = node.get("widgets_values", [])
-            is_fixed = False
+            node_inputs = node.get("inputs", [])
+            target_input = next((i for i in node_inputs if i.get("name") == target_slot), None)
             
-            # Bei KSamplern steht das control-Widget meist an Index 1
-            if len(widgets) > 1:
-                control_val = str(widgets[1]).lower()
-                if control_val == "fixed":
-                    is_fixed = True
+            # Die ID des aktuellen Links (falls vorhanden)
+            current_link_id = target_input.get("link") if target_input else None
+            
+            # WICHTIG: Wenn IRGENDEIN Link existiert, wird dieser Node ignoriert
+            if current_link_id is not None:
+                writeDebug(f"Skip: Node {node['id']} already has a link ({current_link_id}) in {target_slot}") # English comment: Skip occupied slot
+                continue
+            
+            # Nur wenn der Slot komplett leer (null) ist, wird verlinkt
+            inject_link(seed_node_id, 0, node["id"], target_slot, links, node, rr_node)
 
-            if not is_fixed:
-                # Nutze deine inject_link Funktion
-                inject_link(seed_node_id, 0, node["id"], target_slot, links, node)
-                writeInfo(f"Connected rrSeed to {current_type} (ID {node['id']})")
-            else:
-                writeDebug(f"Node {node['id']} is FIXED, skipping.")
-
-    workflow["nodes"] = nodes
+    # 3. Header Sync
     workflow["links"] = links
+    workflow["last_link_id"] = max([l[0] for l in links if l] or [0])
+    if hasEnvDebugMode(): 
+        save_workflow("e:\\2D\\temp", "DEBUG_rrSeed_b_", workflow, None, None, None, None)    
     return workflow
+
+
 
 
 def safe_make_dirs_for_file(file_path_str):
@@ -889,19 +924,27 @@ def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflo
                 del final_json["ui"]
             except Exception:
                 pass
-        
-        if "rr_metadata" not in final_json:
-            final_json["rr_metadata"] = {}
-        final_json["rr_metadata"].update({
-            "version": "1.0",
-            "layer_node_id": str(INFO_outNodeID),
-            "fixed_filename": str(INFO_outFixedFilename)
-            })
+
+        if (workflowUI):
+            #no metadata for non-final debug exports
+            try:
+                if "rr_metadata" not in final_json:
+                    final_json["rr_metadata"] = {}
+                final_json["rr_metadata"].update({
+                    "version": "1.0",
+                    "layer_node_id": str(INFO_outNodeID),
+                    "fixed_filename": str(INFO_outFixedFilename)
+                    })
+            except Exception:
+                pass
 
         
         #save dublicate of workflow 
         timestamp = datetime.now().strftime("%m%d-%H%M%S") #datetime.now().strftime("%y%m%d-%H%M%S")
-        filename = f"RR_{workflowName}__{timestamp}.json"
+        if "DEBUG_" in workflowName:
+            filename = f"RR{timestamp}_{workflowName}__.json"
+        else:
+            filename = f"RR_{workflowName}__{timestamp}.json"
         if len(filepath) <3: 
             raise Exception("farm_workflow_path not set in RRs workflow settings")
         filepath = os.path.join(filepath, filename)
@@ -932,12 +975,6 @@ def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflo
 
 
 
-import os
-import inspect
-import importlib
-import importlib.metadata
-import nodes
-import folder_paths
 
 # -----------------------------
 # Node Info Extraction
@@ -991,9 +1028,38 @@ def get_node_info(node_type):
             "is_custom_node": False,
         }
 
-# -----------------------------
-# Workflow Analyzer
-# -----------------------------
+def print_workflow_format(workflow, location):
+    if not isinstance(workflow, dict):
+        print(f"{location}: workflow is an Invalid/Unknown format")
+        #print("\n" + "="*80)
+        #print(f"{workflow}")
+        #print("\n" + "="*80)
+        return
+
+    # UI-Format Check
+    # Das UI-Format hat immer ein Top-Level Feld 'nodes' (als Liste)
+    if "nodes" in workflow and isinstance(workflow["nodes"], list):
+        print(f"{location}: workflow is UI format")
+        if workflow.get("api_export_comfy", {}):
+            print(f"{location}: found api_export_comfy")
+
+        return 
+
+    # API-Format Check
+    # Im API-Format sind die Top-Level Keys die IDs der Nodes.
+    # Wir prüfen, ob die erste "Node" ein 'class_type' Feld besitzt.
+    if len(workflow) > 0:
+        # Wir nehmen einen beliebigen Key aus dem Dictionary
+        first_key = next(iter(workflow))
+        first_node = workflow[first_key]
+        
+        if isinstance(first_node, dict) and "class_type" in first_node:
+            print(f"{location}: workflow is API format")
+            return
+
+    print(f"{location}: workflow is an Unknown Format")
+
+
 def analyze_workflow_detailed(workflow):
  
     analysis = {"nodes": [], "models": [], "summary": {}}
@@ -1019,12 +1085,14 @@ def analyze_workflow_detailed(workflow):
                         })
                         seen_node_types.add(node_type)
 
-        save_workflow("e:\\2D\\temp", "DEBUG_UI__", workflow, None, None, None, None)
+        if hasEnvDebugMode(): 
+            save_workflow("e:\\2D\\temp", "DEBUG_Analyze_UI__", workflow, None, None, None, None)
 
         
         workflow = convert_ui_to_api_dynamic(workflow)
 
-    save_workflow("e:\\2D\\temp", "DEBUG_API_", workflow, None, None, None, None)
+    if hasEnvDebugMode(): 
+        save_workflow("e:\\2D\\temp", "DEBUG_Analyze_API_", workflow, None, None, None, None)
 
 
 

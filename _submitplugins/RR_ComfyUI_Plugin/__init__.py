@@ -18,7 +18,8 @@ from aiohttp import web
 import asyncio
 import traceback
 import sys
-
+import folder_paths
+import os
 
 @PromptServer.instance.routes.post("/rr/submit")
 async def submit_handler(request):
@@ -114,22 +115,7 @@ async def get_schema_handler(request):
 async def add_seed_endpoint(request):
     json_data = await request.json()
     workflow = json_data.get("workflow")
-    
-    settings = rrWorkflow.get_workflow_settings(workflow, rrSubmit.getRR_Root())
     modified_workflow = rrWorkflow.add_rrSeed(workflow)
-
-    '''DEBUG other function
-    # Use run_in_executor to prevent the 10-second EXE call 
-    # from freezing the entire ComfyUI server.
-    loop = asyncio.get_event_loop()
-    # Execute your existing function in a separate thread    
-    infoData = await loop.run_in_executor(
-        None, 
-        rrWorkflow.analyze_workflow_detailed, 
-        modified_workflow
-    )
-    rrWorkflow.print_workflow_analysis(infoData)    
-    '''
     return web.json_response(modified_workflow)
 
     
@@ -142,7 +128,30 @@ NODE_DISPLAY_NAME_MAPPINGS = rrNodes.NODE_DISPLAY_NAME_MAPPINGS
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
+
+
+print("\n" + "="*80)
 print("[rrSubmit] %rrVersion% loaded.")
 
-#print(f"[rrSubmit] folder_paths.base_path is {folder_paths.base_path}.")
+print(f"[rrSubmit] folder_paths.get_user_directory  is {folder_paths.get_user_directory()}.")
+print(f"[rrSubmit] folder_paths.base_path           is {folder_paths.base_path}.")
+print(f"[rrSubmit] folder_paths.models_dir          is {folder_paths.models_dir}.")
+print(f"[rrSubmit] folder_paths.custom_nodes        is {folder_paths.get_folder_paths("custom_nodes")}.")
 
+
+internal_base = os.path.abspath(folder_paths.base_path)
+# Iterate through all registered folder types
+for name, (paths, extensions) in folder_paths.folder_names_and_paths.items():
+    print(f"[{name}]")
+    
+    # display all paths for this category
+    for p in paths:
+        abs_p = os.path.abspath(p)
+        # Check against the official base_path
+        is_external = not abs_p.startswith(internal_base)
+        
+        status = "[EXT]" if is_external else "     "
+        print(f"  {status.ljust(20)} -> {abs_p}")
+
+        
+print("\n" + "="*80)
