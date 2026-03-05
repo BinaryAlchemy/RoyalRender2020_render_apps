@@ -746,11 +746,11 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             writeDebug(f"Submitting node only: {submit_node_id}")
         
         # Checkpoint Prüfung über die neue Funktion
-        if not rrWorkflow.workflow_hasCheckpoint(workflowUI):
+        if not rrWorkflow.workflow_has_any_loader(workflowUI):
             writeError("No checkpoint loader found in workflow.")
             return False, None
 
-
+        rrWorkflow.save_workflow(settings['farm_workflow_path'], workflowName+"DEBUG", workflowHybrid, None, workflowUI, outNodeID, outFixedFilename)
         workflowHybrid["api_export_comfy"] = rrWorkflow.sort_comfy_api_workflow(workflowHybrid.get("api_export_comfy", {}) )
 
         summaryData= rrWorkflow.analyze_workflow_detailed(workflowUI)

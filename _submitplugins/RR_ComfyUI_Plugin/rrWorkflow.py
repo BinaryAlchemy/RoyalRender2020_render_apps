@@ -288,42 +288,27 @@ def workflow_hasCheckpoint(workflow: Dict) -> bool:
     return any(node.get("class_type") in CHECKPOINT_TYPES for node in workflow.values() if isinstance(node, dict))
     '''
     
-def workflow_hasCheckpoint(workflow: Dict) -> bool:
+def workflow_has_any_loader(workflow: dict) -> bool:
     """
-    Prüft dynamisch, ob ein Checkpoint-Loader vorhanden ist, 
-    indem die Ausgangs-Typen analysiert werden.
+    Checks if the workflow contains any kind of loader node.
+    Works for both UI (nodes list) and API (node dict) formats.
     """
-    nodes_data = workflow.get("nodes")
-    
-    # Hilfsfunktion zur Prüfung der Ausgangs-Struktur
-    def is_checkpoint_node(outputs):
-        if not outputs or not isinstance(outputs, list):
-            return False
-        # Ein Checkpoint-Loader hat typischerweise MODEL, CLIP und VAE
-        types = {str(o.get("type")).upper() for o in outputs if isinstance(o, dict)}
-        return {"MODEL", "CLIP", "VAE"}.issubset(types)
-
-    # UI Format (nodes ist eine Liste)
-    if isinstance(nodes_data, list):
-        for node in nodes_data:
-            if is_checkpoint_node(node.get("outputs")):
+    # English comment: Case 1 - UI Format (.json export from web-interface)
+    if "nodes" in workflow and isinstance(workflow["nodes"], list):
+        for node in workflow["nodes"]:
+            # English comment: UI format uses 'type' for the class name
+            node_type = str(node.get("type", "")).lower()
+            if "loader" in node_type:
                 return True
-                
-    # API Format (workflow ist ein dict von node_id: node_dict)
-    # Hinweis: Im API-Format fehlen oft die Metadaten der Outputs. 
-    # Daher ist hier ein kleiner Fallback auf die Struktur sinnvoll.
-    else:
-        for node in workflow.values():
-            if not isinstance(node, dict): 
-                continue
-            
-            # Da das API-Format keine Output-Typen mitsendet, 
-            # prüfen wir hier auf die typischen Input-Kombinationen 
-            # der Nodes, die diesen Loader verwenden (optional).
-            # Falls das zu unsicher ist, bleibt für das API-Format 
-            # nur die Suche nach Loader-Keywords im Klassennamen:
-            class_type = node.get("class_type", "").lower()
-            if "checkpoint" in class_type and "loader" in class_type:
+
+    # English comment: Case 2 - API Format (Prompt/Workflow API)
+    # English comment: We iterate through the top-level keys. 
+    # In API format, these are the node IDs.
+    for node_id, node_data in workflow.items():
+        if isinstance(node_data, dict):
+            # English comment: API format uses 'class_type'
+            class_type = str(node_data.get("class_type", "")).lower()
+            if "loader" in class_type:
                 return True
                 
     return False
@@ -648,19 +633,22 @@ def sort_comfy_api_workflow(api_workflow):
     if not isinstance(api_workflow, dict):
         return api_workflow
 
-    # English comment: Sort the top-level node IDs numerically
-    sorted_node_ids = sorted(api_workflow.keys(), key=lambda x: int(x) if x.isdigit() else x)
-    
+    # Sort the top-level node IDs numerically
+    # does not work with group IDs "12:34" 
+    # sorted_node_ids = sorted(api_workflow.keys(), key=lambda x: int(x) if x.isdigit() else x)
+
+    # Sort keys as plain strings (no int conversion, no error)
+    sorted_node_ids = sorted(api_workflow.keys())
+
     sorted_workflow = OrderedDict()
     
     for node_id in sorted_node_ids:
         node_data = api_workflow[node_id]
         
-        # English comment: Sort all sub-dictionaries (inputs, _meta, etc.) alphabetically
         sorted_node = {}
         for key, value in node_data.items():
             if isinstance(value, dict):
-                # English comment: Recursive call or simple sort for the inputs level
+                # Sort sub-dictionaries like 'inputs' alphabetically by key
                 sorted_node[key] = dict(sorted(value.items()))
             else:
                 sorted_node[key] = value
