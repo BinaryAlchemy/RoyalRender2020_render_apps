@@ -21,11 +21,20 @@ import argparse
 import datetime
 import ctypes
 import copy
+import ast
+import yaml
 
-DEBUG= False
-if "DEBUG" in os.environ:
-    DEBUG= True
-                        
+
+def hasEnvDebugMode():
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if (debug_val in ["TRUE", "ON", "1"]) or True:
+        return True
+    
+def hasEnvDebugMode_strict():  #no "or True" during  beta 
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if (debug_val in ["TRUE", "ON", "1"]):
+        return True    
+                            
 def logMessageGen(lvl, msg):
     if (len(lvl)==0):
         print(datetime.datetime.now().strftime("' %H:%M.%S") + " rrComfy      : " + str(msg))
@@ -36,8 +45,7 @@ def logMessage(msg):
     logMessageGen("",msg)
     
 def logMessageDebug( msg):
-    global DEBUG
-    if DEBUG:
+    if hasEnvDebugMode():
         logMessageGen("DGB", msg)
 
 def logMessageSET(msg):
@@ -65,6 +73,10 @@ def logMessageError(msg, doRaise, printTraceback):
 def argValid(argValue):
     return ((argValue is not None) and (len(str(argValue))>0))
 
+
+######################################################################
+#   Comfy control und Rendering 
+######################################################################
 
 
 
@@ -203,15 +215,6 @@ log_mgr = None
     
     
 def launch_comfy(args):
-
-    if not os.path.exists(args.python_exe):
-        print(f"CRITICAL: Python not found at {args.python_exe}")
-        return False
-    if not os.path.exists(args.comfy_main):
-        print(f"CRITICAL: main.py not found at {args.comfy_main}")
-        return False
-    
-    
     cmd = [args.python_exe, 
         "-s",  
         args.comfy_main, 
@@ -256,8 +259,17 @@ def launch_comfy(args):
         cmd.append("--database-url")
         cmd.append(database_url)
     
-        
-    print(f"Executing: {' '.join(cmd)} ")
+    logMsg= "Executing:"
+    i = 0
+    while i < len(cmd):
+        current = cmd[i]
+        if i + 1 < len(cmd) and not cmd[i+1].startswith('-'):
+            logMsg= logMsg +(f"\n\t\t\t\t{current} {cmd[i+1]}")
+            i += 2 
+        else:
+            logMsg= logMsg +(f"\n\t\t\t\t{current}")
+            i += 1    
+    logMessage(logMsg)
     flushLog()
     global server_proc, log_mgr
 
@@ -407,182 +419,6 @@ def send_prompt(workflow, server_address, client_id):
 
 
 
-def validate_and_extract_api(workflow_input, args):
-    """
-    Validates the input and returns ONLY the API-format dictionary.
-    Supports: Hybrid-JSON (ui/api)  and   Pure API-JSON.
-    """
-    api_workflow = None
-
-    # 1. Format-Erkennung
-    if isinstance(workflow_input, dict):
-        if "api_format_rr" in workflow_input:
-            # Es ist ein Hybrid-Format
-            api_workflow = workflow_input["api_format_rr"]
-            print("Format: Hybrid (UI + API) detected.")
-        elif "nodes" in workflow_input and "links" in workflow_input:
-            # Es ist ein reines UI-Format (ohne API-Teil)
-            print("Error: This is a pure UI-format. No API-data found inside.")
-            print("ComfyUI console supports API format only.")
-            print("Please use our submitter or save it as API format")
-            return None
-        else:
-            # Wahrscheinlich bereits API-Format oder ein flaches Dict
-            api_workflow = workflow_input
-            print("Format: Standard API-only detected.")
-    else:
-        print("Error: Invalid workflow data type.")
-        return None
-
-    # 2. Grundcheck: Enthält das Dict nummerierte IDs? (Typisch für API)
-    if not any(str(key).isdigit() for key in api_workflow.keys()):
-        print("Error: The extracted workflow contains no numeric Node-IDs. Not a valid API prompt.")
-        return None
-
-    # 3. Validierung gegen rrLayer (falls angegeben)
-    if argValid(args.rrLayer):
-        parts = args.rrLayer.split("__")
-        target_node_id = str(parts[-1])
-        # Entferne nur das "ID" Präfix, falls es existiert
-        if target_node_id.startswith("ID"):
-            target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
-        if (int(target_node_id)>=0):
-            title = parts[0] if parts[0] else "Untitled"
-
-            # Existiert die Node im extrahierten API-Format?
-            node = api_workflow.get(target_node_id)
-            
-            if node is None:
-                # Falls Node-ID nicht direkt gefunden, schauen wir in den _meta Daten nach dem Titel
-                # (Manchmal ändert sich die ID, aber der Titel bleibt)
-                found_id = None
-                for nid, n_data in api_workflow.items():
-                    if n_data.get("_meta", {}).get("title") == title:
-                        found_id = nid
-                        break
-                
-                if found_id:
-                    print(f"Note: Node ID {target_node_id} not found, but found Node with title '{title}' at ID {found_id}.")
-                    args.rrLayer = f"{title}__{found_id}"
-                else:
-                    print(f"Error: Output Node #{target_node_id} ('{title}') not found in the workflow!")
-                    return None
-
-            # Falls wir hier sind, ist die Node valide
-            print(f"Validation: Node #{target_node_id} exists.")
-
-    # Wir geben das reine API-Format zurück
-    return api_workflow
-    
-
-def get_out_path(args, absolute, frame):
-    """
-    Returns either the full absolute path or the path relative to output-directory.
-    rrDirName + rrFileName
-    """
-    # Create the full path (Absolute)
-    # English comment: Construct the full target path from directory and filename
-    full_path = os.path.join(args.rrDirName, args.rrFileName)
-    full_path=f"{full_path}.{frame:2}"
-    
-    if absolute:
-        return full_path
-    
-    # Calculate relative path to output-directory
-    # Get the relative portion by stripping the base output directory
-    try:
-        rel_path = os.path.relpath(full_path, args.output_directory)
-        return rel_path
-    except ValueError:
-        # Fallback falls die Pfade auf unterschiedlichen Laufwerken liegen (Windows)
-        return full_path
-
-
-def modify_workflow(api_workflow, args, frame):
-    """
-    Passt die Iterations-Indizes für rrSeed-Nodes an und setzt den 
-    Dateinamen für die Ziel-Layer-Node.
-    """
-    
-    # 1. Alle rrSeed-Nodes finden und iteration_idx ändern
-    # Wir iterieren über alle Nodes im API-Workflow
-    rrSeed_changed= False
-    for node_id, node_data in api_workflow.items():
-        if node_data.get("class_type") == "rrSeed":
-            if "iteration_idx" in node_data.get("inputs", {}):
-                # Wir setzen den Index aus den Args (z.B. für Batch-Rendering)
-                old_idx = node_data["inputs"]["iteration_idx"]
-                node_data["inputs"]["iteration_idx"] = frame
-                print(f"Node {node_id} (rrSeed): iteration_idx {old_idx} -> {frame}")
-                rrSeed_changed= True
-                
-    if not rrSeed_changed:
-        target_node_types = ["KSampler", "KSamplerAdvanced", "Seed (rgthree)", "GlobalSeed", "PrimitiveNode"]
-        for node_id, node in api_workflow.items():
-            node_type = node.get("class_type")
-            inputs = node.get("inputs", {})
-
-            # Check if this node is a KSampler or a known Seed node
-            if node_type in target_node_types or "seed" in inputs:
-                
-                # Logic: Check "control_after_generation" 
-                # In the API format, this is often an input value
-                control_setting = inputs.get("control_after_generation")
-                print(f"Node {node_id} {node_type} control_setting: {control_setting}.")
-
-                
-                # We only change if it's NOT "fixed"
-                # Note: Sometimes it's lowercase, sometimes uppercase depending on custom nodes
-                if not control_setting or str(control_setting).lower() != "fixed":
-                    
-                    # Update the seed (e.g., to -1 for random or a specific new seed)
-                    # Setting it to -1 tells ComfyUI to generate a new one on next run
-                    # if the node supports it, otherwise we generate a random int here.
-                    new_seed = frame* 10000
-                    inputs["seed"] = new_seed
-                    print(f"Updated Node {node_id} {node_type} to new seed {new_seed}.")
-
-    # 2. Den filename_prefix für die spezifische rrLayer-Node ändern
-    if argValid(args.rrLayer):
-        parts = args.rrLayer.split("__")
-        target_node_id = str(parts[-1])
-        # Entferne nur das "ID" Präfix, falls es existiert
-        if target_node_id.startswith("ID"):
-            target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
-        title = parts[0] if parts[0] else "Untitled"
-        if (int(target_node_id)>=0):
-            target_node = api_workflow.get(target_node_id)
-            if target_node:
-                class_type = target_node.get("class_type", "")
-                
-                if "filename_prefix" in target_node.get("inputs", {}):
-                    
-                    # Check if it is a custom RR node or a standard ComfyUI node
-                    is_rr_node = class_type in ["rrSaveImage", "rrSaveVideo"]
-                    
-                    # Generate path based on node type
-                    new_prefix = get_out_path(args, is_rr_node, frame)
-                    
-                    old_prefix = target_node["inputs"]["filename_prefix"]
-                    target_node["inputs"]["filename_prefix"] = new_prefix
-                    
-                    print(f"Node {target_node_id} {title} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
-                else:
-                    print(f"Warning: Node {target_node_id} {title} has no 'filename_prefix' input.")
-                    return False
-            else:
-                print(f"Error: Target node {target_node_id} {title} not found in workflow while applying parameters.")
-                return False
-
-    return True
-        
-
-
-def rrMakedirs(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-
 def render_frame(frame):
     global workflow
     global ws
@@ -651,7 +487,324 @@ def render_multiple_frames(frameStart, frameEnd, frameStep):
         render_frame(fr)
 
 
-############################# main function ############################# 
+
+######################################################################
+# Pre-Render.   modify workflow and config files 
+######################################################################
+
+def validate_and_extract_api(workflow_input, args):
+    """
+    Validates the input and returns ONLY the API-format dictionary.
+    Supports: Hybrid-JSON (ui/api)  and   Pure API-JSON.
+    """
+    api_workflow = None
+
+    # 1. Format-Erkennung
+    if isinstance(workflow_input, dict):
+        if "api_format_rr" in workflow_input:
+            # Es ist ein Hybrid-Format
+            api_workflow = workflow_input["api_format_rr"]
+            print("Format: Hybrid (UI + API) detected.")
+        elif "nodes" in workflow_input and "links" in workflow_input:
+            # Es ist ein reines UI-Format (ohne API-Teil)
+            print("Error: This is a pure UI-format. No API-data found inside.")
+            print("ComfyUI console supports API format only.")
+            print("Please use our submitter or save it as API format")
+            return None
+        else:
+            # Wahrscheinlich bereits API-Format oder ein flaches Dict
+            api_workflow = workflow_input
+            print("Format: Standard API-only detected.")
+    else:
+        print("Error: Invalid workflow data type.")
+        return None
+
+    # 2. Grundcheck: Enthält das Dict nummerierte IDs? (Typisch für API)
+    if not any(str(key).isdigit() for key in api_workflow.keys()):
+        print("Error: The extracted workflow contains no numeric Node-IDs. Not a valid API prompt.")
+        return None
+
+    # 3. Validierung gegen rrLayer (falls angegeben)
+    if argValid(args.rrLayer):
+        parts = args.rrLayer.split("__")
+        target_node_id = str(parts[-1])
+        # Entferne nur das "ID" Präfix, falls es existiert
+        if target_node_id.startswith("ID"):
+            target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
+        if (int(target_node_id)>=0):
+            title = parts[0] if parts[0] else "Untitled"
+
+            # Existiert die Node im extrahierten API-Format?
+            node = api_workflow.get(target_node_id)
+            
+            if node is None:
+                # Falls Node-ID nicht direkt gefunden, schauen wir in den _meta Daten nach dem Titel
+                # (Manchmal ändert sich die ID, aber der Titel bleibt)
+                found_id = None
+                for nid, n_data in api_workflow.items():
+                    if n_data.get("_meta", {}).get("title") == title:
+                        found_id = nid
+                        break
+                
+                if found_id:
+                    print(f"Note: Node ID {target_node_id} not found, but found Node with title '{title}' at ID {found_id}.")
+                    args.rrLayer = f"{title}__{found_id}"
+                else:
+                    print(f"Warning: Output Node #{target_node_id} ('{title}') not found in the workflow!")
+                    return api_workflow
+
+            # Falls wir hier sind, ist die Node valide
+            print(f"Validation: Node #{target_node_id} exists.")
+
+    # Wir geben das reine API-Format zurück
+    return api_workflow
+    
+
+def get_out_path(args, absolute, frame):
+    """
+    Returns either the full absolute path or the path relative to output-directory.
+    rrDirName + rrFileName
+    """
+    # Create the full path (Absolute)
+    # English comment: Construct the full target path from directory and filename
+    full_path = os.path.join(args.rrDirName, args.rrFileName)
+    full_path=f"{full_path}.{frame:2}"
+    
+    if absolute:
+        return full_path
+    
+    # Calculate relative path to output-directory
+    # Get the relative portion by stripping the base output directory
+    try:
+        rel_path = os.path.relpath(full_path, args.output_directory)
+        return rel_path
+    except ValueError:
+        # Fallback falls die Pfade auf unterschiedlichen Laufwerken liegen (Windows)
+        return full_path
+
+
+def calc_seed(seed, iteration, offset):
+    mask = 0xFFFFFFFFFFFFFFFF
+    prime = 2654435761
+    # combine Seed, iteration_idx and offset
+    # Simulate 32-bit multiplication overflow
+    scrambled_iter = iteration * prime           
+    s = (seed ^ scrambled_iter ^ offset) & mask
+    if s == 0: 
+        s = 0x5B6A6A55544C46B7
+    s ^= (s >> 12) & mask
+    s ^= (s << 25) & mask
+    s ^= (s >> 27) & mask
+    return (s * 0x2545f4914f6cdd1d) & mask
+        
+
+SEED_FIELD_NAMES = {"seed", "noise_seed", "rand_seed", "random_seed", "seed_value"}
+
+
+def modify_workflow(api_workflow, args, frame):
+    """
+    Passt die Iterations-Indizes für rrSeed-Nodes an und setzt den 
+    Dateinamen für die Ziel-Layer-Node.
+    """
+    
+    # 1. Alle rrSeed-Nodes finden und iteration_idx ändern
+    # Wir iterieren über alle Nodes im API-Workflow
+    #rrSeed_changed= False
+    for node_id, node_data in api_workflow.items():
+        if node_data.get("class_type") == "rrSeed":
+            if "Iteration_Idx" in node_data.get("inputs", {}):
+                # Wir setzen den Index aus den Args (z.B. für Batch-Rendering)
+                old_idx = node_data["inputs"]["Iteration_Idx"]
+                node_data["inputs"]["Iteration_Idx"] = frame
+                node_data["inputs"]["farm_mode"] = True
+                print(f"Node {node_id} (rrSeed): Iteration_Idx {old_idx} -> {frame}")
+                
+                #rrSeed_changed= True
+                
+    #if not rrSeed_changed:
+
+    for node_id, node in api_workflow.items():
+        node_type = node.get("class_type", "")
+        inputs = node.get("inputs", {})
+        
+        # control_after_generate Einstellungen aus _meta lesen (von extract_seed_control_map gespeichert)
+        node_controls = node.get("_meta", {}).get("rr_seed_control", {})
+        
+        # Nur nodes mit rr_seed_control verarbeiten
+        if not node_controls:
+            continue
+        
+        for field_name, control_setting in node_controls.items():
+            field_value = inputs.get(field_name)
+            
+            # Skip if driven by a link
+            if isinstance(field_value, list):
+                print(f"Node {node_id} {node_type} field '{field_name}' is driven by a link, skipping.")
+                continue
+            
+            if field_value is None:
+                print(f"Node {node_id} {node_type} field '{field_name}' not found in inputs, skipping.")
+                continue
+            
+            control_setting = control_setting.lower()
+            
+            if control_setting == "fixed":
+                print(f"Node {node_id} {node_type} field '{field_name}' is fixed, skipping.")
+                continue
+            
+            current_seed = int(field_value)
+            
+            if control_setting == "randomize":
+                new_seed = calc_seed(123456789, frame, 0)
+            elif control_setting == "increment":
+                new_seed = current_seed + frame
+            elif control_setting == "decrement":
+                new_seed = current_seed - frame
+            else:
+                new_seed = calc_seed(123456789, frame, 0)
+            
+            inputs[field_name] = new_seed
+            print(f"Node {node_id} {node_type} field '{field_name}': {current_seed} → {new_seed} ({control_setting})")
+            
+    # 2. Den filename_prefix für die spezifische rrLayer-Node ändern
+    if argValid(args.rrLayer):
+        parts = args.rrLayer.split("__")
+        target_node_id = str(parts[-1])
+        # Entferne nur das "ID" Präfix, falls es existiert
+        if target_node_id.startswith("ID"):
+            target_node_id = target_node_id[2:] # Schneidet die ersten zwei Zeichen ab
+        title = parts[0] if parts[0] else "Untitled"
+        if (int(target_node_id)>=0):
+            target_node = api_workflow.get(target_node_id)
+            if target_node:
+                class_type = target_node.get("class_type", "")
+                
+                if "filename_prefix" in target_node.get("inputs", {}):
+                    
+                    # Check if it is a custom RR node or a standard ComfyUI node
+                    is_rr_node = class_type in ["rrSaveImage", "rrSaveVideo"]
+                    
+                    # Generate path based on node type
+                    new_prefix = get_out_path(args, is_rr_node, frame)
+                    
+                    old_prefix = target_node["inputs"]["filename_prefix"]
+                    target_node["inputs"]["filename_prefix"] = new_prefix
+                    
+                    print(f"Node {target_node_id} {title} ({class_type}): filename_prefix '{old_prefix}' -> '{new_prefix}'")
+                else:
+                    print(f"Warning: Node {target_node_id} {title} has no 'filename_prefix' input.")
+                    return False
+            else:
+                print(f"Warning: Target node {target_node_id} {title} not found in workflow while applying parameters.")
+                
+
+    return True
+        
+
+
+def rrMakedirs(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
+FALLBACK_CATEGORIES = [
+    "checkpoints",
+    "configs",
+    "loras",
+    "vae",
+    "text_encoders",
+    "diffusion_models",
+    "clip_vision",
+    "style_models",
+    "embeddings",
+    "diffusers",
+    "vae_approx",
+    "controlnet",
+    "gligen",
+    "upscale_models",
+    "latent_upscale_models",
+    "hypernetworks",
+    "photomaker",
+    "classifiers",
+    "model_patches",
+    "audio_encoders",
+    # "custom_nodes",  # base_path, 
+]
+
+
+def create_model_config(args):
+    if argValid(args.extra_model_paths_config):
+        return
+    
+    if (not args.rrYamlAddModels) and (not args.rrYamlAddNodes):
+        return
+
+    if (args.rrYamlAddModels) and ("RR_COMFYUI_MODELS" not in os.environ):
+        logMessageDebug("rrYamlAddModels set, but env RR_COMFYUI_MODELS missing")
+        return
+
+    if (args.rrYamlAddNodes) and ("RR_COMFYUI_NODES" not in os.environ):
+        logMessageDebug("rrYamlAddNodes set, but env RR_COMFYUI_NODES missing")
+        return
+
+    yaml_file= os.environ["rrLocalTemp"] + "extra_model_paths.yaml"
+
+    folder_paths_file = os.path.dirname(os.path.abspath(args.comfy_main))
+    folder_paths_file = os.path.join(folder_paths_file, "folder_paths.py")
+
+    if os.path.exists(folder_paths_file):
+        with open(folder_paths_file, "r") as f:
+            source = f.read()
+        try:
+            tree = ast.parse(source)
+            categories = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Subscript):
+                    if isinstance(node.value, ast.Name) and node.value.id == "folder_names_and_paths":
+                        if isinstance(node.slice, ast.Constant):
+                            categories.add(node.slice.value)
+            categories.discard("custom_nodes")
+            logMessageDebug(f"categories in folder_paths.py: {sorted(categories)}")
+        except SyntaxError:
+            logMessage(f"{folder_paths_file} not found, using fallback.")
+            categories = set(FALLBACK_CATEGORIES)
+    else:
+        logMessage(f"{folder_paths_file} not found, using fallback.")
+        categories = set(FALLBACK_CATEGORIES)
+
+    if (args.rrYamlAddModels) and ("RR_COMFYUI_MODELS" not in os.environ):
+        logMessageDebug("rrYamlAddModels set, but env RR_COMFYUI_MODELS missing")
+        return
+
+    if (args.rrYamlAddNodes) and ("RR_COMFYUI_NODES" not in os.environ):
+        logMessageDebug("rrYamlAddNodes set, but env RR_COMFYUI_NODES missing")
+        return
+    
+
+    config = {
+        "rrModel": {
+            "is_default": "true",
+        }
+    }
+
+    if args.rrYamlAddNodes:
+        config["rrModel"]["custom_nodes"] = os.environ["RR_COMFYUI_NODES"]
+
+    if args.rrYamlAddModels:
+        model_base = os.environ["RR_COMFYUI_MODELS"]
+        config["rrModel"].update({cat: (model_base+"/"+cat) for cat in sorted(categories)})
+
+    with open(yaml_file, "w") as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+    args.extra_model_paths_config=yaml_file
+    logMessage(f"Written {yaml_file}")
+
+
+
+######################################################################
+#   Main 
+#######################################################################
 
 
 logMessage("Script %rrVersion%" )
@@ -659,31 +812,44 @@ logMessage("Python version: "+str(sys.version))
 
 # Setup command line arguments for flexibility
 parser = argparse.ArgumentParser()
-parser.add_argument("--PyModPath", required=True, type=str, default="")
-parser.add_argument("--python_exe", required=True, default="")
-parser.add_argument("--comfy_main", required=True)
-parser.add_argument("--port", required=True, type=int, default=0)
+parser.add_argument("--PyModPath", required=True, type=str)
+parser.add_argument("--python_exe", required=True, type=str)
+parser.add_argument("--comfy_main", required=True, type=str)
+parser.add_argument("--port", required=True, type=int)
 
-parser.add_argument("--base-directory", required=True, type=str, default="")
-parser.add_argument("--database", required=True, type=str, default="")
+parser.add_argument("--base-directory", required=True, type=str)
+parser.add_argument("--database", required=True, type=str)
 parser.add_argument("--extra-model-paths-config", required=False, type=str, default="")
 
-parser.add_argument("--output-directory", required=True, type=str, default="")
-parser.add_argument("--rrDirName", required=True, type=str, default="")
-parser.add_argument("--rrFileName", required=True, type=str, default="")
-parser.add_argument("--rrAutoInstallModules", required=False, type=bool, default="")
+parser.add_argument("--output-directory", required=True, type=str)
 
-#parser.add_argument("--user-directory", type=str, default="")
-#parser.add_argument("--input-directory ", type=str, default="")
+parser.add_argument("--rrAutoInstallModules", required=False, type=bool, default=False)
+parser.add_argument("--rrYamlAddModels", required=False, type=bool, default=False)
+parser.add_argument("--rrYamlAddNodes", required=False, type=bool, default=False)
+
+parser.add_argument("--rrDirName", required=True, type=str)
+parser.add_argument("--rrFileName", required=True, type=str)
 
 parser.add_argument("--verbose", default='INFO', const='DEBUG', nargs="?", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set the logging level')
-parser.add_argument("--rrWorkflow", required=True, type=str, default="")
+parser.add_argument("--rrWorkflow", required=True, type=str)
 parser.add_argument("--rrLayer", type=str, default="")
-parser.add_argument("--rrInterationStart", required=True, type=int, default=1)
-parser.add_argument("--rrInterationEnd", required=True, type=int, default=1)
-parser.add_argument("--rrInterationStep", type=int, default=1)
+parser.add_argument("--rrInterationStart", required=True, type=int)
+parser.add_argument("--rrInterationEnd", required=True, type=int)
+parser.add_argument("--rrInterationStep", type=int)
 parser.add_argument("--rrRenderer", type=str, default="Portable")
 args = parser.parse_args()
+
+
+logMessage("Args:")
+for action in parser._actions:
+    if action.dest == 'help':
+        continue        
+    current_value = getattr(args, action.dest)
+    default_value = action.default
+    is_modified = current_value != default_value
+    if is_modified:
+        print(f"\t\t\t\t{action.dest}: {current_value}")
+
 
 
 if (argValid(args.PyModPath)):
@@ -691,7 +857,7 @@ if (argValid(args.PyModPath)):
     logMessage("Append python search path with '" +args.PyModPath+"'" )
     sys.path.append(args.PyModPath)
 global kso_tcp
-import kso_tcp
+import kso_tcp  # noqa: E402
 kso_tcp.USE_LOGGER= False
 kso_tcp.USE_DEFAULT_PRINT= True        
 kso_tcp.rrKSO_logger_init()
@@ -725,10 +891,20 @@ except Exception as e:
 if (not argValid(args.rrInterationStep)):
     args.rrInterationStep=1
     
+if not os.path.exists(args.python_exe):
+    logMessageError(f"CRITICAL: Python not found at {args.python_exe}", True, False)
+
+if not os.path.exists(args.comfy_main):
+    logMessageError(f"CRITICAL: main.py not found at {args.comfy_main}", True, False)
     
+
+create_model_config(args)
+
+print("\n" + "-"*80)
 try:
     # Establish WebSocket connection for real-time progress feedback
     global workflow
+    logMessage(f"Loading workflow file {args.rrWorkflow}...")
     with open(args.rrWorkflow, "r", encoding="utf-8") as f:
         workflow = json.load(f)
     
@@ -748,6 +924,7 @@ try:
     ws = websocket.WebSocket()
     ws.connect(f"ws://{server_address}/ws?clientId={client_id}")
 
+    print("\n" + "-"*80)
         
     render_multiple_frames(args.rrInterationStart, args.rrInterationEnd, args.rrInterationStep)
 

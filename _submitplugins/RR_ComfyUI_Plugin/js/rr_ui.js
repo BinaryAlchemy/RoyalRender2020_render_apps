@@ -135,10 +135,10 @@ class RRController {
         }
     }
     
-    async executeSubmit(btn, sourceNodeId = -1) {
+    async executeSubmit(btn, sourceNodeId = "") {
         if (btn.disabled) return;
         let workflowName = this.getWorkflowName();
-        const isToolbar= (sourceNodeId != -1)
+        const isToolbar= (sourceNodeId != "")
         
         const hasNoName = !workflowName || 
                            workflowName.toLowerCase().includes("unsaved ") || 
@@ -190,14 +190,14 @@ class RRController {
 
             if (response.ok && result.workflow) {
                 btn.innerHTML = isToolbar ? "✅" : "Success!";
-                this.showNotify(`Job submitted: ${workflowName}`);
+                this.showNotify(`Submitter started: ${workflowName}`);
                 
                 // Aufruf der neuen Lade-Funktion
                 await this.loadResultWorkflow(result.workflow);
                 
             } else if (response.ok) {
                 btn.innerHTML = isToolbar ? "✅" : "Success!";
-                this.showNotify(`Job submitted: ${workflowName}`);
+                this.showNotify(`Submitter started: ${workflowName}`);
             } else {
                 throw new Error(result.message || "Server Error");
             }
@@ -538,7 +538,7 @@ function setupNodeToolbarButton(controller) {
                         e.stopPropagation();
                         // Die Node ID ist in der ComfyUI-Struktur am Node-Objekt direkt verfügbar
                         const selectedNode = Object.values(app.canvas.selected_nodes || {})[0];
-                        const nodeId = selectedNode ? selectedNode.id : -1
+                        const nodeId = selectedNode ? selectedNode.id : "-1"
                         if (controller && controller.executeSubmit) {
                             controller.executeSubmit(rrBtn, nodeId); // Wir geben die ID weiter
                         }

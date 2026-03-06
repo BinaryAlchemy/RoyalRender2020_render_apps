@@ -43,7 +43,7 @@ app.registerExtension({
             const node = app.graph.getNodeById(detail.node);
             if (node && node.type === "rrSeed" && detail.output?.update_iter) {
                 const newVal = detail.output.update_iter[0];
-                const iterWidget = node.widgets.find(w => w.name === "iteration_idx");
+                const iterWidget = node.widgets.find(w => w.name === "Iteration_Idx");
                 if (iterWidget) {
                     iterWidget.value = newVal;
                     if (iterWidget.callback) iterWidget.callback(newVal);
@@ -61,18 +61,56 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function () {
                 const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
                 
-                // 1. Die Variable muss DEFINIERT sein (const ...)
+                const inputIdx = this.inputs?.findIndex(i => i.name === "Iteration_Idx");
+                if (inputIdx !== -1) {
+                    this.removeInput(inputIdx);
+                }             
+
+
+                const randomBtn = this.addCustomWidget({
+                    name: "random_btn",
+                    type: "RR_BUTTON",
+                    serialize: true, //otherwise values are shifted to next input on reload
+                    draw: (ctx, node, widget_width, y, widget_height) => {
+                        const btnW = 160;
+                        const btnX = widget_width - btnW - 10; // rechtsbündig
+                        ctx.save();
+                        ctx.fillStyle = "#374151";
+                        ctx.beginPath();
+                        ctx.roundRect(btnX, y + 4, btnW, 20, 4);
+                        ctx.fill();
+                        ctx.fillStyle = "#e5e7eb";
+                        ctx.font = "12px sans-serif";
+                        ctx.textAlign = "right";
+                        ctx.fillText("Get random base_seed", widget_width - 16, y + 18);
+                        ctx.restore();
+                    },
+                    computeSize: () => [220, 28],
+                    mouse: (event, pos, node) => {
+                        if (event.type === "pointerdown") {
+                            const sw = node.widgets.find(w => w.name === "Base_Seed");
+                            if (sw) {
+                                sw.value = Math.floor(Math.random() * 10000000);
+                                if (sw.callback) sw.callback(sw.value);
+                                node.setDirtyCanvas(true, true);
+                            }
+                        }
+                        return true;
+                    }
+                });
+
+                /*
                 const randomBtn = this.addWidget("button", "Get random base_seed", null, (widget, canvas, node) => {
-                    const sw = node.widgets.find(w => w.name === "base_seed");
-                    if (sw) {
+                const sw = node.widgets.find(w => w.name === "Base_Seed");
+                if (sw) {
                         sw.value = Math.floor(Math.random() * 10000000);
                         if (sw.callback) sw.callback(sw.value);
                         node.setDirtyCanvas(true, true);
                     }
                 }, { serialize: false });
-
-                // 2. Jetzt folgt dein Block (der jetzt die Variable randomBtn kennt)
-                const baseSeedIdx = this.widgets.findIndex(w => w.name === "base_seed");
+                */
+                const baseSeedIdx = this.widgets.findIndex(w => w.name === "Base_Seed");
+                //window.writeDebug("baseSeedIdx2 is ", baseSeedIdx)
                 if (baseSeedIdx !== -1) {
                     // Entferne den Button vom Ende der Liste
                     this.widgets.pop();
@@ -80,14 +118,14 @@ app.registerExtension({
                     this.widgets.splice(baseSeedIdx + 1, 0, randomBtn);
                 }
 
-                // Display hinzufügen
+
                 this.addCustomWidget({
                     name: "seed_display",
                     type: "RR_DISPLAY",
-                    serialize: false,
+                    serialize: true,
                     draw: (ctx, node, widget_width, y, widget_height) => {
-                        const sW = node.widgets?.find(w => w.name === "base_seed");
-                        const iW = node.widgets?.find(w => w.name === "iteration_idx");
+                        const sW = node.widgets?.find(w => w.name === "Base_Seed");
+                        const iW = node.widgets?.find(w => w.name === "Iteration_Idx");
                         
                         // Hier die Berechnung
                         let seed1 = calculateRR(sW?.value || 0, iW?.value || 0, 0);
@@ -106,8 +144,14 @@ app.registerExtension({
                     computeSize: () => [220, 60]
                 });
 
+                const size = this.computeSize();
+                size[0] = Math.max(size[0], 300);
+                this.setSize(size);
+
                 return r;
             };
+
+                                    
         }
     }
 });

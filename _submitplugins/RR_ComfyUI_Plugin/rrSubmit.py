@@ -29,7 +29,13 @@ def hasEnvDebugMode():
     debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
     if (debug_val in ["TRUE", "ON", "1"]) or True:
         return True
-    
+
+def hasEnvDebugMode_strict():  #no "or True" during  beta 
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if (debug_val in ["TRUE", "ON", "1"]):
+        return True    
+
+
 def writeInfo(msg):
     print("[rrSubmit] "+str(msg))
 
@@ -742,21 +748,21 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
 
         settings = rrWorkflow.get_workflow_settings(workflowUI, getRR_Root()) 
         
-        if (submit_node_id >= 0):
+        if (not submit_node_id or (submit_node_id==-1) or (submit_node_id=="-1")):
+            submit_node_id=""
+        if submit_node_id:
             writeDebug(f"Submitting node only: {submit_node_id}")
         
         # Checkpoint Prüfung über die neue Funktion
         if not rrWorkflow.workflow_has_any_loader(workflowUI):
-            writeError("No checkpoint loader found in workflow.")
-            return False, None
+            writeInfo("Warning: No checkpoint loader found in workflow.")
 
-        rrWorkflow.save_workflow(settings['farm_workflow_path'], workflowName+"DEBUG", workflowHybrid, None, workflowUI, outNodeID, outFixedFilename)
         workflowHybrid["api_export_comfy"] = rrWorkflow.sort_comfy_api_workflow(workflowHybrid.get("api_export_comfy", {}) )
 
         summaryData= rrWorkflow.analyze_workflow_detailed(workflowUI)
         rrWorkflow.print_workflow_analysis(summaryData) 
 
-        outNodeID, outName, outExt, isVideo = rrWorkflow.workflow_getOutput(workflowUI, submit_node_id)
+        outNodeID, outName, outExt, isVideo = rrWorkflow.getOutput(workflowUI, submit_node_id)
         
         global_output_path=""
         global_output_path= settings['output_path']
@@ -783,9 +789,7 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             })
 
 
-        workflowUI= rrWorkflow.disable_Outputs(workflowUI, submit_node_id)
-        rrWorkflow.save_workflow("e:\\2D\\temp", "DEBUG_UI2__", workflowUI, None, None, None, None)
-
+        workflowUI= rrWorkflow.disable_Outputs(workflowUI, outNodeID)
         workflowUI, outFixedFilename = rrWorkflow.swap_to_rr_nodes(workflowUI, outNodeID, outName, outExt, isVideo, global_output_path, settings)
         
         if (settings.get('add_seed')):
@@ -798,6 +802,10 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         #So we invented: THE HYBRID FORMAT!  UI format with an extra field for the API data that the frontend ignores
                 
         workflowApiRR =  rrWorkflow.convert_ui_to_api_dynamic(workflowUI)
+        if (workflowApiRR):
+            print("workflowApiRR works fine")
+        else:
+            print(f"workflowApiRR is {workflowApiRR}")
         
         
         filepath= rrWorkflow.save_workflow(settings['farm_workflow_path'], workflowName, workflowHybrid, workflowApiRR, workflowUI, outNodeID, outFixedFilename)
@@ -824,11 +832,12 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             newJob.renderer="Portable"
         
         newJob.layer="__ID" + str(outNodeID)
-        if (outNodeID>0):
-            node_info = workflowUI.get(str(outNodeID))
+        if outNodeID:
+            node_info = next((n for n in workflowUI.get("nodes", []) if str(n.get("id")) == str(outNodeID)), None)
             if node_info:
-                user_title = node_info.get("_meta", {}).get("title", newJob.layer)
-                newJob.layer= user_title + newJob.layer
+                class_name = node_info.get("type", "Unknown")
+                user_title = node_info.get("title") or f"[{class_name}]"
+                newJob.layer = user_title + newJob.layer
             else:
                 writeError(f"Node mit ID {outNodeID} not found.")
     
@@ -846,12 +855,14 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             newJob.customVars["OnSubmit_CopyLocalDir"]=settings['model_dir_local']
             newJob.customVars["OnSubmit_CopyDestDir"]=settings['model_dir_farm']
             newJob.customVars["OnSubmit_CopyMode"]=settings['model_sync_mode']
-            newJob.customVars["OnSubmit_CopyExclude"]="*.pyc;/__pycache__/;/tests/;/testing/"
+            newJob.customVars["OnSubmit_CopyExclude"]="/__pycache__/;/tests/;/Help/;/torch/include/;/cupy/_core/include/"
         if (argValid(settings['nodes_dir_local']) and argValid(settings['nodes_dir_farm']) and argValid(settings['nodes_sync_mode'])  and settings['nodes_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
             newJob.customVars["OnSubmit_CopyLocalDi2"]=settings['nodes_dir_local']
             newJob.customVars["OnSubmit_CopyDestDir2"]=settings['nodes_dir_farm']
             newJob.customVars["OnSubmit_CopyMode2"]=settings['nodes_sync_mode']
-            newJob.customVars["OnSubmit_CopyExclude2"]="*.pyc;/__pycache__/;/tests/;/testing/"
+            newJob.customVars["OnSubmit_CopyExclude2"]="/__pycache__/;/tests/;/Help/;/torch/include/;/cupy/_core/include/"
+
+        #\\HAM-CLUSTER1\GenAIEval\_pipeline\comfyui\packages\ComfyUI_desktop_nvidia_core-v0.12.3_py-3.12.11_prod\base\.venv\Lib\site-packages\cupy\_core\include\ 2000 files
 
         #Even if you do not copy the files from local on submission, we need it as source at render time
         if argValid(settings['model_dir_farm']):
@@ -895,7 +906,8 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
         workflowUI["extra"]["info"]["locked"] = True
         workflowUI["extra"]["rr_full_path"] = filepath
        
-        #return True, workflowUI
+        #if (hasEnvDebugMode_strict()):
+            #return True, workflowUI
         
         # Submit to RoyalRender
         submitSuccess= submit_job_to_royalrender(newJob, (not settings.get("ui_submit")))

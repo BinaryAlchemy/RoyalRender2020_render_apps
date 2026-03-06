@@ -23,16 +23,10 @@ PYTHONUTF8 = 1
 
 
 
-echo * COLocalSyncModels is set to <COLocalSyncModels>
-echo * COLocalSyncNodes is set to <COLocalSyncNodes>
-echo * CustomModelDir is set to <CustomModelDir>
-echo * CustomNodesDir is set to <CustomNodesDir>
-
-
 #If one artist uses local copy and on other does not, then we need a clear folder without models
-RR_COMFYUI_BASE_LOCAL = <rrLocalPlugins>clear_base<rrJobVerMajor>
+RR_COMFYUI_BASE_LOCAL = <rrLocalPlugins>clear_base_<rrJobVerMajor>
 [If] <COLocalSyncModels> [==] 1
-    RR_COMFYUI_BASE_LOCAL = <rrLocalPlugins>model_base<rrJobVerMajor>
+    RR_COMFYUI_BASE_LOCAL = <rrLocalPlugins>model_base_<rrJobVerMajor>
 [EndIf]
 RR_COMFYUI_MODELS_LOCAL = <RR_COMFYUI_BASE_LOCAL>/models
 RR_COMFYUI_NODES_LOCAL = <RR_COMFYUI_BASE_LOCAL>/custom_nodes
@@ -62,31 +56,5 @@ echo * ComfyUI source custom_nodes path is set to <RR_COMFYUI_NODES>
 [If] <COLocalSyncNodes> [==] 1
     [copy] SyncCreateDir <RR_COMFYUI_NODES>   =>   <RR_COMFYUI_NODES_LOCAL>
 [EndIf]
-
-
-
-
-#if the job has not set an ModelConfigYaml, then ComfyUI uses RR_COMFYUI_BASE_LOCAL/models and RR_COMFYUI_BASE_LOCAL/custom_nodes by default
-#But if we do not copy the models or custom_nodes locally, then we need to create a ModelConfigYaml that links to the network share
-
-[If] <RR_COMFYUI_MODEL_YAML>  [==] 
-    RR_COMFYUI_MODEL_YAML = <CustomModelConfigYaml>
-[EndIf]
-
-[If] <RR_COMFYUI_MODEL_YAML>  [==] 
-    RR_COMFYUI_MODEL_YAML = <rrLocalTemp>extra_model_paths.yaml
-
-    echo all: > <RR_COMFYUI_MODEL_YAML>
-    [If] <COLocalSyncModels> [==] 0
-        echo "  models: <RR_COMFYUI_MODELS>" >> <RR_COMFYUI_MODELS>
-    [EndIf]
-    
-    [If] <COLocalSyncNodes> [==] 1
-        echo "  custom_nodes: <RR_COMFYUI_NODES>"  >> <RR_COMFYUI_MODEL_YAML>
-    [EndIf]
-
-
-[EndIf]
-
 
 

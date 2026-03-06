@@ -25,7 +25,7 @@ import nodes
 import inspect
 import importlib
 import importlib.metadata
-
+from nodes import NODE_CLASS_MAPPINGS
 
 ##############################################
 # Settings and their default                 #
@@ -93,7 +93,7 @@ SETTINGS_KEY = "rrSubmit_CFG"
 SETTINGS_FIELDS = {
     "group_general": {"label": "General", "type": "separator", "section": "left"},
     "iteration_idxs_count": {"label": "Number of interations to process", "type": "int", "section": "left"},
-    "seq_div_min": {"label": "Iterations to process  (RR Sequence Divide)", "type": "int", "section": "left"},
+    "seq_div_min": {"label": "Sequence Divide (Iteration chunk size)", "type": "int", "section": "left"},
     "gpu_mem_min": {"label": "Required GPU memory in GB", "type": "int", "section": "left"},
 
     "group_path": {"label": "Paths", "type": "separator", "section": "bottom"},
@@ -186,7 +186,7 @@ def settings_compute_default(key, RR_ROOT):
         return True
 
     if key == "add_seed":
-        return True
+        return False
 
     if key == "load_farm_workflow":
         return False
@@ -213,6 +213,11 @@ def hasEnvDebugMode():
     debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
     if (debug_val in ["TRUE", "ON", "1"]) or True:
         return True
+    
+def hasEnvDebugMode_strict():  #no "or True" during  beta 
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if (debug_val in ["TRUE", "ON", "1"]):
+        return True    
 
 def writeInfo(msg):
     print("[rrSubmit] "+str(msg))
@@ -287,32 +292,35 @@ def workflow_hasCheckpoint(workflow: Dict) -> bool:
     # API Format
     return any(node.get("class_type") in CHECKPOINT_TYPES for node in workflow.values() if isinstance(node, dict))
     '''
-    
+
 def workflow_has_any_loader(workflow: dict) -> bool:
     """
-    Checks if the workflow contains any kind of loader node.
-    Works for both UI (nodes list) and API (node dict) formats.
+    Checks if the workflow has any data source:
+    - Model Loaders (Checkpoint, Lora, ControlNet, etc.)
+    - Image/Video Loaders (Load Image, Load Video, etc.)
     """
-    # English comment: Case 1 - UI Format (.json export from web-interface)
+    # Define keywords that identify a source node
+    # 'loader' covers models, 'load' covers images/media
+    source_keywords = ["loader", "loadimage", "load_image", "loadvideo"]
+
+    # Case 1 - UI Format
     if "nodes" in workflow and isinstance(workflow["nodes"], list):
         for node in workflow["nodes"]:
-            # English comment: UI format uses 'type' for the class name
             node_type = str(node.get("type", "")).lower()
-            if "loader" in node_type:
+            if any(key in node_type for key in source_keywords):
                 return True
 
-    # English comment: Case 2 - API Format (Prompt/Workflow API)
-    # English comment: We iterate through the top-level keys. 
-    # In API format, these are the node IDs.
-    for node_id, node_data in workflow.items():
+    # Case 2 - API/Prompt Format
+    # We check both top-level keys and values to be safe
+    for node_data in workflow.values():
         if isinstance(node_data, dict):
-            # English comment: API format uses 'class_type'
             class_type = str(node_data.get("class_type", "")).lower()
-            if "loader" in class_type:
+            if any(key in class_type for key in source_keywords):
                 return True
                 
     return False
     
+
 
 def _compute_vars(path: str, image_width: int = 0, image_height: int = 0) -> str:
     """
@@ -400,115 +408,125 @@ def _get_output_info(node: Dict) -> Tuple[Optional[str], Optional[str], bool]:
     return base_name, ext, is_video
 
 
-def workflow_getOutput(workflow: Dict, use_node_id: int):
-    """
-    Extrahiert Output-Informationen aus dem Workflow.
-    """
+def getOutput(workflow: Dict, use_node_id: str):
     if not workflow:
         raise Exception("rrSubmit - Empty workflow data.")
 
-    # Default-Rückgabewerte
     out_name = "noDir/no.frame"
     out_ext = ".check"
-    out_node_ID = -1
+    out_node_ID = use_node_id
     is_video = False
-    
     found_output = False
+
+    # OUTPUT_NODE lookup aus NODE_CLASS_MAPPINGS bauen
+    from nodes import NODE_CLASS_MAPPINGS
+    output_node_types = set()
+    for node_type, node_class in NODE_CLASS_MAPPINGS.items():
+        if getattr(node_class, "OUTPUT_NODE", False):
+            output_node_types.add(node_type)
+            if "preview" in node_type:
+                continue
+
     nodes_data = workflow.get("nodes")
+    if not isinstance(nodes_data, list):
+        raise Exception("rrSubmit - No nodes list found in workflow.")
 
-    # 1. Gezielte Node-ID Suche (use_node_id != -1)
-    if use_node_id != -1:
-        target_node = None
-        if isinstance(nodes_data, list):
-            target_node = next((n for n in nodes_data if str(n.get("id")) == str(use_node_id)), None)
-        else:
-            target_node = workflow.get(str(use_node_id))
+    def get_node_by_id(target_id):
+        target_str = str(target_id)
+        return next((n for n in nodes_data if str(n.get("id")) == target_str), None)
 
+    # 1. Gezielte Node-ID Suche
+    if use_node_id:
+        target_node = get_node_by_id(use_node_id)
         if target_node:
             res_name, res_ext, res_video = _get_output_info(target_node)
             if res_name:
                 return use_node_id, res_name, res_ext, res_video
             else:
-                writeInfo(f"[rrSubmit] Requested Node {use_node_id} found, but no filename extracted.")
+                writeInfo(f"Requested Node {use_node_id} found, but no filename extracted.")
+                return out_node_ID, out_name, out_ext, is_video
         else:
-            writeInfo(f"[rrSubmit] Warning: Requested Node ID {use_node_id} not found.")
+            raise Exception(f"[rrSubmit] Warning: Requested Node ID {use_node_id} not found.")
 
-    # 2. Dynamischer Loop (wenn use_node_id == -1 oder oben nichts gefunden wurde)
-    if isinstance(nodes_data, list):
-        # UI Format
-        for node in nodes_data:
-            # Dynamische Prüfung auf Output-Node (isOutputNode oder keine Ausgänge)
-            if node.get("isOutputNode", False) or not node.get("outputs"):
-                res_name, res_ext, res_video = _get_output_info(node)
-                if res_name:
-                    out_node_ID, out_name, out_ext, is_video = node.get("id"), res_name, res_ext, res_video
-                    found_output = True
-                    break
-    else:
-        # API Format
-        for node_id, node in workflow.items():
-            if not isinstance(node, dict): 
-                continue
-            res_name, res_ext, res_video = _get_output_info(node)
-            if res_name:
-                out_node_ID, out_name, out_ext, is_video = node_id, res_name, res_ext, res_video
-                found_output = True
-                break
+    # 2. Automatische Suche: nur echte Output-Nodes mit Dateinamen
+    writeInfo( "getOutput: Trying to find any output node as main output.")
+    writeInfo(f"getOutput: Collected outpoutnode classes '{output_node_types}'.")
+    for node in nodes_data:
 
+        node_type = node.get("type", node.get("class_type", ""))
+        node_id = node.get("id")
+
+        # Problem 2: IDs wie "123:59" als String belassen
+        node_id_str = str(node_id)
+        # Bypassed nodes ignorieren (mode 4 = bypassed in ComfyUI)
+        if node.get("mode", 0) == 4:
+            continue
+
+        # Nur Nodes die OUTPUT_NODE = True haben
+        if node_type not in output_node_types:
+            continue
+
+        # _get_output_info gibt None zurück wenn kein Dateiname gefunden → Preview-Nodes werden so automatisch ignoriert
+        res_name, res_ext, res_video = _get_output_info(node)
+        if res_name:
+            out_node_ID = node_id_str
+            out_name = res_name
+            out_ext = res_ext
+            is_video = res_video
+            found_output = True
+            writeDebug(f"Found output node #{out_node_ID} '{res_name}' '{res_ext}'")
+            break
+        
 
     if not found_output:
-        writeError("No valid output nodes found in workflow.")
+        writeInfo("WARNING: No output nodes found in workflow.")
 
     return out_node_ID, out_name, out_ext, is_video
     
- 
-def disable_Outputs(workflow: Dict, submit_node_id: int):
+def disable_Outputs(workflow: Dict, submit_node_id: str):
     """
-    Deaktiviert alle Output-Nodes im Workflow, außer derjenigen, 
-    die explizit für den Submit ausgewählt wurde.
+    Deaktiviert alle Output-Nodes außer submit_node_id.
+    Wenn submit_node_id leer, werden alle Output-Nodes mit "preview" im Klassennamen deaktiviert.
     """
-    # Validierung: Wenn keine spezifische Node gewählt wurde, brechen wir ab
-    if submit_node_id < 0:
-        return workflow
+    from nodes import NODE_CLASS_MAPPINGS
+
+    if submit_node_id:
+        writeInfo(f"disable_Outputs: disabling all beside node #{submit_node_id}.")
+    else:
+        writeInfo("disable_Outputs: no submit_node_id specified, disabling preview only.")
+
+    # OUTPUT_NODE lookup bauen
+    output_node_types = set()
+    for node_type, node_class in NODE_CLASS_MAPPINGS.items():
+        if getattr(node_class, "OUTPUT_NODE", False):
+            output_node_types.add(node_type)
 
     nodes_data = workflow.get("nodes")
-    submit_node_str = str(submit_node_id)
+    if not isinstance(nodes_data, list):
+        return workflow
 
-    # UI Format (Liste von Nodes)
-    if isinstance(nodes_data, list):
-        for node in nodes_data:
-            node_id = str(node.get("id"))
-            
-            # Dynamische Prüfung: Ist es eine Output-Node?
-            # Wir nutzen dieselbe Logik wie in workflow_getOutput
-            is_output = node.get("isOutputNode", False) or not node.get("outputs")
-            
-            if is_output:
-                # Wenn es NICHT unsere Submit-Node ist -> Deaktivieren
-                if node_id != submit_node_str:
-                    # 'mode' 2 bedeutet 'Disabled' in ComfyUI
-                    node["mode"] = 2
-                    writeInfo(f"Disabled output node: {node_id} ({node.get('type')})")
+    for node in nodes_data:
+        node_type = node.get("type", node.get("class_type", ""))
 
-    # API Format (Dict von node_id: node_dict)
-    # Hinweis: Das API-Format von ComfyUI hat kein 'mode' Feld für das Backend.
-    # Wenn du den Workflow für das Backend/Cloud-Rendering manipulierst, 
-    # müssten die Nodes hier ggf. komplett aus dem Dict gelöscht werden.
-    else:
-        # Erstelle eine Liste der Keys zum Löschen, um das Dict während des Loops nicht zu ändern
-        to_delete = []
-        for node_id, node in workflow.items():
-            if not isinstance(node, dict): 
-                continue
-            
-            # Da im API-Format 'isOutputNode' fehlt, nutzen wir _get_output_info als Check
-            res_name, _, _ = _get_output_info(node)
-            if res_name and str(node_id) != submit_node_str:
-                to_delete.append(node_id)
+        if node_type not in output_node_types:
+            continue
+
+        node_id_str = str(node.get("id", ""))
+
+        if submit_node_id:
+            # Alle Output-Nodes außer submit_node_id deaktivieren
+            if node_id_str != str(submit_node_id):
+                node["mode"] = 4
+                writeInfo(f"Disabled output node: {node_id_str} ({node_type})")
+            elif (node.get("mode", 4) == 4):
+                node["mode"] = 0
+                writeInfo(f"Enabled output node: {node_id_str} ({node_type})")
         
-        for node_id in to_delete:
-            del workflow[node_id]
-            writeInfo(f"Removed output node from API-Workflow: {node_id}")
+        else:
+            # Kein submit_node_id: nur Preview-Nodes deaktivieren
+            if "preview" in node_type.lower():
+                node["mode"] = 4
+                writeInfo(f"Disabled output node: {node_id_str} ({node_type})")
     return workflow
 
 
@@ -538,7 +556,83 @@ async def conversion_done_callback(request):
     return web.json_response({"status": "ok"})
     
 
+
+
+def build_seed_control_lookup():
+    """
+    Liest alle registrierten Nodes aus und findet INT inputs mit control_after_generate.
+    Returns: { "NodeType": ["input_name1", "input_name2"] }
+    """
+    lookup = {}
     
+    for node_type, node_class in NODE_CLASS_MAPPINGS.items():
+        try:
+            input_types = node_class.INPUT_TYPES()
+        except Exception:
+            continue
+        
+        all_inputs = {}
+        all_inputs.update(input_types.get("required", {}))
+        all_inputs.update(input_types.get("optional", {}))
+        
+        for input_name, input_def in all_inputs.items():
+            if not isinstance(input_def, (list, tuple)) or len(input_def) < 2:
+                continue
+            input_type = input_def[0]
+            input_opts = input_def[1] if isinstance(input_def[1], dict) else {}
+            
+            if input_type == "INT" and input_opts.get("control_after_generate"):
+                if node_type not in lookup:
+                    lookup[node_type] = []
+                lookup[node_type].append(input_name)
+    
+    return lookup
+
+_seed_control_lookup = None
+
+def get_seed_control_lookup():
+    global _seed_control_lookup
+    if _seed_control_lookup is None:
+        _seed_control_lookup = build_seed_control_lookup()
+    return _seed_control_lookup
+
+
+CONTROL_VALUES = {"randomize", "increment", "decrement", "fixed"}
+
+def extract_seed_control_map(workflow_ui):
+    node_controlled_inputs = get_seed_control_lookup()  # { "NodeType": ["input_name", ...] }
+    seed_control_map = {}
+    CONTROL_VALUES = {"randomize", "increment", "decrement", "fixed"}
+    
+    for node in workflow_ui.get("nodes", []):
+        node_type = node.get("type", "")
+        node_id = str(node.get("id"))
+        widgets_values = node.get("widgets_values", [])
+        
+        controlled_inputs = node_controlled_inputs.get(node_type, [])
+        if not controlled_inputs:
+            continue
+        
+        widget_index = 0
+        for inp in node.get("inputs", []):
+            if "widget" not in inp:
+                continue
+            
+            inp_name = inp.get("name")
+            if inp_name in controlled_inputs and inp.get("link") is None:
+                ctrl_index = widget_index + 1
+                if ctrl_index < len(widgets_values):
+                    value = widgets_values[ctrl_index]
+                    if value in CONTROL_VALUES:
+                        if node_id not in seed_control_map:
+                            seed_control_map[node_id] = {}
+                        seed_control_map[node_id][inp_name] = value
+            
+            widget_index += 1
+    
+    return seed_control_map
+
+
 
 def convert_ui_to_api_dynamic(workflow_ui):
     """
@@ -546,6 +640,8 @@ def convert_ui_to_api_dynamic(workflow_ui):
     """
     if ("nodes" not in workflow_ui) or (not isinstance(workflow_ui["nodes"], list)):
         print("convert_ui_to_api_dynamic: Not an UI format")
+
+    seed_control_map = extract_seed_control_map(workflow_ui)
 
     # 1. Eindeutige ID für diesen spezifischen Request erstellen
     request_id = str(uuid.uuid4())
@@ -569,7 +665,11 @@ def convert_ui_to_api_dynamic(workflow_ui):
             raise TimeoutError(f"Frontend conversion timed out for request {request_id}")
             
         time.sleep(0.1) # Kurze Pause um die CPU zu schonen
-        
+    
+    for node_id, controls in seed_control_map.items():
+        if node_id in api_prompt:
+            api_prompt[node_id]["_meta"]["rr_seed_control"] = controls
+
     return sort_comfy_api_workflow(api_prompt)
     
     
@@ -661,7 +761,7 @@ def sort_comfy_api_workflow(api_workflow):
 
 
 
-
+SEED_FIELD_NAMES = {"seed", "noise_seed", "rand_seed", "random_seed", "seed_value"}
 
 def swap_to_rr_nodes(workflow, outNodeID, outName, outExt, isVideo, global_output_path, settings):
     if "nodes" not in workflow:
@@ -733,22 +833,6 @@ def swap_to_rr_nodes(workflow, outNodeID, outName, outExt, isVideo, global_outpu
                     #  Optional: Connect iteration_idx for filename labeling
                     inject_link(seed_node_id, 2, node["id"], "iteration_idx", links, node)
 
-        # --- PART 3: KSampler (The Heart of the Seed) ---
-        if setting_add_seed and seed_node_id:
-            target_slot = None
-            # Identify the correct seed input name based on the node type
-            if current_type == "KSampler":
-                target_slot = "seed"
-            elif current_type in ["KSamplerAdvanced", "RandomNoise"]:
-                target_slot = "noise_seed"
-            elif "KSampler" in (current_type or ""):
-                # Fallback for other custom KSampler variants
-                target_slot = "seed"
-
-            if target_slot:
-                # Connect Output 0 of rrSeed (calculated final seed) to the target node
-                inject_link(seed_node_id, 0, node["id"], target_slot, links, node)                
-
     workflow["nodes"] = nodes
     workflow["links"] = links
     return workflow, outFixedFilename
@@ -800,7 +884,7 @@ def inject_link(src_id, src_out_idx, dst_id, dst_input_name, links, dst_node, sr
 
 def add_rrSeed(workflow):
     writeDebug("--- add_rrSeed Start ---") # English comment: Start seed injection with safety check
-    if hasEnvDebugMode(): 
+    if hasEnvDebugMode_strict(): 
         save_workflow("e:\\2D\\temp", "DEBUG_rrSeed_a_", workflow, None, None, None, None)    
 
     #import copy
@@ -838,13 +922,25 @@ def add_rrSeed(workflow):
 
     # 2. Sampler loopen
     for node in nodes:
-        if not node or node["id"] == seed_node_id: continue
+        if not node or node["id"] == seed_node_id: 
+            continue
         
         target_slot = None
         current_type = node.get("type")
-        if current_type == "KSampler": target_slot = "seed"
-        elif current_type in ["KSamplerAdvanced", "RandomNoise"]: target_slot = "noise_seed"
+        if current_type in ["KSampler", "Seed (rgthree)"]: 
+            target_slot = "seed"
+        elif current_type in ["KSamplerAdvanced", "RandomNoise"]: 
+            target_slot = "noise_seed"
         
+        # Fallback: scan all input slots for seed-like names
+        if not target_slot:
+            node_inputs = node.get("inputs", [])
+            for inp in node_inputs:
+                inp_name = (inp.get("name") or inp.get("label") or "").lower()
+                if any(seed_name in inp_name for seed_name in SEED_FIELD_NAMES):
+                    target_slot = inp.get("name")
+                    break
+
         if target_slot:
             node_inputs = node.get("inputs", [])
             target_input = next((i for i in node_inputs if i.get("name") == target_slot), None)
@@ -862,8 +958,8 @@ def add_rrSeed(workflow):
 
     # 3. Header Sync
     workflow["links"] = links
-    workflow["last_link_id"] = max([l[0] for l in links if l] or [0])
-    if hasEnvDebugMode(): 
+    workflow["last_link_id"] = max([li[0] for li in links if li] or [0])
+    if hasEnvDebugMode_strict(): 
         save_workflow("e:\\2D\\temp", "DEBUG_rrSeed_b_", workflow, None, None, None, None)    
     return workflow
 
@@ -899,8 +995,10 @@ def safe_make_dirs_for_file(file_path_str):
 def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflowUI, INFO_outNodeID, INFO_outFixedFilename):
         final_json = workflowHybrid 
         if (workflowApiRR):
+            #writeDebug("save_workflow has workflowApiRR")
             final_json["api_format_rr"] = workflowApiRR 
         else:
+            #writeDebug("save_workflow NO workflowApiRR")
             try:
                 del final_json["api_format_rr"]
             except Exception:
@@ -929,7 +1027,7 @@ def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflo
         
         #save dublicate of workflow 
         timestamp = datetime.now().strftime("%m%d-%H%M%S") #datetime.now().strftime("%y%m%d-%H%M%S")
-        if "DEBUG_" in workflowName:
+        if ("DEBUG_" in workflowName) or (hasEnvDebugMode_strict()):
             filename = f"RR{timestamp}_{workflowName}__.json"
         else:
             filename = f"RR_{workflowName}__{timestamp}.json"
@@ -944,7 +1042,7 @@ def save_workflow(filepath, workflowName, workflowHybrid, workflowApiRR, workflo
             json.dump(final_json, f, indent=2)
         writeInfo(f"Workflow saved to {filepath}")
 
-        if hasEnvDebugMode():
+        if hasEnvDebugMode_strict():
             if (workflowApiRR):
                 with open(filepath.replace(".json","")+"_apiRR.json", "w", encoding="utf-8") as f:
                     json.dump(workflowApiRR, f, indent=2)
@@ -1073,14 +1171,14 @@ def analyze_workflow_detailed(workflow):
                         })
                         seen_node_types.add(node_type)
 
-        if hasEnvDebugMode(): 
-            save_workflow("e:\\2D\\temp", "DEBUG_Analyze_UI__", workflow, None, None, None, None)
+        #if hasEnvDebugMode_strict(): 
+        #    save_workflow("e:\\2D\\temp", "DEBUG_Analyze_UI__", workflow, None, None, None, None)
 
         
         workflow = convert_ui_to_api_dynamic(workflow)
 
-    if hasEnvDebugMode(): 
-        save_workflow("e:\\2D\\temp", "DEBUG_Analyze_API_", workflow, None, None, None, None)
+    #if hasEnvDebugMode_strict(): 
+    #    save_workflow("e:\\2D\\temp", "DEBUG_Analyze_API_", workflow, None, None, None, None)
 
 
 

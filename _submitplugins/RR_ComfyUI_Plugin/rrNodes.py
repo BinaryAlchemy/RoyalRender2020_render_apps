@@ -49,19 +49,22 @@ class rrSeed:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "base_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "iteration_idx": ("INT", {"default": 1, "min": 0, "max": 999999}),
-                "iteration_mode_UI": (["fixed", "increment"], {"default": "increment", "label": "iteration mode UI"}),
-                "max_seed": ("INT", {"default":  0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
-                "max_seed2": ("INT", {"default": 0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
+                "Base_Seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "Iteration_Idx": ("INT", {"default": 1, "min": 0, "max": 999999}),
+                "Iteration_Mode_UI": (["fixed", "increment"], {"default": "increment", "label": "iteration mode UI (not farm)"}),
+                "Max_Seed": ("INT", {"default":  0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
+                "Max_Seed2": ("INT", {"default": 0xfffffffffffffff, "min": 1, "max": 0xffffffffffffffff}),
             },
+            "hidden": {
+                "farm_mode": ("BOOLEAN", {"default": False}),
+            },            
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT", "STRING")
-    RETURN_NAMES = ("SEED", "SEED_2", "iteration_idx", "iteration_idx_str")
+    RETURN_TYPES = ("INT", "INT", "INT", "STRING", "BOOLEAN")
+    RETURN_NAMES = ("Seed", "Seed_2", "Iteration_Idx", "Iteration_Idx-str", "Is_Farm")
     FUNCTION = "generate_seed"
     CATEGORY = "RoyalRender"
-    OUTPUT_NODE = True # We tell Comfy that we send data back
+    #OUTPUT_NODE = True # We tell Comfy that we send data back to the UI. Hack as IS_CHANGED was not working otherwise
 
     @classmethod
     def IS_CHANGED(cls, iteration_mode_UI, **kwargs):
@@ -69,7 +72,7 @@ class rrSeed:
             return time.time() #float("NaN") # NaN ist niemals gleich sich selbst -> erzwingt immer Update
         return "" # Verhält sich normal (nutzt Cache), wenn nicht im Inkrement-Modus
         
-    def generate_seed(self, base_seed, iteration_idx, iteration_mode_UI, max_seed, max_seed2):
+    def generate_seed(self, Base_Seed, Iteration_Idx, Iteration_Mode_UI, Max_Seed, Max_Seed2, farm_mode):
         
         def calc(seed, iteration, offset):
             mask = 0xFFFFFFFFFFFFFFFF
@@ -85,18 +88,18 @@ class rrSeed:
             s ^= (s >> 27) & mask
             return (s * 0x2545f4914f6cdd1d) & mask
 
-        seed_1 = calc(base_seed, iteration_idx, 0)
-        seed_2 = calc(base_seed, iteration_idx, 0xACE) 
-        seed_1= seed_1 % max_seed
-        seed_2= seed_2 % max_seed2
-        writeDebug(f"[rrSeed] Start: {base_seed} | Iter: {iteration_idx} | Final: {seed_1} | update_iter: {iteration_idx + 1}")
-        iteration_idx_str=str(iteration_idx)
+        seed_1 = calc(Base_Seed, Iteration_Idx, 0)
+        seed_2 = calc(Base_Seed, Iteration_Idx, 0xACE) 
+        seed_1= seed_1 % Max_Seed
+        seed_2= seed_2 % Max_Seed2
+        writeDebug(f"[rrSeed] Start: {Base_Seed} | Iter: {Iteration_Idx} | Final: {seed_1}  {seed_2}")
+        iteration_idx_str=str(Iteration_Idx).zfill(3)
         
         return {
             "ui": {
-                "update_iter": [iteration_idx + 1]  # Hier die Klammern [ ] hinzufügen, damit es eine Liste ist
+                "update_iter": [Iteration_Idx + 1]  
             },
-            "result": (seed_1, seed_2, iteration_idx, iteration_idx_str)
+            "result": (seed_1, seed_2, Iteration_Idx, iteration_idx_str, farm_mode)
         }
         
         

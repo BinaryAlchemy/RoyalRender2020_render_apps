@@ -27,7 +27,7 @@ async def submit_handler(request):
         data = await request.json()
         workflowHybrid = data.get("workflow") # This is the dict from the browser
         filename = data.get("filename", "unknown_workflow")
-        submit_node_id = data.get("submit_node_id", -1)
+        submit_node_id = data.get("submit_node_id", "")
 
         # Safety Fallback: Check if UI mode is even possible
         # It is not possible if the Comfy webserver is located "in the basement" and I am at my workstation.
@@ -133,10 +133,106 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 print("\n" + "="*80)
 print("[rrSubmit] %rrVersion% loaded.")
 
-print(f"[rrSubmit] folder_paths.get_user_directory  is {folder_paths.get_user_directory()}.")
+internal_base = os.path.abspath(folder_paths.base_path)
+# Iterate through all registered folder types
+for name, (paths, extensions) in folder_paths.folder_names_and_paths.items():
+    print(f"[{name}]")
+    
+    # display all paths for this category
+    for p in paths:
+        abs_p = os.path.abspath(p)
+        # Check against the official base_path
+        is_external = not abs_p.startswith(internal_base)
+        
+        status = "[EXT]" if is_external else "     "
+        print(f"\t\t\t\t{status} -> {abs_p}")
+
+
+print("\n" + "-"*80)
+print(f"[rrSubmit] folder_paths.user_directory      is {folder_paths.get_user_directory()}.")
 print(f"[rrSubmit] folder_paths.base_path           is {folder_paths.base_path}.")
 print(f"[rrSubmit] folder_paths.models_dir          is {folder_paths.models_dir}.")
 print(f"[rrSubmit] folder_paths.custom_nodes        is {folder_paths.get_folder_paths("custom_nodes")}.")
+print(f"[rrSubmit] folder_paths.input_directory     is {folder_paths.get_input_directory()}.")
+print(f"[rrSubmit] folder_paths.output_directory    is {folder_paths.get_output_directory()}.")
+print(f"[rrSubmit] folder_paths.temp_directory      is {folder_paths.get_temp_directory()}.")
+print("\n" + "-"*80)
+
+'''
+
+folder_paths.user_directory = "e:\\2D\\ComfyUI_Base_relink\\user"
+folder_paths.temp_directory = "e:\\2D\\ComfyUI_Base_relink\\user"
+folder_paths.input_directory = "e:\\2D\\ComfyUI_Base_relink\\user"
+folder_paths.output_directory = "e:\\2D\\ComfyUI_Base_relink\\user"
+
+import folder_paths
+import os
+
+def reroute_paths(new_model_base: str):
+    # Bases ermitteln
+    bases = set()
+    
+    # 1. Aus download_model_base den übergeordneten Ordner
+    download_bases = folder_paths.folder_names_and_paths.get("download_model_base", [[], set()])[0]
+    if download_bases:
+        bases.add(os.path.dirname(download_bases[0]))
+    
+    # 2. ComfyUI base_path
+    bases.add(folder_paths.base_path)
+    
+    bases = {os.path.normpath(b) for b in bases}
+    new_model_base = os.path.normpath(new_model_base)
+
+    def is_under_base(path):
+        path = os.path.normpath(path)
+        return any(path.startswith(b + os.sep) or path == b for b in bases)
+
+    def reroute(path):
+        path = os.path.normpath(path)
+        for base in bases:
+            if path.startswith(base + os.sep):
+                rel = os.path.relpath(path, base)
+                return os.path.join(new_model_base, rel)
+        return path
+
+    # custom_nodes bereinigen
+    custom_nodes = folder_paths.get_folder_paths("custom_nodes")
+    folder_paths.folder_names_and_paths["custom_nodes"][0] = [
+        p for p in custom_nodes if not is_under_base(p)
+    ]
+
+    # Model-Kategorien ersetzen
+    skip = {"custom_nodes", "download_model_base"}
+    for category, (paths, extensions) in folder_paths.folder_names_and_paths.items():
+        if category in skip:
+            continue
+        
+        new_paths = []
+        for p in paths:
+            if is_under_base(p):
+                new_paths.append(reroute(p))
+            else:
+                new_paths.append(p)
+        
+        # Duplikate entfernen, Reihenfolge behalten
+        seen = set()
+        deduped = []
+        for p in new_paths:
+            pn = os.path.normpath(p)
+            if pn not in seen:
+                seen.add(pn)
+                deduped.append(p)
+        
+        folder_paths.folder_names_and_paths[category] = (deduped, extensions)
+
+
+print(f"[rrSubmit] folder_paths.user_directory      is {folder_paths.get_user_directory()}.")
+print(f"[rrSubmit] folder_paths.base_path           is {folder_paths.base_path}.")
+print(f"[rrSubmit] folder_paths.models_dir          is {folder_paths.models_dir}.")
+print(f"[rrSubmit] folder_paths.custom_nodes        is {folder_paths.get_folder_paths("custom_nodes")}.")
+print(f"[rrSubmit] folder_paths.input_directory     is {folder_paths.get_input_directory()}.")
+print(f"[rrSubmit] folder_paths.output_directory    is {folder_paths.get_output_directory()}.")
+print(f"[rrSubmit] folder_paths.temp_directory      is {folder_paths.get_temp_directory()}.")
 
 
 internal_base = os.path.abspath(folder_paths.base_path)
@@ -151,7 +247,9 @@ for name, (paths, extensions) in folder_paths.folder_names_and_paths.items():
         is_external = not abs_p.startswith(internal_base)
         
         status = "[EXT]" if is_external else "     "
-        print(f"  {status.ljust(20)} -> {abs_p}")
+        print(f"        {status.ljust(20)} -> {abs_p}")
 
+        
+'''
         
 print("\n" + "="*80)
