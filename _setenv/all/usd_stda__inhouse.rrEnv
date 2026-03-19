@@ -7,6 +7,9 @@ LOCALAPPDATA  =  <USERPROFILE>\AppData\Local
 
 #[exec] <rrBaseAppPath>\houdini\hserver -S myLicenseServerIP
 
+# Print license usage:
+# [exec] <rrExeBaseDir>bin/sesictrl print-license
+
 
 # HOUDINI_PACKAGE_DIR= somefolder
 

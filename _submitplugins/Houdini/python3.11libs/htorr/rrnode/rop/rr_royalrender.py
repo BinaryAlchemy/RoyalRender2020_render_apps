@@ -55,8 +55,8 @@ class SubmitterNode(rrNode):
                 jobsettings = self._node.parm("rr_jobsettings").evalAsString()
                 try:
                     for setting in jobsettings.split(";"):
-                        settingname = setting.split("=")[0]
-                        settingvalues = setting.split("=")[-1]
+                        settingname = setting.split("=",1)[0]
+                        settingvalues = setting.split("=",1)[-1]
                         values = settingvalues.split("~")
                         logger.debug(
                             "Found custom option: {} Value: {}".format(settingname, values)
