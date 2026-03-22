@@ -450,49 +450,51 @@ class UsdStandalone(UsdRop):
                 
 
         renderSettings = stage.GetPrimAtPath("/Render/rendersettings")        
+        if renderSettings.IsValid():
+            #Render settings overrides the render product to render    
+            #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
+            settings = UsdRender.Settings(renderSettings)
+            rel = settings.GetProductsRel()
+            if rel:
+                product_paths = rel.GetTargets()  # returns list of prim paths
+                if len(product_paths)>0:
+                    allproducts = []
+                    for path in product_paths:
+                        prim = stage.GetPrimAtPath(path)
+                        
+                        product = {}
+                        product["name"] = prim.GetName()
+                        isValidImage=False
+                        
+                        a = prim.GetAttribute("productName")
+                        if a:
+                            #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
+                            product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
+                            isValidImage= product["productOutname"].find("checkpoint")<0 
+                            product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
+                            product["productOutnameB"] = a.Get(999999) 
+                            product["attrib"] = a
+                            
+                        if a:
+                            a = prim.GetAttribute("resolution")
+                            product["resX"] = a.Get()[0]
+                            product["resY"] = a.Get()[1]
+                        
+                        if (isValidImage):
+                            allproducts.append(product)
 
-        #Render settings overrides the render product to render    
-        #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
-        settings = UsdRender.Settings(renderSettings)
-        product_paths = settings.GetProductsRel().GetTargets()  # returns list of prim paths
-        if len(product_paths)>0:
-            allproducts = []
-            for path in product_paths:
-                prim = stage.GetPrimAtPath(path)
-                
-                product = {}
-                product["name"] = prim.GetName()
-                isValidImage=False
-                
-                a = prim.GetAttribute("productName")
-                if a:
-                    #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
-                    product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
-                    isValidImage= product["productOutname"].find("checkpoint")<0 
-                    product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
-                    product["productOutnameB"] = a.Get(999999) 
-                    product["attrib"] = a
-                    
-                if a:
-                    a = prim.GetAttribute("resolution")
-                    product["resX"] = a.Get()[0]
-                    product["resY"] = a.Get()[1]
-                
-                if (isValidImage):
-                    allproducts.append(product)
-
-        
-        
-        #Render settings overrides the resolution     
-        res_attr = renderSettings.GetAttribute("resolution")
-        if res_attr:
-            resolution = res_attr.Get()    
-            width  = int(resolution[0])
-            height = int(resolution[1])
-            #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
-            for product in allproducts:
-                product["resX"] = width
-                product["resY"] = height        
+            
+            
+            #Render settings overrides the resolution     
+            res_attr = renderSettings.GetAttribute("resolution")
+            if res_attr:
+                resolution = res_attr.Get()    
+                width  = int(resolution[0])
+                height = int(resolution[1])
+                #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
+                for product in allproducts:
+                    product["resX"] = width
+                    product["resY"] = height        
                 
         #printList_Debug("renderproductList", allproducts)
         return allproducts    
@@ -697,49 +699,51 @@ class UsdRenderRop(RenderNode):
                 
 
         renderSettings = stage.GetPrimAtPath("/Render/rendersettings")        
-
-        #Render settings overrides the render product to render    
-        #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
-        settings = UsdRender.Settings(renderSettings)
-        product_paths = settings.GetProductsRel().GetTargets()  # returns list of prim paths
-        if len(product_paths)>0:
-            allproducts = []
-            for path in product_paths:
-                prim = stage.GetPrimAtPath(path)
-                
-                product = {}
-                product["name"] = prim.GetName()
-                isValidImage=False
-                
-                a = prim.GetAttribute("productName")
-                if a:
-                    #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
-                    product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
-                    isValidImage= product["productOutname"].find("checkpoint")<0 
-                    product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
-                    product["productOutnameB"] = a.Get(999999) 
-                    product["attrib"] = a
-                    
-                if a:
-                    a = prim.GetAttribute("resolution")
-                    product["resX"] = a.Get()[0]
-                    product["resY"] = a.Get()[1]
-                
-                if (isValidImage):
-                    allproducts.append(product)
+        if renderSettings.IsValid():
+            #Render settings overrides the render product to render    
+            #Note:  "/Render/rendersettings/products" is not a real prim in the USD stage; it’s a relationship container or “pseudo-prim” that Houdini shows in Solaris.
+            settings = UsdRender.Settings(renderSettings)
+            rel = settings.GetProductsRel()
+            if rel:
+                product_paths = rel.GetTargets()  # returns list of prim paths
+                if len(product_paths)>0:
+                    allproducts = []
+                    for path in product_paths:
+                        prim = stage.GetPrimAtPath(path)
+                        
+                        product = {}
+                        product["name"] = prim.GetName()
+                        isValidImage=False
+                        
+                        a = prim.GetAttribute("productName")
+                        if a:
+                            #logger.debug("{}: rendersettings product '{}' '{}'   '{}' ".format(self._node.path(), prim.GetName(), a.Get(0),a.Get(999999) ))     
+                            product["productOutname"] = a.Get(0) #this should get the name with variables, but .Get() returns nothing...
+                            isValidImage= product["productOutname"].find("checkpoint")<0 
+                            product["productOutnameA"] = a.Get(1) #automatically cropped to start of nodes frame range. Frame range might be set in ROP only, then render product has frame range "current frame" only...
+                            product["productOutnameB"] = a.Get(999999) 
+                            product["attrib"] = a
+                            
+                        if a:
+                            a = prim.GetAttribute("resolution")
+                            product["resX"] = a.Get()[0]
+                            product["resY"] = a.Get()[1]
+                        
+                        if (isValidImage):
+                            allproducts.append(product)
 
         
         
-        #Render settings overrides the resolution     
-        res_attr = renderSettings.GetAttribute("resolution")
-        if res_attr:
-            resolution = res_attr.Get()    
-            width  = int(resolution[0])
-            height = int(resolution[1])
-            #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
-            for product in allproducts:
-                product["resX"] = width
-                product["resY"] = height        
+            #Render settings overrides the resolution     
+            res_attr = renderSettings.GetAttribute("resolution")
+            if res_attr:
+                resolution = res_attr.Get()    
+                width  = int(resolution[0])
+                height = int(resolution[1])
+                #logger.debug("{}: rendersettings res override {}x{} ".format(self._node.path(),width,height))     
+                for product in allproducts:
+                    product["resX"] = width
+                    product["resY"] = height        
                 
         #printList_Debug("renderproductList", allproducts)
         return allproducts     
