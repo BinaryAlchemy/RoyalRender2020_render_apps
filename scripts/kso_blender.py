@@ -716,8 +716,7 @@ def ensure_scene_and_layer():
         RENDER_LAYER = ""
 
     if not RENDER_LAYER:
-        RENDER_LAYER = bpy.context.view_layer.name
-        log_msg_wrn(f"No Layer argument given, using scene settings")
+        log_msg_wrn(f"No Layer argument given")
     else:
         for layer in bpy.data.scenes[RENDER_SCENE].view_layers:
             if (layer.name != RENDER_LAYER):

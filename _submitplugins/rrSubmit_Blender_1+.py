@@ -184,8 +184,14 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         except AttributeError:
             self.writeLayerJob(scn, fileID, scene_state, is_active=is_active)
         else:
+            per_layer_active=True and is_active
+            file_format = scn.render.image_settings.file_format
+            if (file_format=='OPEN_EXR_MULTILAYER' and (len(layers)>1) ):
+                per_layer_active= False
+                self.writeLayerJob(scn, fileID, scene_state, "** All **", is_active=is_active)
             for layer in layers:
-                self.writeLayerJob(scn, fileID, scene_state, layer.name, is_active=is_active and layer == bpy.context.view_layer)
+                self.writeLayerJob(scn, fileID, scene_state, layer.name, is_active=per_layer_active and layer == bpy.context.view_layer)
+                
 
     def writeFileOutNodes(self, fileID, scn):
         if not scn.render.use_compositing:
