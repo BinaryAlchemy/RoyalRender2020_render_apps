@@ -21,6 +21,7 @@ RealTimeAbortLine= Rendering aborted due to license failure
 RealTimeAbortLine= The render will not start
 RealTimeAbortLine= Engine 'REDSHIFT' not available for scene
 RealTimeAbortLine= Maxon licensing error
+RealTimeAbortLine= Installation error. Renderer core data missing
 
 SeparateRenderLogFile= <rrLocalTemp>\Redshift\Log\Log.Latest.0\log.html
 

@@ -25,6 +25,11 @@ g_licenseLeaseTimeHours=0.5
 
 C4D_rrPluginFolder =  
 
+
+#Change the size of the Redshift texture cache:
+#REDSHIFT_TEXTURECACHEBUDGET = 30
+
+
 # ###################  VRay environment variables #######################
 # # Uncomment the following line to set the license server. The first you need the VRay license config file.
 # # It is named vrlclient.xml and located in your user home folder or on windows in "c:\Program Files\Common Files\ChaosGroup\vrlclient.xml"

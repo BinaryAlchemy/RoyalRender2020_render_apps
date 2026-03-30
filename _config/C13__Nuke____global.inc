@@ -21,6 +21,9 @@ COUseAllRam= 1 ~ 0
 ################################## Client Settings ################################## 
 
 TexReplaceFormat= .nk ~ Char ~ AlwaysForward
+LocalSceneCopy_perJobThread= True
+
+
 
 licenseFailLine=  Did not find a valid license
 licenseFailLine=  License failure
