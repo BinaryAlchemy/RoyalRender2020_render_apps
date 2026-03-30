@@ -127,7 +127,7 @@ SETTINGS_FIELDS = {
                 ],
         "section": "bottom"
     },
-    "nodes_dir_local": {"label": f"OPTIONAL: Override local custom_nodes directory for copy<br>DEFAULT:  {folder_paths.get_folder_paths("custom_nodes")[0]}", "type": "str", "section": "bottom"},
+    "nodes_dir_local": {"label": f"OPTIONAL: Override local custom_nodes directory for copy<br>DEFAULT:  {folder_paths.get_folder_paths('custom_nodes')[0]}", "type": "str", "section": "bottom"},
 
 
     "group_misc": {"label": "Misc", "type": "separator", "section": "middle"},
