@@ -938,11 +938,16 @@ if __name__ == "__main__":
             raise Exception("Unable to load renderer")
     
     addon_doList(args.load3rdPartyPlugins)
+
+
     log_msg("About to open blend file ".center(100, "_"))
     log_msg(f"Open scene file: {args.blend_file}")
     flush_log()
-
     open_blend_file(args.blend_file)
+    saved_version = bpy.data.version
+    current_version = bpy.app.version
+    log_msg(f"Scene was saved with:  Blender {'.'.join(str(v) for v in saved_version)}")
+    log_msg(f"Running now:           Blender {'.'.join(str(v) for v in current_version)}")
     log_msg(" blend file opened ".center(100, "_"))
     flush_log()
 
