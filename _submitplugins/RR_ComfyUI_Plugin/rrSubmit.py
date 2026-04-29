@@ -852,12 +852,12 @@ def submit_workflow(workflowHybrid, workflowName, submit_node_id):
             newJob.submitOptions["DoNotCheckForFrames"]= "0~1"
 
         if (argValid(settings['model_dir_local']) and argValid(settings['model_dir_farm']) and argValid(settings['model_sync_mode'])  and settings['model_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
-            newJob.customVars["OnSubmit_CopyLocalDir"]=settings['model_dir_local']
-            newJob.customVars["OnSubmit_CopyDestDir"]=settings['model_dir_farm']
-            newJob.customVars["OnSubmit_CopyMode"]=settings['model_sync_mode']
-            newJob.customVars["OnSubmit_CopyExclude"]="/__pycache__/;/tests/;/Help/;/torch/include/;/cupy/_core/include/"
+            newJob.customVars["OnSubmit_CopySourceDir1"]=settings['model_dir_local']
+            newJob.customVars["OnSubmit_CopyDestDir1"]=settings['model_dir_farm']
+            newJob.customVars["OnSubmit_CopyMode1"]=settings['model_sync_mode']
+            newJob.customVars["OnSubmit_CopyExclude1"]="/__pycache__/;/tests/;/Help/;/torch/include/;/cupy/_core/include/"
         if (argValid(settings['nodes_dir_local']) and argValid(settings['nodes_dir_farm']) and argValid(settings['nodes_sync_mode'])  and settings['nodes_sync_mode']!=rrWorkflow.SETTINGS_FIELDS["model_sync_mode"]["choices"][0][1] ):
-            newJob.customVars["OnSubmit_CopyLocalDi2"]=settings['nodes_dir_local']
+            newJob.customVars["OnSubmit_CopySourceDir2"]=settings['nodes_dir_local']
             newJob.customVars["OnSubmit_CopyDestDir2"]=settings['nodes_dir_farm']
             newJob.customVars["OnSubmit_CopyMode2"]=settings['nodes_sync_mode']
             newJob.customVars["OnSubmit_CopyExclude2"]="/__pycache__/;/tests/;/Help/;/torch/include/;/cupy/_core/include/"

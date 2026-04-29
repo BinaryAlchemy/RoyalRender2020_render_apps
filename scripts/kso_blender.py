@@ -872,11 +872,12 @@ def addon_doList(load_3rdParty = False):
                 addon_enable(mod.__name__)
                 is_enabled = addon_utils.check(mod.__name__)[1]  # [1] returns whether it's loaded
         
-            statusString="  NA  "
+            
             if is_enabled:
                 statusString="ACTIVE"
                 extAddons_loaded_count= extAddons_loaded_count + 1
             else:
+                statusString=" OFF  "
                 extAddons_NotLoaded_count= extAddons_NotLoaded_count + 1
                 
             log_msg("---------- {} - '{}' ({}) v{}.{}.{} -----".format(statusString, mod.bl_info.get("name"), mod.__name__, ver[0], ver[1], ver[2]  ))
@@ -893,11 +894,11 @@ def addon_doList(load_3rdParty = False):
     log_msg("##### Total  count:            {} ".format(total_count))
     log_msg("##### 3rd Party    loaded:     {} ".format(extAddons_loaded_count))
     log_msg("##### 3rd Party    not loaded: {} ".format(extAddons_NotLoaded_count))
-    log_msg("##### Blender      loaded:     {} \n{}\n".format(blenderAddons_loaded_count,blenderAddons_loaded))
+    log_msg("##### Blender      loaded:     {} \n\t\t\t\t\t\t\t\t{}".format(blenderAddons_loaded_count,blenderAddons_loaded))
     
     v_major, v_minor, _ = bpy.app.version
     if v_major > 4 or (v_minor > 1 and v_major == 4):    
-        log_msg("##### Blender      not loaded: {} \n{}\n".format(blenderAddons_NotLoaded_count,blenderAddons_NotLoaded))
+        log_msg("##### Blender      not loaded: {} \n\t\t\t\t\t\t\t\t{}".format(blenderAddons_NotLoaded_count,blenderAddons_NotLoaded))
     else:
         log_msg("##### Blender      not loaded: {}".format(blenderAddons_NotLoaded_count))
        
@@ -948,6 +949,8 @@ if __name__ == "__main__":
     current_version = bpy.app.version
     log_msg(f"Scene was saved with:  Blender {'.'.join(str(v) for v in saved_version)}")
     log_msg(f"Running now:           Blender {'.'.join(str(v) for v in current_version)}")
+    if saved_version > current_version:
+        log_msg(f"WARNING: Scene was saved with a newer Blender version!")
     log_msg(" blend file opened ".center(100, "_"))
     flush_log()
 

@@ -285,14 +285,34 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
 [If] <rrJobRenderer>  [contains] redshift
     [If] <RR_REDSHIFT_NETWORK>  [==] 0
         [If] <RR_REDSHIFT_BASE>  [==] 
+            [If] <rrJobRendererVersionMajor> [<] 2026
                 [If] <rrExeOS>  [==] win
                     RR_REDSHIFT_BASE  =  c:\ProgramData\Redshift
                 [Else]
-                    RR_REDSHIFT_NETWORK  =  1
+                    [If] <rrExeOS>  [==] mac
+                        RR_REDSHIFT_BASE  =  /Applications/redshift
+                    [Else]
+                        RR_REDSHIFT_BASE  =  /usr/redshift
+                    [EndIf]
                 [EndIf]
+            [Else]
+                [If] <rrExeOS>  [==] win
+                    RR_REDSHIFT_BASE  =  C:\Program Files\Maxon Redshift <rrJobRendererVersionMajor>
+                [Else]
+                    [If] <rrExeOS>  [==] mac
+                        RR_REDSHIFT_BASE  =  /Applications/Maxon Redshift <rrJobRendererVersionMajor>
+                    [Else]
+                        RR_REDSHIFT_BASE  =  /usr/Maxon Redshift <rrJobRendererVersionMajor> 
+                    [EndIf]
+                [EndIf]
+            [EndIf]
         [EndIf]
     [EndIf]
 [EndIf]
+
+
+            
+            
 
 #if no Redshift folder was defined in __inhouse file and we do not use local folder, define Redshift network shared folder
 [If] <RR_REDSHIFT_BASE>  [==] 
