@@ -36,7 +36,7 @@ permanentErrorSearchLine = Click here to activate the license
 permanentErrorSearchLine = Error running authentication
 permanentErrorSearchLine = Missing serial number
 #permanentErrorSearchLine = Invalid License from License Server
-permanentErrorSearchLine = err: OperationCancelled
+#permanentErrorSearchLine = err: OperationCancelled   Cannot be enabled as "OperationCancelledError [world.cpp" it happens in 2026 while closing 
 
 licenseFailLine= Could not get a license
 #licenseFailLine= Invalid License
@@ -72,6 +72,7 @@ RemoveFromLog= StartsWith ~ Warning: Team Render is deactivated
 RemoveFromLog= Contains ~ opencl.dll \n Windows System Error #126
 RemoveFromLog= Contains ~ g_licenseusername
 RemoveFromLog= Contains ~ g_licensepassword
+RemoveFromLog= Contains ~ OperationCancelledError [world.cpp
 RemoveFromLog_NotDebugVerbose= StartsWith ~ CRITICAL: CONSTSTRING not freed:
 RemoveFromLog_NotDebugVerbose= StartsWith ~ Warning: Unknown arguments
 RemoveFromLog_NotDebugVerbose= StartsWith ~ CRITICAL: Stop [ge_container.cpp
