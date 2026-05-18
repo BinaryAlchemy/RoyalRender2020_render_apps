@@ -26,6 +26,15 @@ SeparateRenderLogFile= <rrLocalTemp><SceneFileName>.crash.txt
 
 TexReplaceFormat= .blend ~ FOR4 ~ AlwaysForward
 
+
+FlagsVerboseDefault= --log-level info
+FlagsVerboseNone= --log-level fatal
+FlagsVerboseWarning= --log-level warning
+FlagsVerboseInformation= --log-level info
+FlagsVerboseProgress= --log-level info
+FlagsVerboseDebug= --log-level debug
+
+
 licenseFailLine=  No license suitable to run
 
 permanentErrorSearchLine = Unknown Blender file version
@@ -38,10 +47,12 @@ findFrameNoPost= <ImageExtensionSlash>
 
 
 RemoveFromLog_NotDebugVerbose= Contains ~ | Updating
+#RemoveFromLog_NotDebugVerbose= Contains ~ | Updating Images |
 RemoveFromLog_NotDebugVerbose= Contains ~ | Synchronizing object |
 RemoveFromLog_NotDebugVerbose= Contains ~ | Building OptiX acceleration structure |
-RemoveFromLog_NotDebugVerbose= Contains ~ | Updating Images |
-
+RemoveFromLog_NotDebugVerbose= Contains ~ cycles           | Adaptive sampling::
+RemoveFromLog_NotDebugVerbose= Contains ~ cycles           | Rendered
+RemoveFromLog_NotDebugVerbose= Contains ~ cycles           | Use
 
 
 
