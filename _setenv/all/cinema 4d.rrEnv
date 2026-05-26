@@ -66,12 +66,16 @@ g_additionalModulePath  =  <g_additionalModulePath>
 
 # ###################  RedShift environment variables ###################
 
+[If] <RR_REDSHIFT_VERSION>  [==] 
+    RR_REDSHIFT_VERSION  =  <rrJobRendererVersion>
+[EndIf]
+
 [If] <rrJobRenderer>  [contains] redshift
     [If] <RR_REDSHIFT_NETWORK>  [==] 1
         [If] <RR_REDSHIFT_BASE>  [==]
-            RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<rrJobRendererVersion>
+            RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>
         [EndIf]
-        RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<rrJobRendererVersion>
+        RR_REDSHIFT_BASE_LOCAL  =  <rrLocalExeDir>Redshift_<RR_REDSHIFT_VERSION>
     [EndIf]
     [If] <rrExeVersionMajor>  [<] 22
         # Local install conflicts with network Redshift in older release

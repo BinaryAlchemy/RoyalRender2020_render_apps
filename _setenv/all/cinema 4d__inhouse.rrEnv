@@ -44,6 +44,11 @@ C4D_rrPluginFolder =
 # Set the next line to 0 if you have Redshift installed locally on each render client
 RR_REDSHIFT_NETWORK  =  0
 
+# Override Redshift version to use:
+# RR_REDSHIFT_VERSION= 2026.4.0 
+# Override source path for Redshift. 
+# RR_REDSHIFT_BASE  =  <rrSharedExeDir>Redshift_<RR_REDSHIFT_VERSION>  
+
 
 # ###################  Octane environment variables ###################
 # # Set the next line to 1 if you have Octane installed as network install into the RR folder
