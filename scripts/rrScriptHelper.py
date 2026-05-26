@@ -1,3 +1,5 @@
+#  %rrVersion%
+
 import sys
     
 class rrOS(object):   

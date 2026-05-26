@@ -1,3 +1,6 @@
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 import pymel.core as pm
 from pymel.core import PyNode
 from pymel.all import mel

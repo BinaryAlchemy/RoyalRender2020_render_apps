@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/home/MEDIANET/aschachner/Documents/work/tools/katana2rr/Resources/Plugins/ui/controlSession.ui'
+#Last change: %rrVersion%
+#Copyright (c) Holger Schoenberger - Binary Alchemy
 #
-# Created: Wed Jun 15 19:34:00 2016
-#      by: pyside-uic 0.2.14 running on PySide 1.2.0
-#
+# Form implementation generated from reading ui file 'controlSession.ui'
 # WARNING! All changes made in this file will be lost!
 
 from PySide import QtCore, QtGui

@@ -1,3 +1,4 @@
+# Last change: %rrVersion%
  
 IconApp=3D03__3dsMAX_s.png
 ImageSizeCommandline= 	"*ResX*;;<Width>"  "*ResY*;;<Height>"

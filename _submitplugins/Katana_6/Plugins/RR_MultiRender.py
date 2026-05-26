@@ -1,4 +1,7 @@
 """
+Last change: %rrVersion%
+Copyright (c) Holger Schoenberger - Binary Alchemy
+
 NAME: RR Start Multiple Renders...
 ICON: Icons/renderMode16.png
 

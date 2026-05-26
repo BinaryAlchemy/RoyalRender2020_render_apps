@@ -1,6 +1,6 @@
 #
 # This script adds or removes a client from a client group.
-#
+# %rrVersion%
 
 def findRR_Root():
     # findRR_Root adds the RR path as search path for the module

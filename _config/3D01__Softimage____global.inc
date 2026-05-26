@@ -1,3 +1,4 @@
+# Last change: %rrVersion%
 
 IconApp=3D01__Softimage.png
 

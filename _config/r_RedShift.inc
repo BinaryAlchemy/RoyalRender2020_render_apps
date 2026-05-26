@@ -1,3 +1,4 @@
+# Last change: %rrVersion%
 
 GPUrequired= 0~1
 Frozen_MinCoreUsage=0.40

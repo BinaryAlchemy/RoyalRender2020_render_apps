@@ -1,3 +1,4 @@
+# Last change: %rrVersion%
 
 
 RendererLicense= /Arnold

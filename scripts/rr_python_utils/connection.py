@@ -1,3 +1,6 @@
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 import logging
 import sys
 

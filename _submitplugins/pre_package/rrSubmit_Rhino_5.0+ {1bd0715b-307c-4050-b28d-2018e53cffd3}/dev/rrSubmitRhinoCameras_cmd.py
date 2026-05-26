@@ -4,7 +4,7 @@
 #
 # Royal Render Plugin script for Rhino
 # Author:  Royal Render, Paolo Acampora
-# Version v8.1.00
+# Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 #
 ######################################################################

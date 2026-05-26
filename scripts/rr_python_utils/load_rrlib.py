@@ -1,4 +1,7 @@
 """
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 Imports Royal Render main module for the current version of Python,
 e.g. :mod:`libpyRR39`
 

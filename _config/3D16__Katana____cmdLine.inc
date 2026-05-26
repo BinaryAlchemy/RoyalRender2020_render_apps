@@ -1,3 +1,5 @@
+# Last change: %rrVersion%
+
 ################################## [Windows] [Linux] [Osx] ##################################
 
 CommandLine=<envFileExecute <rrEnvFile>> 

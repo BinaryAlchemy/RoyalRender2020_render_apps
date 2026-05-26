@@ -1,3 +1,4 @@
+# Last change: %rrVersion%
 
 CropEXR=0~0
 

@@ -1,3 +1,5 @@
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
 
 import logging
 import os
@@ -71,6 +73,10 @@ def rr_sync_copy(src_path, dst_path, errors):
     """Copies src_path to dst_path, skips copy if dst_path exists and is up to date"""
     logger = get_logger()
 
+    if not os.path.exists(src_path):
+        errors.extend(("File not found ", src_path))
+
+
     src_stat = os.stat(src_path)
     if os.path.isfile(dst_path):
         dst_stat = os.stat(dst_path)
@@ -92,6 +98,8 @@ def rr_sync_copy(src_path, dst_path, errors):
             os.rename(dst_path, dst_path+".old")
     except OSError as reason:
         errors.extend(("Rename old",  dst_path, str(reason).replace("\\\\", "\\")))        
+    
+    
     # exceptions are handled in parent function
     shutil.copyfile(src_path, dst_path)
     

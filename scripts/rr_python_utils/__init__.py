@@ -1,4 +1,7 @@
 """
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 Scripting Utilities for Royal Render's Python Library
 =====================================================
 

@@ -1,3 +1,6 @@
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
+
 class RR_EnvironNotFound(Exception):
     pass
 

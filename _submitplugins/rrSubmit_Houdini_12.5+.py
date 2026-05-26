@@ -1,6 +1,6 @@
 # Royal Render Plugin script for Houdini 12.5+
 # Author: Royal Render, Holger Schoenberger, Binary Alchemy
-# Last change: v8.3.05
+# Last change: %rrVersion%
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # rrInstall_Copy: ../houdini/scripts/
 # rrInstall_Change_File_delete: ../houdini/MainMenuCommon.xml, before "</mainMenu>", "<addScriptItem id=\"h.royalrender\">\n	<parent>render_menu</parent>\n	<label>Submit RRender</label>\n	<scriptPath>$HFS/houdini/scripts/rrSubmit_Houdini_12.5+.py</scriptPath>\n	<scriptArgs></scriptArgs>\n	<insertAfter/>\n  </addScriptItem>\n\n"

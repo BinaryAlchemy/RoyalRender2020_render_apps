@@ -1,3 +1,5 @@
+#  %rrVersion%
+#  Copyright (c)  Holger Schoenberger - Binary Alchemy
 
 import socket
 import argparse
