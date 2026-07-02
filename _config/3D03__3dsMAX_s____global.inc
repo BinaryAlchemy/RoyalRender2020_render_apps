@@ -95,6 +95,12 @@ RenderAppWindow_WIN= TimeSlider ~
 RenderAppWindow_WIN= Brush Presets ~
 RenderAppWindow_WIN= Asset Tracking ~
 RenderAppWindow_WIN= Scripting Editor ~
+RenderAppWindow_WIN= Chaos Scatter Toolbar ~
+RenderAppWindow_WIN= PhoenixFD Toolbar ~
+RenderAppWindow_WIN= RailClone ~
+RenderAppWindow_WIN= Scripting Editor ~
+RenderAppWindow_WIN= Vantage Toolbar ~
+
 
 
 RenderAppWindow_WIN= Maxwell Translation Window ~
