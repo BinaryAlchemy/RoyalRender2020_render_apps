@@ -102,7 +102,7 @@ def launch_rr_submitter(tmpfile_name, show_ui=True):
         if show_ui:
             submitCMDs = (f'{rr_root}\\win__{submitter}.bat', tmpfile_name)
         else:
-            submitCMDs = (f'{rr_root}\\bin\\win64\{submitter}.exe', tmpfile_name)
+            submitCMDs = (f'{rr_root}\\bin\\win64\\{submitter}.exe', tmpfile_name)
     elif sys.platform.lower() == "darwin":
         submitCMDs = (f'{rr_root}/bin/mac64/{submitter}.app/Contents/MacOS/{submitter}', tmpfile_name)
     else:
@@ -157,6 +157,7 @@ class rrJob:
         self.imageStereoL = ""
         self.sceneOS = ""
         self.camera = ""
+        self.multicam = False
         self.layer = ""
         self.channel = ""
         self.maxChannels = 0
@@ -287,7 +288,11 @@ class rrJob:
 
 
 def get_seq_range(package_name):
-    asset_data = unreal.EditorAssetLibrary.find_asset_data(package_name)
+    try:
+        asset_data = unreal.EditorAssetLibrary.find_asset_data(package_name)
+    except TypeError:
+        asset_data = unreal.EditorAssetLibrary().find_asset_data(package_name)
+
     seq_range = asset_data.get_asset().get_playback_range()
 
     assert seq_range.has_start_value
@@ -325,7 +330,11 @@ def get_job_sequence(ue_job):
     seq_asset_path = ue_job.sequence.to_tuple()[0]
     package_path_seq = seq_asset_path.rsplit('.', 1)[0]
 
-    asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
+    try:
+        asset_data = unreal.EditorAssetLibrary.find_asset_data(package_path_seq)
+    except TypeError:
+        asset_data = unreal.EditorAssetLibrary().find_asset_data(package_path_seq)
+
     asset = asset_data.get_asset()
 
     return asset
@@ -412,7 +421,7 @@ def copy_output_settings(setting, ue_job, new_job_rr):
 def get_file_params(ue_job):
     file_params = unreal.MoviePipelineFilenameResolveParams()
     file_params.job = ue_job
-
+    
     try:
         first_shot = ue_job.shot_info[1]
     except IndexError:
@@ -420,13 +429,68 @@ def get_file_params(ue_job):
     else:
         file_params.shot_override = first_shot
     
-    file_params.initialization_version = unreal.MoviePipelineLibrary().resolve_version_number(file_params)
+    try:
+        file_params.initialization_version = unreal.MoviePipelineLibrary.resolve_version_number(file_params)
+    except TypeError:
+        file_params.initialization_version = unreal.MoviePipelineLibrary().resolve_version_number(file_params)
+
     file_params.shot_override = None
     
     return file_params
 
 
-def collect_rr_jobs(base_job_rr, queue):
+def get_seq_camera(sequence):
+    try:
+        camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+    except AttributeError:
+        camera_track = next((t for t in sequence.get_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+    
+    if not camera_track:
+        return ""
+    
+    sections = camera_track.get_sections()
+    if not sections:
+        return ""
+    
+    if len(sections) > 1:
+        unreal.log_warning(f"Sequence {sequence.get_name()} seems to contain multiple Camera sections: only the first one is taken into account")
+        # TODO: split job?
+
+    section = sections[0]
+    camera_id = section.get_camera_binding_id()
+
+    if camera_id is None:
+        return ""
+
+    try:
+        which_was_open = unreal.LevelSequenceEditorBlueprintLibrary.get_current_level_sequence()
+    except TypeError:
+        level_seq_lib = unreal.LevelSequenceEditorBlueprintLibrary()
+        which_was_open = level_seq_lib.get_current_level_sequence()
+    else:
+        level_seq_lib = unreal.LevelSequenceEditorBlueprintLibrary
+
+    if which_was_open != sequence:
+        success = level_seq_lib.open_level_sequence(sequence)
+        if not success:
+            unreal.log_warning(f"While retrieving Camera, Could not open sequence {sequence.get_name()}")
+
+    camera_objects = level_seq_lib.get_bound_objects(section.get_camera_binding_id())
+
+    # reset sequencer status
+    if not which_was_open:
+        level_seq_lib.close_level_sequence()
+    elif which_was_open != sequence:
+        level_seq_lib.open_level_sequence(which_was_open)
+    
+    if not camera_objects:
+        unreal.log_warning("Got Camera ID but couldn't track Camera Object")
+        return ""
+
+    return camera_objects[0].get_actor_label()
+
+
+def collect_rr_jobs(base_job_rr: rrJob, queue):
     rr_jobs = []
 
     # get Unreal Engine jobs
@@ -505,6 +569,10 @@ def collect_rr_jobs(base_job_rr, queue):
 
                 continue
 
+            if isinstance(setting, unreal.MoviePipelineCameraSetting):
+                new_job_rr.multicam = setting.render_all_cameras
+                continue
+
             class_name = setting.get_class().get_name()
 
             if class_name == 'MoviePipelineWaveOutput':
@@ -523,7 +591,14 @@ def collect_rr_jobs(base_job_rr, queue):
         if new_job_rr.imageSingleOutput:
             split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
 
+        if new_job_rr.multicam and "<Camera>" not in new_job_rr.imageFileName:
+            unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, adding .<Camera>. to file name")
+            new_job_rr.imageFileName += ".<Camera>."
+            # TODO: add other cameras as channels
+
         job_sequence = get_job_sequence(ue_job)
+        new_job_rr.camera = get_seq_camera(job_sequence)
+
         shot_tracks = get_seq_tracks(job_sequence)
 
         if len(shot_tracks) > 1:
@@ -537,14 +612,18 @@ def collect_rr_jobs(base_job_rr, queue):
         file_params = get_file_params(ue_job)
 
         new_job_rr.seqName = seq_asset_name
-        movie_lib = unreal.MoviePipelineLibrary()
 
         def set_full_sequence_job(a_job):
             a_job.shotName = "NoShot"
 
-            a_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageFileName, file_params)
+            try:
+                a_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(a_job.imageFileName, file_params)
+            except TypeError:
+                movie_lib = unreal.MoviePipelineLibrary()
+            else:
+                movie_lib = unreal.MoviePipelineLibrary
+                
             a_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageDir, file_params)
-
             a_job.imageFileName = a_job.imageFileName.replace(".{ext}", "")
             a_job.imageDir = a_job.imageDir.replace(".{ext}", "")
 
@@ -612,15 +691,23 @@ def collect_rr_jobs(base_job_rr, queue):
                         unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
                     shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
 
-                shot_job.imageFileName, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
+                try:
+                    shot_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
+                except TypeError:
+                    movie_lib = unreal.MoviePipelineLibrary()
+                else:
+                    movie_lib = unreal.MoviePipelineLibrary
+
                 shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
 
                 shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
                 shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
 
                 if file_params.shot_override:
-                    shot_job.camera = file_args.filename_arguments['camera_name']
-                    shot_job.shotName = file_args.filename_arguments['shot_name']
+                    if shot_cam := file_args.filename_arguments['camera_name']:
+                        shot_job.camera = shot_cam
+                    if shot_name := file_args.filename_arguments['shot_name']:
+                        shot_job.shotName = shot_name
 
                 shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
 
@@ -658,8 +745,14 @@ def submit_rr_jobs(base_job_rr, rr_jobs, show_ui=True):
 def create_base_job():
     # attributes for all RR jobs
 
-    system_lib = unreal.SystemLibrary()
-    unreal_ver = system_lib.get_engine_version().split('-', 1)[0]
+    try:
+        unreal_ver = unreal.SystemLibrary.get_engine_version().split('-', 1)[0]
+    except TypeError:
+        # before 5.5 BlueprintFunctionLibrary must be instanced
+        system_lib = unreal.SystemLibrary()
+    else:
+        system_lib = unreal.SystemLibrary
+
     project_dir = system_lib.get_project_directory()
     project_fpath = unreal.Paths().get_project_file_path()
     project_fdir, project_fname = os.path.split(project_fpath)
