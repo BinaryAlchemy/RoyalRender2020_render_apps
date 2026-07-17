@@ -10,9 +10,9 @@
 # Last change: %rrVersion%
 # Copyright (c)  Holger Schoenberger - Binary Alchemy
 #
-# #win:     rrInstall_Copy: <PUBLIC>\Documents\Keyshot\Scripts\
+# #win:     rrInstall_Copy: <PUBLIC>\Documents\Keyshot*\Scripts\
 #
-# #mac:     rrInstall_Copy: /Library/Application Support/KeyShot/Scripts
+# #mac:     rrInstall_Copy: /Library/Application Support/KeyShot*/Scripts
 #
 #########################################################################
 
