@@ -598,6 +598,13 @@ def collect_rr_jobs(base_job_rr: rrJob, queue):
 
         job_sequence = get_job_sequence(ue_job)
         new_job_rr.camera = get_seq_camera(job_sequence)
+        if new_job_rr.multicam and not new_job_rr.camera:
+            unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, but could not set the <Camera> property. Taking the first camera from the current level")
+            # FIXME: should check the sequence map instead
+            for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+                if isinstance(actor, unreal.CameraActor):
+                    new_job_rr.camera = actor.get_actor_label()
+                    break
 
         shot_tracks = get_seq_tracks(job_sequence)
 
