@@ -50,7 +50,8 @@ else:
 #
 
 def printDebug(msg):
-    if (True):
+    debug_val = os.environ.get("DEBUG_MODE", "OFF").upper()
+    if debug_val in ["TRUE", "ON", "1"]:
         print(msg)
 
 # option menus
@@ -669,23 +670,65 @@ class rrMayaLayer:
                 self.tempImageExtension="exr"
 
 
+    def getDriverForAOV(self, aovNode):
+        outputAttr = '{}.outputs'.format(aovNode)
+        indices = cmds.getAttr(outputAttr, multiIndices=True) or []
+        for idx in indices:
+            driverPlug = '{}[{}].driver'.format(outputAttr, idx)
+            conns = cmds.listConnections(driverPlug, source=True, destination=False)
+            if conns:
+                return conns[0]
+        return 'defaultArnoldDriver'
+            
     #add Arnold AOV to layer
     def addAOVToLayer(self):
         if (self.get_attr('defaultArnoldRenderOptions.aovMode')==0):
+            printDebug("No AOV: defaultArnoldRenderOptions.aovMode is OFF")
             return
+        mergeAOV= False
         if (self.get_attr('defaultArnoldDriver.mergeAOVs')==1):
-            return
-        #name = self.name
-        #if self.name == 'masterLayer':
-         #   name = 'defaultRenderLayer'
+            printDebug("No AOV: defaultArnoldDriver.mergeAOVs is ON")
+            mergeAOV=True
+            
         passes = cmds.ls(type='aiAOV')
         if passes == None or len(passes) == 0:
             return
         for p in passes:
-            if((cmds.nodeType(p)=='aiAOV') and (self.get_attr(p+'.enabled') == 1)):
-                self.channelFileName.append(self.imageFileName.replace('<Channel>', self.get_attr(p+'.name')))
-                self.channelExtension.append(self.imageExtension)
-                self.maxChannels +=1
+            if not (cmds.nodeType(p) == 'aiAOV' and self.get_attr(p+'.enabled') == 1):
+                continue
+
+            aovName = self.get_attr(p+'.name')
+            driver = self.getDriverForAOV(p)
+
+            outputMode = self.get_attr(driver+'.outputMode')
+            if outputMode == 0:
+                printDebug("Skipping AOV %s (driver %s): outputMode is OFF" % (aovName, driver))
+                continue
+
+            prefix = self.get_attr(driver+'.prefix')
+            prefix= prefix.replace('<Channel>', aovName)
+            prefix= prefix.replace('<RenderPass>', aovName)
+            prefix= prefix.replace('<RenderPass>', aovName)
+            prefix= prefix.replace("<RenderLayer>","<Layer>")
+            prefix= prefix.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but by Redshift
+
+            if prefix:
+                # Dateiname aus dem Original-Pfad entfernen, nur Ordner behalten
+                dirPath = os.path.dirname(self.imageFileName.replace('<RenderPass>', aovName))
+                fileName = os.path.join(dirPath, prefix)
+            else:
+                if mergeAOV:
+                    printDebug("Skipping AOV %s (driver %s): no prefix and mergeAOV is True" % (aovName, driver))
+                    continue
+                fileName = self.imageFileName.replace('<Channel>', aovName)
+            
+            if fileName in self.channelFileName:
+                printDebug("Skipping AOV %s: filename %s already in list" % (aovName, fileName))
+                continue
+
+            self.channelFileName.append(fileName)
+            self.channelExtension.append(self.imageExtension)
+            self.maxChannels += 1
 
     #add Redshift AOV to layer
     def addRedshiftAOVToLayer(self):
@@ -1476,7 +1519,7 @@ class rrsceneInfo:
         
         self.ColorSpace = cmds.colorManagementPrefs(q=True, renderingSpaceName=True)
         self.ColorSpaceConfigFile = cmds.colorManagementPrefs(q=True, configFilePath=True)
-        self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewTransformName=True)
+        self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewName=True)
 
         self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace("<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
         mayaPath=cmds.internalVar(mayaInstallDir=True)

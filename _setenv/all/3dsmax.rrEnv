@@ -42,8 +42,9 @@ LOCALAPPDATA =  <rrLocalRoot>SysUserPrefs\<rrClientThreadIDstr>\AppData\Local
 
 
 #Disable data collection:
-[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADAOptIn /d 0 /t REG_DWORD /f
-[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADARePrompted /d 1 /t REG_DWORD /f
+# currently breaks 2027
+#[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADAOptIn /d 0 /t REG_DWORD /f
+#[exec] REG ADD HKCU\SOFTWARE\Autodesk\MC3 /v ADARePrompted /d 1 /t REG_DWORD /f
 
 #[Exists]
 #	echo .

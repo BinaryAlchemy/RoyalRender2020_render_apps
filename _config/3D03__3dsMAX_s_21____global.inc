@@ -94,6 +94,21 @@ RenderAppWindow_WIN= 3dsmax ~ AnimatePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimePanel ~
 RenderAppWindow_WIN= 3dsmax ~ TimeSlider ~
 RenderAppWindow_WIN= 3dsmax ~ Cancel Expert Mode ~
+RenderAppWindow_WIN= PhoenixFD Toolbar ~
+RenderAppWindow_WIN= StatusPanel ~
+RenderAppWindow_WIN= ViewControlPanel ~
+RenderAppWindow_WIN= AnimatePanel ~
+RenderAppWindow_WIN= TimePanel ~
+RenderAppWindow_WIN= TimeSlider ~
+RenderAppWindow_WIN= Brush Presets ~
+RenderAppWindow_WIN= Asset Tracking ~
+RenderAppWindow_WIN= Scripting Editor ~
+RenderAppWindow_WIN= Chaos Scatter Toolbar ~
+RenderAppWindow_WIN= PhoenixFD Toolbar ~
+RenderAppWindow_WIN= RailClone ~
+RenderAppWindow_WIN= Scripting Editor ~
+RenderAppWindow_WIN= Vantage Toolbar ~
+RenderAppWindow_WIN= Forest Pack ~
 
 
 
@@ -105,6 +120,8 @@ RenderAppWindow_WIN= V-Ray frame buffer - ~
 RenderAppWindow_WIN= Render history - ~
 RenderAppWindow_WIN= Color corrections - ~
 RenderAppWindow_WIN= Stamp variables window - ~
+RenderAppWindow_WIN= Chaos Scatter Toolbar - ~
+
 
 RenderAppWindow_WIN= Pixel information - ~
 RenderAppWindow_WIN= Corona 5 | - ~

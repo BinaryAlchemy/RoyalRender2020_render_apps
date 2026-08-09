@@ -100,6 +100,7 @@ RenderAppWindow_WIN= PhoenixFD Toolbar ~
 RenderAppWindow_WIN= RailClone ~
 RenderAppWindow_WIN= Scripting Editor ~
 RenderAppWindow_WIN= Vantage Toolbar ~
+RenderAppWindow_WIN= Forest Pack ~
 
 
 

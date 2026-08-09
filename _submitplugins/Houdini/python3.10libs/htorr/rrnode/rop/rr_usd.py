@@ -482,7 +482,7 @@ class UsdStandalone(UsdRop):
                         
                         if (isValidImage):
                             allproducts.append(product)
-
+                    allproducts.reverse()
             
             
             #Render settings overrides the resolution     
@@ -731,7 +731,7 @@ class UsdRenderRop(RenderNode):
                         
                         if (isValidImage):
                             allproducts.append(product)
-
+                    allproducts.reverse()
         
         
             #Render settings overrides the resolution     

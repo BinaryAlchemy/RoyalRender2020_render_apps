@@ -67,19 +67,11 @@ struct rrSubmit_scriptrender
 
     ,fn getRRPath =
         (
-        cmdLine= "cmd.exe /c echo %RR_ROOT% > " + sysInfo.tempdir + "env.txt"
-        DOSCommand cmdLine
-        in_text = openfile (sysInfo.tempdir + "env.txt")
-        str = ""
-        if (not eof in_text) do
-            (
-            str = readLine in_text
-            )
-        close in_text
-        deleteFile (sysInfo.tempdir + "env.txt")
+        local str = (dotNetClass "System.Environment").GetEnvironmentVariable "RR_ROOT"
+
         if (str != undefined) then (
             str = trimRight str
-            )
+        )        
         if ((str.count>0) and (str[1]=="%")) then str = ""
         if (str.count==0) then str = "%RRLocationWin%"
         if ((str.count>0) and (str[1]=="%")) then str = ""
