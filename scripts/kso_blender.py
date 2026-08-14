@@ -495,14 +495,21 @@ def render_frame_range(start, end, step, movie=False):
             log_msg(f"Rendering Frame #{fr} ...")
             flush_log()
 
-            scene.frame_start = fr
-            scene.frame_end = fr
-            bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
+            try:
+                bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER, frame_start=fr, frame_end=fr)
+            except TypeError:  # blender 4.5-
+                scene.frame_start = fr
+                scene.frame_end = fr
+                bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
+
     else:
         log_msg(f"Rendering Frames: {start} - {end}, {step}   (no 'frame by frame' loop)")
-        set_frame_range(start, end, step)
         flush_log()
-        bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
+        try:
+            bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER, frame_start=start, frame_end=end)
+        except TypeError:  # blender 4.5-
+            set_frame_range(start, end, step)
+            bpy.ops.render.render(animation=True, use_viewport=False, scene=RENDER_SCENE, layer=RENDER_LAYER)
 
 
 def set_output_path():
