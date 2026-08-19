@@ -66,7 +66,12 @@ class RoyalRender_Submitter(bpy.types.Panel):
         row = col.row()
         row.label(text="StartFrame: " + str(scn.frame_start))
         row.label(text="EndFrame: " + str(scn.frame_end))
-        if scn.render.save_output:
+        try:
+            save_output = scn.render.save_output
+        except AttributeError:
+            save_output = True
+
+        if save_output:
             col.label(text="ImageType: " + img_type)
             col.label(text="ImageName: " + os.path.basename(renderOut))
             col.label(text="RenderDir: " + os.path.dirname(renderOut))
