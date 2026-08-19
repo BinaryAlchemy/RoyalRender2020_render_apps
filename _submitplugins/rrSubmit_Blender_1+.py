@@ -21,11 +21,22 @@ bl_info = {
     "category": "Render",
     }
 
+
 import bpy
 import os
 import tempfile
 import sys
 import subprocess
+
+
+class OutputEntry:
+
+    def __init__(self, filepath, file_format, socket_type, name):
+        self.filepath = filepath
+        self.file_format = file_format
+        self.socket_type = socket_type
+        self.name = str(name).lower()
+
 
 class RoyalRender_Submitter(bpy.types.Panel):
     """Creates an XML and start the RR Submitter"""
@@ -55,9 +66,12 @@ class RoyalRender_Submitter(bpy.types.Panel):
         row = col.row()
         row.label(text="StartFrame: " + str(scn.frame_start))
         row.label(text="EndFrame: " + str(scn.frame_end))
-        col.label(text="ImageType: " + img_type)
-        col.label(text="ImageName: " + os.path.basename(renderOut))
-        col.label(text="RenderDir: " + os.path.dirname(renderOut))
+        if scn.render.save_output:
+            col.label(text="ImageType: " + img_type)
+            col.label(text="ImageName: " + os.path.basename(renderOut))
+            col.label(text="RenderDir: " + os.path.dirname(renderOut))
+        else:
+            col.label(text="ImageType: Compositor Output")
 
         if not bpy.data.is_saved:
             row = layout.row()
@@ -178,6 +192,84 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
                                                                suffix)
         return renderOut, extension
 
+    def getCompOutputNodes(self, scn):
+        if scn.render.use_compositing and scn.use_nodes:
+            try:
+                node_container = scn.compositing_node_group
+            except AttributeError:
+                node_container = scn.node_tree
+
+            if node_container:
+                for node in node_container.nodes:
+                    if node.type != 'OUTPUT_FILE':
+                        continue
+                    if node.mute:
+                        continue
+
+                    yield node
+
+    def getCompFileOut(self, scn):
+        for node in self.getCompOutputNodes(scn):
+            try:
+                base_path = node.directory  # blender 5.0
+            except AttributeError:
+                base_path = node.base_path
+
+            try:
+                base_filename = node.file_name  # blender 5.0
+                file_items = node.file_output_items
+            except AttributeError:
+                base_filename = ""
+                file_items = node.file_slots
+
+            if node.format.file_format == 'OPEN_EXR_MULTILAYER':
+                if node.label.startswith('File Output'):
+                    out_name = next(
+                        (s.name for s in file_items if 'beauty' in s.name.lower()),
+                        ((s.name for s in file_items if 'diffuse' in s.name.lower()),
+                         ((s.name for s in file_items if s.socket_type == 'RGBA'), node.label)
+                        ))
+                else:
+                    out_name = node.label
+
+                full_path = os.path.join(base_path, base_filename).replace("{node_name}", node.name)
+                yield OutputEntry(full_path, node.format.file_format, 'RGBA', out_name)
+                continue
+
+            for i, out_slot in enumerate(file_items):
+                if not node.inputs[i].links:
+                    continue
+
+                try:
+                    override_format = out_slot.override_node_format
+                except AttributeError:
+                    override_format = not out_slot.use_node_format
+
+                out_format = out_slot.format.file_format if override_format else node.format.file_format
+
+                out_filename = base_filename
+                try:
+                    out_filename += out_slot.name
+                except AttributeError:
+                    out_filename += out_slot.path
+
+                full_path = os.path.join(base_path, out_filename).replace("{node_name}", node.name)
+                yield OutputEntry(full_path, out_format, out_slot.socket_type, out_slot.name)
+
+    def writeCompOutputAsChannels(self, fileID, comp_outputs):
+        if not comp_outputs:
+            return
+
+        # create tmp scene to take advantage of Scene.render.file_extension
+        tmp_resolve = bpy.data.scenes.new(f'_rr_tmp_resolve_DELETE_THIS_')
+
+        for comp_output in comp_outputs:
+            tmp_resolve.render.image_settings.file_format = comp_output.file_format.replace('_MULTILAYER', "")
+            self.writeNodeStr(fileID, "ChannelFilename", comp_output.filepath)
+            self.writeNodeStr(fileID, "ChannelExtension", tmp_resolve.render.file_extension)
+
+        bpy.data.scenes.remove(tmp_resolve)
+
     def writeSceneJobs(self, scn, fileID, scene_state="", is_active=True):
         try:
             layers = scn.view_layers
@@ -192,8 +284,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
             for layer in layers:
                 self.writeLayerJob(scn, fileID, scene_state, layer.name, is_active=per_layer_active and layer == bpy.context.view_layer)
                 
-
     def writeFileOutNodes(self, fileID, scn):
+        # Not used anymore: we switched to writeCompOutputAsChannels() which handles list of OutputEntry
         if not scn.render.use_compositing:
             return
         if not scn.use_nodes:
@@ -266,11 +358,44 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         bpy.data.scenes.remove(tmp_resolve)
 
+    @staticmethod
+    def get_path_templates(scn):
+        """Replace render tokens in output path"""
+        blender_dir, blender_file = os.path.split(bpy.data.filepath)
+        res_scale = scn.render.resolution_percentage / 100
+
+        # FIXME: Could have used <Scene> and <SceneFolder>, but that doesn't seem to work for channels
+        return dict(
+            blend_name=os.path.splitext(blender_file)[0],
+            blend_dir=bpy.path.abspath(blender_dir),
+            scene_name=scn.name,
+            camera_name="<Camera>",
+            fps=scn.render.fps * scn.render.fps_base,
+            resolution_x=int(scn.render.resolution_x * res_scale),
+            resolution_y=int(scn.render.resolution_y * res_scale),
+            )
+    @staticmethod
+    def replace_padding_specifier(in_str, max_tries=10):
+        """Replaces # padding with python string formatter, e.g ':###.#' becomes ':05.1f'"""
+        count = 0
+        while "#}" in in_str:
+            count += 1
+            if count > max_tries:
+                break
+            spec_end = in_str.rindex("#}") + 1
+            spec_start = in_str.rindex(":", 0, spec_end) + 1
+            spec = in_str[spec_start : spec_end]
+            try:
+                fnum, ffloat = spec.split(".", 1)
+                int_digits = len(fnum)
+                float_digits = len(ffloat)
+                in_str = f"{in_str[:spec_start]}0{int_digits + float_digits + 1}.{float_digits}f{in_str[spec_end:]}"
+            except ValueError:
+                in_str = f"{in_str[:spec_start]}0{len(spec)}f{in_str[spec_end:]}"
+
+        return in_str
 
     def writeLayerJob(self, scn, fileID, scene_state="", layer="", is_active=True):
-        # file_format and file_codec are used in the render script
-        file_format = scn.render.image_settings.file_format
-        
         v_major, v_minor, v_release = bpy.app.version
         blender_version= "{0}.{1}.{2}".format(v_major, v_minor, v_release)
         blender_appName="Blender"
@@ -279,40 +404,108 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         if (blender_path.find("Octane")>0 or blender_path.find("octane")>0):
             blender_version=self._renderer_version
             blender_appName="OctaneBlender"
-        
-        
-        
-        is_single_output = file_format == 'FFMPEG' or file_format.startswith('AVI_')
 
-        # cmd_frame_format is different in blender 2.79 commandline -F
-        if v_major < 3 and v_minor < 80:
-            file_format = file_format.replace("OPEN_", "")
-            file_format = file_format.replace("TARGA_RAW", "RAWTGA")
-            file_format = file_format.replace("TARGA", "TGA")
-
-        if file_format == "JPEG2000":
-            file_format = scn.render.image_settings.jpeg2k_codec
-
-        render_out = bpy.path.abspath(scn.render.filepath)
+        comp_outputs = list(self.getCompFileOut(scn))
 
         try:
-            hash_position = render_out.rindex('#')
-            renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if render_out[i] != '#')
+            use_scene_output = scn.render.save_output
+        except AttributeError:  # always using scene output before Blender 5.0
+            use_scene_output = True
+
+        job_out = OutputEntry(bpy.path.abspath(scn.render.filepath), scn.render.image_settings.file_format, None, "")
+        extension = ""
+        if use_scene_output:
+            # file_format and file_codec are used in the render script
+            is_single_output = job_out.file_format == 'FFMPEG' or job_out.file_format.startswith('AVI_')
+
+            if scn.render.use_file_extension:
+                extension = scn.render.file_extension
+            # TODO: else check for extension in render_out, e.g. imagename_####.exr
+        else:
+            if not comp_outputs:
+                self.report({'ERROR'}, "'Output' checkbox is disabled, but no 'File Output' nodes found, please check the Compositor")
+                fileID.close()
+                raise Exception("Unable to find compositor output")
+
+            is_single_output = False  #  no video output from compositor
+            # Render plugin doesn't change compositor output at present
+            fileID.write("<SubmitterParameter>")
+            fileID.write("AllowImageNameChange=0")
+            fileID.write("</SubmitterParameter>")
+            fileID.write("<SubmitterParameter>")
+            fileID.write("AllowImageDirChange=0")
+            fileID.write("</SubmitterParameter>")
+
+            # Look for best main output in the compositor
+            for i, comp_output in enumerate(comp_outputs):
+                self.report({'DEBUG'}, f"--------- {comp_output.name}: {comp_output.filepath}")
+                if 'beauty' in comp_output.name:
+                    self.report({'DEBUG'}, f"Using {comp_output.name} as job output")
+                    break
+            else:
+                for i, comp_output in enumerate(comp_outputs):
+                    if 'diffuse' in comp_output.name:
+                        self.report({'DEBUG'}, f"Using {comp_output.name} as job output")
+                        break
+                    if 'image' in comp_output.name:
+                        self.report({'DEBUG'}, f"Using {comp_output.name} as job output")
+                        break
+                else:
+                    for i, comp_output in enumerate(comp_outputs):
+                        if 'albedo' in comp_output.name:
+                            self.report({'DEBUG'}, f"Using {comp_output.name} as job output")
+                            break
+                        if 'direct' in comp_output.name:
+                            self.report({'DEBUG'}, f"Using {comp_output.name} as job output")
+                            break
+                    else:
+                        for i, comp_output in enumerate(comp_outputs):
+                            if comp_output.socket_type == 'MULTI':
+                                self.report({'WARNING'}, f"No 'beauty' or 'diffuse' Compositor Output found, using {comp_output.name} as job output")
+                                break
+                        else:
+                            for i, comp_output in enumerate(comp_outputs):
+                                if comp_output.socket_type == 'RGBA':
+                                    self.report({'WARNING'}, f"No 'beauty' or 'diffuse' Compositor Output found, using {comp_output.name} as job output")
+                                    break
+                            else:
+                                self.report({'WARNING'}, f"No RGBA Compositor Output sockets found, using {comp_outputs[i].name} as job output")
+
+            job_out = comp_outputs.pop(i)
+
+            tmp_resolve = bpy.data.scenes.new('_rr_tmp_resolve_DELETE_THIS_')
+            tmp_resolve.render.image_settings.file_format = job_out.file_format.replace('_MULTILAYER', "")
+            extension = tmp_resolve.render.file_extension
+
+            bpy.data.scenes.remove(tmp_resolve)
+
+        try:
+            hash_position = job_out.filepath.rindex('#')
+            renderPadding = hash_position - next(i for i in range(hash_position, 0, -1) if job_out.filepath[i] != '#')
         except ValueError:
             hash_position = -1
             renderPadding = 4
+            
+        if is_single_output:
+            job_out.filepath, extension = self.getSingleOutputExtension(scn, job_out.file_format, job_out.filepath, hash_position, renderPadding)
 
-        if scn.render.use_file_extension:
-            if is_single_output:
-                render_out, extension = self.getSingleOutputExtension(scn, file_format, render_out, hash_position, renderPadding)
-            else:
-                extension = scn.render.file_extension
-        else:
-            extension = ""
+        # cmd_frame_format is different in blender 2.79 commandline -F
+        if v_major < 3 and v_minor < 80:
+            job_out.file_format = job_out.file_format.replace("OPEN_", "")
+            job_out.file_format = job_out.file_format.replace("TARGA_RAW", "RAWTGA")
+            job_out.file_format = job_out.file_format.replace("TARGA", "TGA")
+
+        if job_out.file_format == "JPEG2000":
+            job_out.file_format = scn.render.image_settings.jpeg2k_codec
 
         writeNodeStr = self.writeNodeStr
         writeNodeInt = self.writeNodeInt
         writeNodeBool = self.writeNodeBool
+
+        path_templates = self.get_path_templates(scn)
+        job_out.filepath = self.replace_padding_specifier(job_out.filepath, max_tries=len(path_templates)).format(**path_templates)
+        for comp_output in comp_outputs:
+            self.replace_padding_specifier(comp_output.filepath, max_tries=len(path_templates)).format(**path_templates)
 
         fileID.write("<Job>\n")
         if (self._renderer_name=="Cycles"):
@@ -331,20 +524,22 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         writeNodeStr(fileID, "rendererVersion", self._renderer_version)
         writeNodeStr(fileID, "Version",  blender_version)
         writeNodeStr(fileID, "SceneState", scene_state)
+        writeNodeStr(fileID, "Camera", scn.camera.name)
         writeNodeBool(fileID, "IsActive", is_active)
         writeNodeStr(fileID, "Scenename", bpy.data.filepath)
         writeNodeBool(fileID, "ImageSingleOutputFile", is_single_output)
         writeNodeInt(fileID, "SeqStart", scn.frame_start)
         writeNodeInt(fileID, "SeqEnd", scn.frame_end)
         writeNodeInt(fileID, "SeqStep", scn.frame_step)
-        writeNodeStr(fileID, "ImageDir", os.path.dirname(render_out))
-        writeNodeStr(fileID, "Imagefilename", os.path.basename(render_out))
+        writeNodeStr(fileID, "ImageDir", os.path.dirname(job_out.filepath))
+        writeNodeStr(fileID, "Imagefilename", os.path.basename(job_out.filepath))
         writeNodeInt(fileID, "ImageFramePadding", renderPadding)
         writeNodeStr(fileID, "ImageExtension", extension)
-        self.writeFileOutNodes(fileID, scn)
+
+        self.writeCompOutputAsChannels(fileID, comp_outputs)
 
         writeNodeStr(fileID, "Layer", layer)
-        writeNodeStr(fileID, "CustomFrameFormat", file_format)
+        writeNodeStr(fileID, "CustomFrameFormat", job_out.file_format)
 
         out_colorspace = self.get_out_colorspace_settings(scn)
         if out_colorspace:
@@ -354,6 +549,14 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
         fileID.write("</Job>\n")
 
+    def cleanup_tmp_scenes(self):
+        for scene in reversed(bpy.data.scenes):
+            if scene.name.startswith('_rr_tmp_resolve'):
+                if not scene.objects:
+                    self.report({'INFO'}, f"Deleting utility scene {scene.name} from previous submission")
+                    bpy.data.scenes.remove(scene)
+                else:
+                    self.report({'WARNING'}, f"Not deleted utility scene {scene.name} seems to contain objects. Please check and delete the scene")
 
     def rrSubmit(self):
         self.report({'DEBUG'}, "Platform: {0}".format(sys.platform))
@@ -370,6 +573,8 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
         if self.hasRelativePaths():  # then we cannot use local scene copy
             fileID.write("AllowLocalSceneCopy=1~0")
         fileID.write("</SubmitterParameter>")
+
+        self.cleanup_tmp_scenes()
 
         is_multi_scene = len(bpy.data.scenes) > 1
         
@@ -463,7 +668,6 @@ class OBJECT_OT_SubmitScene(bpy.types.Operator):
 
     def execute(self, context):
         if bpy.data.is_dirty:
-
             # TODO: ask save
             try:
                 self.report({'INFO'}, "Saving mainFile...")

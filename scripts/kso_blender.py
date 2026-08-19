@@ -483,8 +483,10 @@ def set_frame_range(start, end, step):
 
 def render_frame_range(start, end, step, movie=False):
     scene = bpy.data.scenes[RENDER_SCENE]
+    scene.frame_step = step
+
     Path(os.path.dirname(scene.render.filepath)).mkdir(parents=True, exist_ok=True)
-    
+
     global NO_FRAME_LOOP
     if not (movie or NO_FRAME_LOOP):
         log_msg(f"Rendering Frames: {start} - {end}, {step}")
@@ -988,8 +990,6 @@ if __name__ == "__main__":
         set_render_region(args.borderMinX, args.borderMaxX, args.borderMinY, args.borderMaxY)
 
     multiply_render_samples(args.renderer, args.anti_alias_mult)
-    
-    set_frame_range(args.seq_start, args.seq_end, args.seq_step)
     set_output_path()
     
     out_format = set_output_format(args.render_fileext, args.render_format)

@@ -17,6 +17,7 @@ AllowImageNameChange= 1
 AllowImageDirChange= 1
 SequenceDivide= 0~1
 AllowLocalSceneCopy= 1~0
+UIStyle= 1~dark
 
 
 
