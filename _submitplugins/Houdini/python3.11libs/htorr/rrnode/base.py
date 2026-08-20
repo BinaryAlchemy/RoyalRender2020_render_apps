@@ -18,6 +18,21 @@ except ImportError:
     logger.info("Module imported outside of hython environment")
 
 
+
+def replace_frame_placeholders(text):
+    #<F1> is supported by e.g. husk commandline, but not inside Houdini UI
+    text = text.replace("<F1>", "$F1")
+    text = text.replace("<F2>", "$F2")
+    text = text.replace("<F3>", "$F3")
+    text = text.replace("<F4>", "$F4")
+    text = text.replace("<F5>", "$F5")
+    text = text.replace("<F6>", "$F6")
+    text = text.replace("<F7>", "$F7")
+    text = text.replace("<F8>", "$F8")
+    return text
+    
+    
+
 class rrNode(object):
     """Base Class for all Royal Render Node Wrapper Classes
 
@@ -417,7 +432,7 @@ class RenderNode(rrNode):
                 logger.warning(msg)
                 # logger.debug("'{}'  {} {} ".format(self.path, f1, f2 ))
 
-        msg = "'{}': Output name frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
+        msg = "'{}': Output name with frame number: '{}' for frame range {}-{}".format(self._node.path(), self.output_evalAtFrameA, self.frange[0], self.frange[1])
         logger.debug(msg)
 
         # always add python version. Required for some 3rdparty plugins to choose the right version (vray, renderman)
@@ -710,6 +725,7 @@ class RenderNode(rrNode):
         """
         hasOutput= True
         parmName= self.output_parm
+        fName=""
         if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
             hasOutput=False
         if (hasOutput):
@@ -721,11 +737,14 @@ class RenderNode(rrNode):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
             if (self.cached_renderproductCount>0):
-                return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameA"]
-        
-        fName= self._node.parm(self.output_parm).evalAtFrame(1)
-        #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+                hasOutput=True
+                fName=self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameA"]
+        if (not hasOutput): 
+            fName= self._node.parm(self.output_parm).evalAtFrame(1)
+            
+        fName = replace_frame_placeholders(fName)
         fName= hou.text.expandStringAtFrame(fName, 1)
+        logger.debug("output_evalAtFrameA: " + fName)
         return fName
         
     @property
@@ -735,6 +754,7 @@ class RenderNode(rrNode):
         """
         hasOutput= True
         parmName= self.output_parm
+        fName=""
         if ((parmName== None) or (len(parmName) == 0)): # No (spare) parameter to override the output name in the USD ROP.
             hasOutput=False
         if (hasOutput):
@@ -746,10 +766,12 @@ class RenderNode(rrNode):
                 self.cached_renderproductList= self.renderproductList
                 self.cached_renderproductCount= len(self.cached_renderproductList)         
             if (self.cached_renderproductCount>0):
-                return self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameB"]        
-        
-        fName= self._node.parm(self.output_parm).evalAtFrame(2)
-        #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+                hasOutput=True
+                fName=self.cached_renderproductList[self.cached_renderproductCount-1]["productOutnameB"]        
+        if (not hasOutput): 
+            fName= self._node.parm(self.output_parm).evalAtFrame(2)
+        fName = fName.replace("<F1>", "$F1").replace("<F2>", "$F2").replace("<F3>", "$F3").replace("<F4>", "$F4").replace("<F5>", "$F5").replace("<F6>", "$F6").replace("<F7>", "$F7").replace("<F8>", "$F8")
+        #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr", therefore:
         fName= hou.text.expandStringAtFrame(fName, 2)
         return fName
 

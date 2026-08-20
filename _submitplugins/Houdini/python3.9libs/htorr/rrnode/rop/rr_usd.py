@@ -118,6 +118,21 @@ def addKarma_Renderer(renderer):
     return ""
 
 
+
+def replace_frame_placeholders(text, frame):
+    #<F1> is supported by e.g. husk commandline, but not inside Houdini UI
+    text = text.replace("<F1>", "$F1")
+    text = text.replace("<F2>", "$F2")
+    text = text.replace("<F3>", "$F3")
+    text = text.replace("<F4>", "$F4")
+    text = text.replace("<F5>", "$F5")
+    text = text.replace("<F6>", "$F6")
+    text = text.replace("<F7>", "$F7")
+    text = text.replace("<F8>", "$F8")
+    text= hou.text.expandStringAtFrame(text, frame)
+    return text
+
+
 class UsdRop(RenderNode):
     """ USD ROP to write USD Files"""
 
@@ -190,8 +205,10 @@ class UsdRop(RenderNode):
     @property
     def single_output(self):
         if self._node.evalParm("fileperframe"):
-            f1 = self._node.parm(self.output_parm).evalAtFrame(1)
-            f2 = self._node.parm(self.output_parm).evalAtFrame(2)
+            f1 = replace_frame_placeholders(self._node.parm(self.output_parm).evalAtFrame(1),1)
+            f2 = replace_frame_placeholders(self._node.parm(self.output_parm).evalAtFrame(2),2)
+            #logger.debug("{}: UsdRop single_output: {} ".format(self._node.path(), f1))               
+            #logger.debug("{}: UsdRop single_output: {} ".format(self._node.path(), f2))               
             if (f1 == f2):
                 return True
             return False

@@ -14,6 +14,21 @@ except ImportError:
 
 FILE_TYPES = [".bgeo.sc", ".ass.gz", ".ifd.sc", ".exr"]
 
+
+def replace_frame_placeholders(text):
+    #<F1> is supported by e.g. husk commandline, but not inside Houdini UI
+    text = text.replace("<F1>", "$F1")
+    text = text.replace("<F2>", "$F2")
+    text = text.replace("<F3>", "$F3")
+    text = text.replace("<F4>", "$F4")
+    text = text.replace("<F5>", "$F5")
+    text = text.replace("<F6>", "$F6")
+    text = text.replace("<F7>", "$F7")
+    text = text.replace("<F8>", "$F8")
+    return text
+    
+    
+
 class Output(object):
     """Helper class to convert houdini output parameters into a more suitable representation for Royal Render.
     """
@@ -27,7 +42,10 @@ class Output(object):
         try:
             outf1 = parm.evalAtFrame(1)
             outf2 = parm.evalAtFrame(2)
-            #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr"
+            outf1 = replace_frame_placeholders(outf1)
+            outf2 = replace_frame_placeholders(outf2)
+            
+            #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr", therefore
             outf1= hou.text.expandStringAtFrame(outf1, 1)
             outf2= hou.text.expandStringAtFrame(outf2, 2)
         except:
@@ -39,12 +57,12 @@ class Output(object):
         path_no_ext = ""
         
         logger.debug("Output for frame 1 is {} (I)".format(repr(str(outf1))))
-        #logger.debug("Output for frame 2 is {} (I)".format(repr(str(outf2))))
+        logger.debug("Output for frame 2 is {} (I)".format(repr(str(outf2))))
         try:
             if outf2 != outf1:
                 self.static = False
                 exp = 0
-                while(len( hou.text.expandStringAtFrame(parm.evalAtFrame(math.pow(10,exp)), math.pow(10,exp))) == len(outf1)):
+                while(len( hou.text.expandStringAtFrame(replace_frame_placeholders(parm.evalAtFrame(math.pow(10,exp))), math.pow(10,exp))) == len(outf1)):
                     exp += 1
                 
                 self.padding = exp
@@ -96,6 +114,12 @@ class ProductOutput(object):
             #attrib.Get does not work with a frame for render products. Which means we always get the same frame name
             outf1 = attrib.Get(seqStart)
             outf2 = attrib.Get(seqEnd+1) 
+            outf1 = replace_frame_placeholders(outf1)
+            outf2 = replace_frame_placeholders(outf2)
+
+            #if parm is set via an expression, then it returns an unelevated string "$HIP/render/$HIPNAME.$OS.$F4.exr", therefore
+            outf1= hou.text.expandStringAtFrame(outf1, seqStart)
+            outf2= hou.text.expandStringAtFrame(outf2, seqEnd+1)
         except:
             logger.debug("No image output set.")
             return
@@ -109,11 +133,11 @@ class ProductOutput(object):
             self.static = False
             exp = 0
             lastOutName="empty"
-            while(lastOutName!=attrib.Get(math.pow(10,exp)) and len(attrib.Get(math.pow(10,exp))) == len(outf1)):
+            while(lastOutName!=replace_frame_placeholders(attrib.Get(math.pow(10,exp))) and len(replace_frame_placeholders(attrib.Get(math.pow(10,exp)))) == len(outf1)):
                 logger.debug("Output len test {} {} {}".format(exp, math.pow(10,exp) , attrib.Get(math.pow(10,exp))  ))
-                lastOutName=attrib.Get(math.pow(10,exp))
+                lastOutName=replace_frame_placeholders(attrib.Get(math.pow(10,exp)))
                 exp += 1
-            if (lastOutName == attrib.Get(math.pow(10,exp))):
+            if (lastOutName == replace_frame_placeholders(attrib.Get(math.pow(10,exp)))):
                 exp -= 1
 
             self.padding = exp
@@ -142,7 +166,7 @@ class ProductOutput(object):
                     self.extension = f
         
             if not self.extension:
-                self.extension = "." + attrib.Get(1).rsplit(".",1)[-1]
+                self.extension = "." + replace_frame_placeholders(attrib.Get(1)).rsplit(".",1)[-1]
             
             path_no_ext = outf1[:len(outf1)-len(self.extension)]
             if not singleOutput:
