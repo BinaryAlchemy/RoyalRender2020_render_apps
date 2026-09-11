@@ -955,9 +955,9 @@ if __name__ == "__main__":
     flush_log()
     open_blend_file(args.blend_file)
     saved_version = bpy.data.version
-    current_version = bpy.app.version
-    log_msg(f"Scene was saved with:  Blender {'.'.join(str(v) for v in saved_version)}")
-    log_msg(f"Running now:           Blender {'.'.join(str(v) for v in current_version)}")
+    current_version = bpy.app.version_file
+    log_msg(f"Scene was saved with:  Data version {'.'.join(str(v) for v in saved_version)}   (Please note that a Blender version does not match the Scene Data Version used in Blenders core!)")
+    log_msg(f"Running now:           Data version {'.'.join(str(v) for v in current_version)}")
     if saved_version > current_version:
         log_msg(f"WARNING: Scene was saved with a newer Blender version!")
     log_msg(" blend file opened ".center(100, "_"))
