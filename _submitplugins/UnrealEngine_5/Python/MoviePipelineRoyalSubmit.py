@@ -156,6 +156,8 @@ class rrJob:
         self.imageStereoR = ""
         self.imageStereoL = ""
         self.sceneOS = ""
+        self.sceneState = ""
+        self.sceneTake = ""
         self.camera = ""
         self.multicam = False
         self.layer = ""
@@ -242,6 +244,8 @@ class rrJob:
         self.subE(jobElement, "ImageStereoR", self.imageStereoR)
         self.subE(jobElement, "ImageStereoL", self.imageStereoL)
         self.subE(jobElement, "SceneOS", self.sceneOS)
+        self.subE(jobElement, "SceneState", self.sceneState)
+        self.subE(jobElement, "SceneTake", self.sceneTake)
         self.subE(jobElement, "Camera", self.camera)
         self.subE(jobElement, "Layer", self.layer)
         self.subE(jobElement, "Channel", self.channel)
@@ -491,6 +495,10 @@ def get_seq_camera(sequence):
 
 
 def resolve_full_sequence_filenames(a_job, file_params):
+    """Resolves imageFileName/imageDir tokens (version, date, etc.) for a job/channel that
+    covers the whole sequence rather than one shot - i.e. no shot_override on file_params.
+    Extracted out of finalize_shot_jobs() so MoviePipelineRoyalGraph.py can reuse it for the
+    combined '** All **' render-layer job, which isn't split by shot."""
     a_job.shotName = "NoShot"
 
     try:
@@ -505,18 +513,147 @@ def resolve_full_sequence_filenames(a_job, file_params):
     a_job.imageDir = a_job.imageDir.replace(".{ext}", "")
 
 
+def _get_all_camera_names_from_track(sequence):
+    """Returns every distinct camera actor label bound across all sections of the sequence's
+    Camera Cut Track (unlike get_seq_camera(), which only looks at the first section) - or []
+    if there's no camera track/binding. Mirrors get_seq_camera()'s open/close-sequencer dance."""
+    try:
+        camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+    except AttributeError:
+        camera_track = next((t for t in sequence.get_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+
+    if not camera_track:
+        return []
+
+    sections = camera_track.get_sections()
+    if not sections:
+        return []
+
+    try:
+        which_was_open = unreal.LevelSequenceEditorBlueprintLibrary.get_current_level_sequence()
+    except TypeError:
+        level_seq_lib = unreal.LevelSequenceEditorBlueprintLibrary()
+        which_was_open = level_seq_lib.get_current_level_sequence()
+    else:
+        level_seq_lib = unreal.LevelSequenceEditorBlueprintLibrary
+
+    if which_was_open != sequence:
+        if not level_seq_lib.open_level_sequence(sequence):
+            unreal.log_warning(f"While retrieving cameras, could not open sequence {sequence.get_name()}")
+            return []
+
+    names = []
+    for section in sections:
+        camera_id = section.get_camera_binding_id()
+        if camera_id is None:
+            continue
+        for obj in level_seq_lib.get_bound_objects(camera_id):
+            label = obj.get_actor_label()
+            if label not in names:
+                names.append(label)
+
+    if not which_was_open:
+        level_seq_lib.close_level_sequence()
+    elif which_was_open != sequence:
+        level_seq_lib.open_level_sequence(which_was_open)
+
+    return names
+
+
+def _get_multicam_camera_names(ue_job, job_sequence):
+    """Camera names for a 'render all cameras' job, in priority order per the RR script
+    developer's guidance: (1) every camera bound across the Camera Cut Track, since that's
+    known at submission time regardless of whether the map is loaded; (2) if that's empty, and
+    the map to render happens to be the one currently open in the editor, every CameraActor in
+    it (same caveat as before: the actual farm render may load a different/fresh copy of the
+    map, so this can be wrong - but it's the best available without risking loading a
+    potentially heavy map just to inspect it); (3) otherwise, give up and warn rather than
+    silently guessing."""
+    names = _get_all_camera_names_from_track(job_sequence)
+    if names:
+        return names
+
+    try:
+        current_world = unreal.EditorLevelLibrary.get_editor_world()
+        current_map_path = current_world.get_path_name().split('.', 1)[0] if current_world else None
+    except Exception:
+        current_map_path = None
+
+    job_map_path = ue_job.map.to_tuple()[0].rsplit('.', 1)[0]
+
+    if current_map_path != job_map_path:
+        unreal.log_warning(
+            f"job {ue_job.job_name}: multicam is enabled but there's no Camera Cut Track, and the "
+            "currently open level doesn't match the job's map, so its cameras can't be inspected "
+            "either. RR won't be able to verify this job's per-camera output; Camera is left blank. "
+            "Add a Camera Cut Track to the sequence, or open the job's map before submitting, to fix this."
+        )
+        return []
+
+    for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+        if isinstance(actor, unreal.CameraActor):
+            label = actor.get_actor_label()
+            if label not in names:
+                names.append(label)
+
+    if names:
+        unreal.log_warning(
+            f"job {ue_job.job_name}: no Camera Cut Track found, falling back to every CameraActor "
+            f"in the currently open level ({', '.join(names)}). This may not match the actual "
+            "render scene if the farm loads a fresh copy of the map - add a Camera Cut Track to "
+            "the sequence for a reliable result."
+        )
+    else:
+        unreal.log_warning(f"job {ue_job.job_name}: multicam is enabled but no cameras could be found at all. Camera is left blank.")
+
+    return names
+
+
+def _apply_multicam_channels(entries, ue_job, job_sequence):
+    """For a 'render all cameras' job, Unreal produces one output file per camera from a single
+    job - a single guessed camera name (the old behaviour) only ever matched one of those files,
+    so RR could only verify (at best) one camera's output and reported the rest as missing. This
+    fills channelFileName/channelExtension with one entry per camera instead, on every entry
+    finalize_shot_jobs() produced (the whole-sequence job and/or each shot job)."""
+    if not entries or not entries[0].multicam:
+        return
+
+    camera_names = _get_multicam_camera_names(ue_job, job_sequence)
+    if not camera_names:
+        return
+
+    for entry in entries:
+        if len(camera_names) == 1:
+            entry.camera = camera_names[0]
+            entry.imageFileName = entry.imageFileName.replace('<Camera>', camera_names[0])
+            continue
+
+        entry.channelFileName = [entry.imageFileName.replace('<Camera>', name) for name in camera_names]
+        entry.channelExtension = [entry.imageExtension] * len(camera_names)
+        entry.maxChannels = len(camera_names)
+
+        # mirror the first camera on the job's own primary camera/imageFileName fields, for
+        # tools/verification that only look at those and not at the channel arrays
+        entry.camera = camera_names[0]
+        entry.imageFileName = entry.channelFileName[0]
+
+
 def finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs):
+    """Resolves camera / shots / frame ranges and filename tokens into one or more rrJob entries.
+
+    This is intentionally shared between the legacy (MoviePipelinePrimaryConfig) path and the
+    Movie Render Graph path in MoviePipelineRoyalGraph.py: none of this depends on where the
+    job's render *settings* came from, only on its sequence/shot list, which is identical for
+    both config systems. `new_job_rr` must already have imageFileName/imageDir/imageWidth/
+    imageHeight/imageFramePadding/imageExtension/imageSingleOutput/seqStart/seqEnd/seqName set
+    by the caller.
+    """
     entries = []
 
     job_sequence = get_job_sequence(ue_job)
     new_job_rr.camera = get_seq_camera(job_sequence)
-    if new_job_rr.multicam and not new_job_rr.camera:
-        unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, but could not set the <Camera> property. Taking the first camera from the current level")
-        # FIXME: should check the sequence map instead
-        for actor in unreal.EditorLevelLibrary.get_all_level_actors():
-            if isinstance(actor, unreal.CameraActor):
-                new_job_rr.camera = actor.get_actor_label()
-                break
+    # multicam ("render all cameras") jobs get proper per-camera handling at the end of this
+    # function, once every entry's imageFileName is fully resolved - see _apply_multicam_channels().
 
     shot_tracks = get_seq_tracks(job_sequence)
 
@@ -529,8 +666,6 @@ def finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs):
         shot_sections = []
 
     file_params = get_file_params(ue_job)
-
-    new_job_rr.seqName = seq_asset_name
 
     if not shot_sections:
         new_job_rr.isActive = True
@@ -619,10 +754,16 @@ def finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs):
             shot_job.isActive = info.enabled
             entries.append(shot_job)
 
+    _apply_multicam_channels(entries, ue_job, job_sequence)
+
     return entries
 
 
 def collect_rr_job_from_legacy(base_job_rr, ue_job):
+    """Builds rrJob entries for a job configured with the legacy MoviePipelinePrimaryConfig
+    (the 'Preset' dropdown / classic Movie Render Queue settings list). Unchanged behaviour
+    from before the MRG split - just moved into its own function so collect_rr_jobs() can
+    dispatch per job."""
     entries = []
     
     # the settings column is the job's movie pipeline preset
@@ -655,8 +796,10 @@ def collect_rr_job_from_legacy(base_job_rr, ue_job):
     # sequence file
     seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
     new_job_rr.layer = seq_asset_name
+    new_job_rr.seqName = seq_asset_name
 
     split_shot_jobs = True
+    submission_ui = True
     out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
 
     # ALL SETTINGS contain output, format, and other setting classes
@@ -727,6 +870,14 @@ def collect_rr_job_from_legacy(base_job_rr, ue_job):
     return entries
 
 
+def _job_uses_graph_configuration(ue_job):
+    try:
+        return ue_job.is_using_graph_configuration()
+    except AttributeError:
+        # Engine predates Movie Render Graph (< 5.4): there's no such thing as a graph job.
+        return False
+
+
 def collect_rr_jobs(base_job_rr: rrJob, queue):
     rr_jobs = []
 
@@ -735,7 +886,17 @@ def collect_rr_jobs(base_job_rr: rrJob, queue):
 
     # copy UE jobs to RR jobs
     for ue_job in ue_jobs:
-        job_entries = collect_rr_job_from_legacy(base_job_rr, ue_job)
+        if _job_uses_graph_configuration(ue_job):
+            try:
+                from MoviePipelineRoyalGraph import collect_rr_job_from_graph
+            except ImportError as e:
+                unreal.log_error(f"job skipped, could not import MoviePipelineRoyalGraph: {e}")
+                continue
+
+            job_entries = collect_rr_job_from_graph(base_job_rr, ue_job)
+        else:
+            job_entries = collect_rr_job_from_legacy(base_job_rr, ue_job)
+
         rr_jobs.extend(job_entries)
 
     if not rr_jobs:
