@@ -490,6 +490,243 @@ def get_seq_camera(sequence):
     return camera_objects[0].get_actor_label()
 
 
+def resolve_full_sequence_filenames(a_job, file_params):
+    a_job.shotName = "NoShot"
+
+    try:
+        a_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(a_job.imageFileName, file_params)
+    except TypeError:
+        movie_lib = unreal.MoviePipelineLibrary()
+    else:
+        movie_lib = unreal.MoviePipelineLibrary
+        
+    a_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageDir, file_params)
+    a_job.imageFileName = a_job.imageFileName.replace(".{ext}", "")
+    a_job.imageDir = a_job.imageDir.replace(".{ext}", "")
+
+
+def finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs):
+    entries = []
+
+    job_sequence = get_job_sequence(ue_job)
+    new_job_rr.camera = get_seq_camera(job_sequence)
+    if new_job_rr.multicam and not new_job_rr.camera:
+        unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, but could not set the <Camera> property. Taking the first camera from the current level")
+        # FIXME: should check the sequence map instead
+        for actor in unreal.EditorLevelLibrary.get_all_level_actors():
+            if isinstance(actor, unreal.CameraActor):
+                new_job_rr.camera = actor.get_actor_label()
+                break
+
+    shot_tracks = get_seq_tracks(job_sequence)
+
+    if len(shot_tracks) > 1:
+        unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
+
+    if split_shot_jobs:
+        shot_sections = shot_tracks[0].get_sections() if shot_tracks else [] * len(ue_job.shot_info)
+    else:
+        shot_sections = []
+
+    file_params = get_file_params(ue_job)
+
+    new_job_rr.seqName = seq_asset_name
+
+    if not shot_sections:
+        new_job_rr.isActive = True
+        resolve_full_sequence_filenames(new_job_rr, file_params)
+
+        entries.append(new_job_rr)
+    else:
+        if not new_job_rr.imageSingleOutput:
+            # if video output contains shot name, unreal won't render the full sequence as a single file
+            master_job = copy.deepcopy(new_job_rr)
+            
+            master_job.isActive = False
+            resolve_full_sequence_filenames(master_job, file_params)
+
+            entries.append(master_job)
+    
+        movie_utils = unreal.MovieSceneSectionExtensions()
+        for info, section in get_shot_sequences(ue_job):
+            if section:
+                shot_start = section.get_start_frame()
+                shot_end = section.get_end_frame() - 1
+
+                if shot_start > new_job_rr.seqEnd:
+                    continue
+
+                if shot_end < new_job_rr.seqStart:
+                    continue
+
+                sequence = section.get_sequence()
+                try:
+                    camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                except AttributeError:
+                    camera_track = next((t for t in sequence.get_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
+                if camera_track:
+                    cam_start, cam_end = get_track_range(camera_track)
+                    cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
+                    cam_end = movie_utils.get_parent_sequence_frame(section, cam_end, job_sequence) - 1
+
+                    shot_start = max(new_job_rr.seqStart, shot_start, cam_start)
+                    shot_end = min(new_job_rr.seqEnd, shot_end, cam_end)
+                else:
+                    shot_start = max(new_job_rr.seqStart, shot_start)
+                    shot_end = min(new_job_rr.seqEnd, shot_end)
+            else:
+                shot_start = new_job_rr.seqStart
+                shot_end = new_job_rr.seqEnd
+
+            # TODO: per shot preset override
+
+            shot_job = copy.deepcopy(new_job_rr)
+            shot_job.seqStart = shot_start
+            shot_job.seqEnd = shot_end
+
+            if split_shot_jobs:
+                file_params.shot_override = info
+            else:
+                file_params.shot_override = None
+
+            if '{frame_number_shot}' in shot_job.imageFileName:
+                if section:
+                    shot_job.seqFileOffset = -movie_utils.get_parent_sequence_frame(section, 0, job_sequence)
+                else:
+                    unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
+                shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
+
+            try:
+                shot_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
+            except TypeError:
+                movie_lib = unreal.MoviePipelineLibrary()
+            else:
+                movie_lib = unreal.MoviePipelineLibrary
+
+            shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
+
+            shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
+            shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
+
+            if file_params.shot_override:
+                if shot_cam := file_args.filename_arguments['camera_name']:
+                    shot_job.camera = shot_cam
+                if shot_name := file_args.filename_arguments['shot_name']:
+                    shot_job.shotName = shot_name
+
+            shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
+
+            shot_job.isActive = info.enabled
+            entries.append(shot_job)
+
+    return entries
+
+
+def collect_rr_job_from_legacy(base_job_rr, ue_job):
+    entries = []
+    
+    # the settings column is the job's movie pipeline preset
+    preset = ue_job.get_preset_origin()
+    if not preset:
+        unreal.log_warning(f"job skipped because of missing settings: {ue_job.job_name}")
+        return entries
+
+    preset_path = preset.get_path_name().rsplit('.', 1)[0]
+    if preset_path.startswith('/Game'):
+        preset_path = preset_path[6:]
+
+    new_job_rr = copy.deepcopy(base_job_rr)
+    new_job_rr.CustomPresetPath = preset_path
+    new_job_rr.userName = ue_job.get_editor_property('author')
+
+    # scene file
+    map_asset_path = ue_job.map.to_tuple()[0].rsplit('.', 1)[0]
+    map_asset_path = clean_up_game_path(map_asset_path)
+
+    new_job_rr.CustomLevelDir = map_asset_path
+    new_job_rr.sceneName = f"<DataBase>/Content/{map_asset_path}.umap"
+    
+    # sequence path
+    seq_asset_path = ue_job.sequence.to_tuple()[0]
+    seq_asset_path = clean_up_game_path(seq_asset_path)
+    
+    new_job_rr.CustomSequencePath, seq_asset_name = os.path.split(seq_asset_path)
+
+    # sequence file
+    seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
+    new_job_rr.layer = seq_asset_name
+
+    split_shot_jobs = True
+    out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
+
+    # ALL SETTINGS contain output, format, and other setting classes
+    for setting in out_settings:
+        if isinstance(setting, unreal.MoviePipelineConsoleVariableSetting):
+            try:
+                console_vars = setting.get_console_variables()
+            except AttributeError:
+                # version < 5.2: direct access to dict
+                cvars = setting.console_variables
+            else:
+                cvars = {v.name: v.value for v in console_vars}
+
+            try:
+                split_shot_jobs = not bool(cvars['RR_NO_SPLIT'])
+            except KeyError:
+                pass
+            try:
+                submission_ui = not bool(cvars['RR_NO_UI'])
+            except KeyError:
+                pass
+
+            continue
+
+        if isinstance(setting, unreal.MoviePipelineOutputSetting):
+            copy_output_settings(setting, ue_job, new_job_rr)
+            continue
+
+        if isinstance(setting, unreal.MoviePipelineVideoOutputBase):
+            # video output
+            new_job_rr.imageSingleOutput = True
+            if isinstance(setting, unreal.MoviePipelineAppleProResOutput):
+                new_job_rr.imageExtension = ".mov"
+            elif isinstance(setting, unreal.MoviePipelineAvidDNxOutput):
+                new_job_rr.imageExtension = ".mxf"
+
+            continue
+
+        if isinstance(setting, unreal.MoviePipelineCameraSetting):
+            new_job_rr.multicam = setting.render_all_cameras
+            continue
+
+        class_name = setting.get_class().get_name()
+
+        if class_name == 'MoviePipelineWaveOutput':
+            new_job_rr.imageSingleOutput = True
+            new_job_rr.imageExtension = ".wav"
+            split_shot_jobs = False
+            continue
+        
+        if 'ImageSequenceOutput' not in class_name:
+            continue
+
+        # ImageSequenceOutput class name contains the output format
+        img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
+        new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
+    
+    if new_job_rr.imageSingleOutput:
+        split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
+
+    if new_job_rr.multicam and "<Camera>" not in new_job_rr.imageFileName:
+        unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, adding .<Camera>. to file name")
+        new_job_rr.imageFileName += ".<Camera>."
+        # TODO: add other cameras as channels
+
+    entries.extend(finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs))
+
+    return entries
+
+
 def collect_rr_jobs(base_job_rr: rrJob, queue):
     rr_jobs = []
 
@@ -498,228 +735,8 @@ def collect_rr_jobs(base_job_rr: rrJob, queue):
 
     # copy UE jobs to RR jobs
     for ue_job in ue_jobs:
-        
-        # the settings column is the job's movie pipeline preset
-        preset = ue_job.get_preset_origin()
-        if not preset:
-            unreal.log_warning(f"job skipped because of missing settings: {ue_job.job_name}")
-            continue
-
-        preset_path = preset.get_path_name().rsplit('.', 1)[0]
-        if preset_path.startswith('/Game'):
-            preset_path = preset_path[6:]
-
-        new_job_rr = copy.deepcopy(base_job_rr)
-        new_job_rr.CustomPresetPath = preset_path
-        new_job_rr.userName = ue_job.get_editor_property('author')
-
-        # scene file
-        map_asset_path = ue_job.map.to_tuple()[0].rsplit('.', 1)[0]
-        map_asset_path = clean_up_game_path(map_asset_path)
-
-        new_job_rr.CustomLevelDir = map_asset_path
-        new_job_rr.sceneName = f"<DataBase>/Content/{map_asset_path}.umap"
-        
-        # sequence path
-        seq_asset_path = ue_job.sequence.to_tuple()[0]
-        seq_asset_path = clean_up_game_path(seq_asset_path)
-        
-        new_job_rr.CustomSequencePath, seq_asset_name = os.path.split(seq_asset_path)
-
-        # sequence file
-        seq_asset_name = seq_asset_name.rsplit('.', 1)[0]
-        new_job_rr.layer = seq_asset_name
-
-        split_shot_jobs = True
-        out_settings = ue_job.get_configuration().get_all_settings(include_disabled_settings=False)
-
-        # ALL SETTINGS contain output, format, and other setting classes
-        for setting in out_settings:
-            if isinstance(setting, unreal.MoviePipelineConsoleVariableSetting):
-                try:
-                    console_vars = setting.get_console_variables()
-                except AttributeError:
-                    # version < 5.2: direct access to dict
-                    cvars = setting.console_variables
-                else:
-                    cvars = {v.name: v.value for v in console_vars}
-
-                try:
-                    split_shot_jobs = not bool(cvars['RR_NO_SPLIT'])
-                except KeyError:
-                    pass
-                try:
-                    submission_ui = not bool(cvars['RR_NO_UI'])
-                except KeyError:
-                    pass
-
-                continue
-
-            if isinstance(setting, unreal.MoviePipelineOutputSetting):
-                copy_output_settings(setting, ue_job, new_job_rr)
-                continue
-
-            if isinstance(setting, unreal.MoviePipelineVideoOutputBase):
-                # video output
-                new_job_rr.imageSingleOutput = True
-                if isinstance(setting, unreal.MoviePipelineAppleProResOutput):
-                    new_job_rr.imageExtension = ".mov"
-                elif isinstance(setting, unreal.MoviePipelineAvidDNxOutput):
-                    new_job_rr.imageExtension = ".mxf"
-
-                continue
-
-            if isinstance(setting, unreal.MoviePipelineCameraSetting):
-                new_job_rr.multicam = setting.render_all_cameras
-                continue
-
-            class_name = setting.get_class().get_name()
-
-            if class_name == 'MoviePipelineWaveOutput':
-                new_job_rr.imageSingleOutput = True
-                new_job_rr.imageExtension = ".wav"
-                split_shot_jobs = False
-                continue
-            
-            if 'ImageSequenceOutput' not in class_name:
-                continue
-
-            # ImageSequenceOutput class name contains the output format
-            img_protocol = '.' + class_name.rsplit('_', 1)[-1].lower()
-            new_job_rr.imageExtension = img_protocol.replace(".jpg", ".jpeg")
-        
-        if new_job_rr.imageSingleOutput:
-            split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
-
-        if new_job_rr.multicam and "<Camera>" not in new_job_rr.imageFileName:
-            unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, adding .<Camera>. to file name")
-            new_job_rr.imageFileName += ".<Camera>."
-            # TODO: add other cameras as channels
-
-        job_sequence = get_job_sequence(ue_job)
-        new_job_rr.camera = get_seq_camera(job_sequence)
-        if new_job_rr.multicam and not new_job_rr.camera:
-            unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, but could not set the <Camera> property. Taking the first camera from the current level")
-            # FIXME: should check the sequence map instead
-            for actor in unreal.EditorLevelLibrary.get_all_level_actors():
-                if isinstance(actor, unreal.CameraActor):
-                    new_job_rr.camera = actor.get_actor_label()
-                    break
-
-        shot_tracks = get_seq_tracks(job_sequence)
-
-        if len(shot_tracks) > 1:
-            unreal.log_warning(f"job {ue_job.job_name}'s sequence contains multiple shot tracks, that should not happen and only the first track will be checked")
-
-        if split_shot_jobs:
-            shot_sections = shot_tracks[0].get_sections() if shot_tracks else [] * len(ue_job.shot_info)
-        else:
-            shot_sections = []
-
-        file_params = get_file_params(ue_job)
-
-        new_job_rr.seqName = seq_asset_name
-
-        def set_full_sequence_job(a_job):
-            a_job.shotName = "NoShot"
-
-            try:
-                a_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(a_job.imageFileName, file_params)
-            except TypeError:
-                movie_lib = unreal.MoviePipelineLibrary()
-            else:
-                movie_lib = unreal.MoviePipelineLibrary
-                
-            a_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(a_job.imageDir, file_params)
-            a_job.imageFileName = a_job.imageFileName.replace(".{ext}", "")
-            a_job.imageDir = a_job.imageDir.replace(".{ext}", "")
-
-        if not shot_sections:
-            new_job_rr.isActive = True
-            set_full_sequence_job(new_job_rr)
-
-            rr_jobs.append(new_job_rr)
-        else:
-            if not new_job_rr.imageSingleOutput:
-                # if video output contains shot name, unreal won't render the full sequence as a single file
-                master_job = copy.deepcopy(new_job_rr)
-                
-                master_job.isActive = False
-                set_full_sequence_job(master_job)
-
-                rr_jobs.append(master_job)
-        
-            movie_utils = unreal.MovieSceneSectionExtensions()
-            for info, section in get_shot_sequences(ue_job):
-                if section:
-                    shot_start = section.get_start_frame()
-                    shot_end = section.get_end_frame() - 1
-
-                    if shot_start > new_job_rr.seqEnd:
-                        continue
-
-                    if shot_end < new_job_rr.seqStart:
-                        continue
-
-                    sequence = section.get_sequence()
-                    try:
-                        camera_track = next((t for t in sequence.get_master_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
-                    except AttributeError:
-                        camera_track = next((t for t in sequence.get_tracks() if isinstance(t, unreal.MovieSceneCameraCutTrack)), None)
-                    if camera_track:
-                        cam_start, cam_end = get_track_range(camera_track)
-                        cam_start = movie_utils.get_parent_sequence_frame(section, cam_start, job_sequence)
-                        cam_end = movie_utils.get_parent_sequence_frame(section, cam_end, job_sequence) - 1
-
-                        shot_start = max(new_job_rr.seqStart, shot_start, cam_start)
-                        shot_end = min(new_job_rr.seqEnd, shot_end, cam_end)
-                    else:
-                        shot_start = max(new_job_rr.seqStart, shot_start)
-                        shot_end = min(new_job_rr.seqEnd, shot_end)
-                else:
-                    shot_start = new_job_rr.seqStart
-                    shot_end = new_job_rr.seqEnd
-
-                # TODO: per shot preset override
-
-                shot_job = copy.deepcopy(new_job_rr)
-                shot_job.seqStart = shot_start
-                shot_job.seqEnd = shot_end
-
-                if split_shot_jobs:
-                    file_params.shot_override = info
-                else:
-                    file_params.shot_override = None
-
-                if '{frame_number_shot}' in shot_job.imageFileName:
-                    if section:
-                        shot_job.seqFileOffset = -movie_utils.get_parent_sequence_frame(section, 0, job_sequence)
-                    else:
-                        unreal.log_warning(f"no section found for shot {info.outer_name}, frame range might be incorrect")
-                    shot_job.imageFileName = shot_job.imageFileName.replace('{frame_number_shot}', '#'*shot_job.imageFramePadding)
-
-                try:
-                    shot_job.imageFileName, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments(shot_job.imageFileName, file_params)
-                except TypeError:
-                    movie_lib = unreal.MoviePipelineLibrary()
-                else:
-                    movie_lib = unreal.MoviePipelineLibrary
-
-                shot_job.imageDir, file_args = movie_lib.resolve_filename_format_arguments(shot_job.imageDir, file_params)
-
-                shot_job.imageFileName = shot_job.imageFileName.replace(".{ext}", "")
-                shot_job.imageDir = shot_job.imageDir.replace(".{ext}", "")
-
-                if file_params.shot_override:
-                    if shot_cam := file_args.filename_arguments['camera_name']:
-                        shot_job.camera = shot_cam
-                    if shot_name := file_args.filename_arguments['shot_name']:
-                        shot_job.shotName = shot_name
-
-                shot_job.versionName = file_args.filename_arguments['version'].lstrip('v')
-
-                shot_job.isActive = info.enabled
-                rr_jobs.append(shot_job)
+        job_entries = collect_rr_job_from_legacy(base_job_rr, ue_job)
+        rr_jobs.extend(job_entries)
 
     if not rr_jobs:
         dialog = unreal.EditorDialog()
