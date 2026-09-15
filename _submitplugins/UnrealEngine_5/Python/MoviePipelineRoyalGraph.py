@@ -2,6 +2,7 @@
 ######################################################################
 #
 # Royal Render Plugin script for Unreal Engine
+# Author:  Holger Schoenberger
 # Copyright (c)  Holger Schoenberger
 #
 # Last change: %rrVersion%
@@ -81,10 +82,12 @@
 #       -rLayer (the "** All **" job, once stripped) means "render every layer".
 #
 #   For a graph with N render layers, collect_rr_job_from_graph() submits N+1 rrJobs: one per
-#   render layer (active), plus one combined "** All **" job (isActive=False, opt-in). The
-#   combined job's main Image*/imageDir fields mirror the first render layer; the *other*
-#   layers' resolved filenames go into channelFileName/channelExtension so their outputs can
-#   still be checked for completeness even though only one job ran.
+#   render layer (inactive/opt-in), plus one combined "** All **" job per shot (active) plus one
+#   whole-sequence combined job (isActive=False, opt-in). The combined jobs' main Image*/imageDir
+#   fields mirror the first render layer; the *other* layers' resolved filenames go into
+#   channelFileName/channelExtension so their outputs can still be checked for completeness even
+#   though only one job ran. The per-render-layer jobs can be turned off entirely with the
+#   CREATE_PER_LAYER_JOBS switch below - the combined jobs are always created either way.
 #
 #   If a format node's file name format doesn't contain a {layer_name} token, multiple layers
 #   resolve to the *same* output path and would overwrite each other on disk -
@@ -105,12 +108,23 @@ from MoviePipelineRoyalSubmit import (
     get_job_sequence,
     get_seq_camera,
     get_file_params,
+    get_shot_sequences,
     finalize_shot_jobs,
     resolve_full_sequence_filenames,
 )
 
 
+# Holger: switch to turn the individual per-layer jobs off entirely (True/False, edit directly).
+# The combined "** All **" jobs (one per shot, plus the inactive whole-sequence one) are NOT
+# affected by this - those are always created regardless of this setting.
+CREATE_PER_LAYER_JOBS = True
+
 ALL_LAYERS_VALUE = "** All **"
+
+# Same notation as ALL_LAYERS_VALUE, same idea: an informational field value meaning "this job
+# covers all of them", not one real name among others. Kept local to this module on purpose -
+# MoviePipelineRoyalSubmit.py (legacy) stays untouched, this is MRG-only behavior for now.
+ALL_CAMERAS_VALUE = "** All **"
 
 # Submitted as rrJob.renderer instead of the legacy "MoviePipeline" so graph jobs get their own
 # Renderer entry (own command line template, own render-side script) in RR - see module
@@ -243,6 +257,36 @@ def _flag_no_frame_check(job, ue_job, branch_name, reason):
         job.submitter_parameter = f"{job.submitter_parameter};{flag}" if job.submitter_parameter else flag
 
 
+def _get_branch_layer_name(flattened, branch_name):
+    """The real value Unreal's own {layer_name} token resolves to at render time for this branch
+    - CONFIRMED (live test, Holger): this is NOT the same as the branch/Outputs-pin name. A
+    project can label its Outputs pin 'out_ENV' while the branch's actual Render Layer node has
+    its own, separately-authored 'Layer Name' (here: 'ENV_bty') - and {layer_name} resolves to
+    that node property, not to the pin label. Looked up via flattened.get_setting_for_branch(),
+    same pattern as the Global Output Settings node lookup in _apply_output_setting(). Property
+    name itself is UNCONFIRMED (tries a few plausible names) - falls back to the pin/branch name
+    if the node or none of the tried properties are found, which reproduces the old (wrong but at
+    least not crashing) behavior rather than silently emitting an empty string."""
+    render_layer_class = getattr(unreal, 'MovieGraphRenderLayerNode', None)
+    if render_layer_class is None:
+        return branch_name
+
+    try:
+        node = flattened.get_setting_for_branch(render_layer_class, branch_name, include_cd_os=False, exact_match=True)
+    except Exception:
+        node = None
+
+    if node is None:
+        return branch_name
+
+    for prop_name in ('layer_name', 'render_layer_name', 'name'):
+        value = getattr(node, prop_name, None)
+        if value:
+            return str(value)
+
+    return branch_name
+
+
 def _apply_branch_output(job, flattened, branch_name, ue_job, all_branch_names):
     """Finds the branch's output format node, resolves its file_name_format into job.imageFileName,
     and sets job.imageExtension/imageSingleOutput from its concrete class. Whenever the resolution
@@ -285,9 +329,17 @@ def _apply_branch_output(job, flattened, branch_name, ue_job, all_branch_names):
     # in every branch's imageFileName instead of being resolved - so every branch ended up with
     # the exact same (unresolved) filename, and the "does the layer name actually appear in the
     # filename" self-check below always failed. This is the one token that must become a concrete
-    # value now (the branch's real name), not an RR command-line token - RR's own <Layer> job
-    # field already means something else here (the render layer selector, see module docstring).
-    output_file = output_file.replace('{layer_name}', branch_name)
+    # value now, not an RR command-line token - RR's own <Layer> job field already means something
+    # else here (the render layer selector, see module docstring).
+    #
+    # CONFIRMED bug #2 (live test, Holger): substituting the branch/pin name (e.g. 'out_ENV') here
+    # was ALSO wrong - the real file Unreal wrote was 'Main_SEQ.ENV_bty.####.exr', not
+    # 'Main_SEQ.out_ENV.####.exr'. {layer_name} resolves to the branch's Render Layer node's own
+    # 'Layer Name' property, which can differ from the Outputs pin label - see
+    # _get_branch_layer_name(). Use that resolved value instead of the raw branch_name both here
+    # and in the "does the layer name appear in the filename" self-check below.
+    layer_name = _get_branch_layer_name(flattened, branch_name)
+    output_file = output_file.replace('{layer_name}', layer_name)
 
     # The shared UE_to_RR_tokens dict (MoviePipelineRoyalSubmit.py) maps {sequence_name} -> <Layer>,
     # a legacy-only convention (legacy jobs had no real render layers, so RR's Layer field was
@@ -304,13 +356,13 @@ def _apply_branch_output(job, flattened, branch_name, ue_job, all_branch_names):
 
     job.imageFileName = output_file
 
-    if len(all_branch_names) > 1 and branch_name not in job.imageFileName:
+    if len(all_branch_names) > 1 and layer_name not in job.imageFileName:
         _flag_no_frame_check(
             job, ue_job, branch_name,
             f"{len(all_branch_names)} render layers but this branch's output filename "
-            f"('{job.imageFileName}') doesn't reference the layer name (no {{layer_name}} token) - "
-            "it may overwrite another layer's output on disk, so any frame count check here would "
-            "be unreliable too"
+            f"('{job.imageFileName}') doesn't reference the resolved layer name ('{layer_name}', "
+            "no {{layer_name}} token) - it may overwrite another layer's output on disk, so any "
+            "frame count check here would be unreliable too"
         )
 
 
@@ -318,6 +370,53 @@ def _apply_multicam(ue_job, new_job_rr):
     # TODO: no confirmed MRG equivalent yet for MoviePipelineCameraSetting.render_all_cameras.
     # Left as False (single camera) until we've confirmed the right node/property.
     new_job_rr.multicam = False
+
+
+def _get_shot_camera_names(ue_job):
+    """Every distinct camera name Unreal's own filename-token resolution reports across the
+    sequence's shots (MoviePipelineLibrary.resolve_filename_format_arguments's 'camera_name'
+    argument - the same mechanism finalize_shot_jobs() itself already uses per shot). Works per-
+    shot sub-sequence, so it finds cameras even when there's no Camera Cut Track on the root
+    sequence itself (CONFIRMED live test: this project's root sequence has no Camera Cut Track at
+    all, only MovieSceneCinematicShotTrack/Audio - the cameras live inside each shot's own sub-
+    sequence). Uses only MoviePipelineRoyalSubmit.py's existing, unmodified exports."""
+    names = []
+    file_params = get_file_params(ue_job)
+
+    for info, section in get_shot_sequences(ue_job):
+        file_params.shot_override = info
+        try:
+            _, file_args = unreal.MoviePipelineLibrary.resolve_filename_format_arguments("", file_params)
+        except TypeError:
+            _, file_args = unreal.MoviePipelineLibrary().resolve_filename_format_arguments("", file_params)
+
+        if cam := file_args.filename_arguments['camera_name']:
+            if cam not in names:
+                names.append(cam)
+
+    return names
+
+
+def _apply_all_shots_camera(entries, ue_job):
+    """finalize_shot_jobs() marks the job that covers every shot at once (shotName == 'NoShot') -
+    the active whole-sequence job when RR_NO_SPLIT is set, and/or the inactive whole-sequence
+    master job kept alongside the per-shot ones. That's a real, activatable farm job (Holger:
+    "Wenn ein Kunde alle Shots auf einmal rendern will, dann rendert er alle shots auf einmal"),
+    not an internal fallback, so it needs a real camera value instead of the empty string it gets
+    today: the shared camera name if every shot genuinely uses the same one, or ALL_CAMERAS_VALUE
+    if there's more than one. Mutates entries in place. Kept in this module rather than in
+    MoviePipelineRoyalSubmit.py/finalize_shot_jobs() itself - MRG-only behavior stays here, the
+    legacy file stays untouched."""
+    no_shot_entries = [e for e in entries if e.shotName == "NoShot"]
+    if not no_shot_entries:
+        return
+
+    names = _get_shot_camera_names(ue_job)
+    if len(names) <= 1:
+        return
+
+    for entry in no_shot_entries:
+        entry.camera = ALL_CAMERAS_VALUE
 
 
 def _read_rr_console_var_flags(ue_job):
@@ -393,7 +492,9 @@ def _build_all_layers_jobs(template_job, ue_job, flattened, branch_names, split_
         if branch_job.imageSingleOutput:
             split_shot_jobs = "{shot_name}" in branch_job.imageFileName
 
-        per_branch_entries.append(finalize_shot_jobs(branch_job, ue_job, split_shot_jobs))
+        branch_entries = finalize_shot_jobs(branch_job, ue_job, split_shot_jobs)
+        _apply_all_shots_camera(branch_entries, ue_job)
+        per_branch_entries.append(branch_entries)
 
     entry_counts = {len(entries) for entries in per_branch_entries}
     if len(entry_counts) > 1:
@@ -412,7 +513,13 @@ def _build_all_layers_jobs(template_job, ue_job, flattened, branch_names, split_
     for shot_index in range(entry_count):
         combined = copy.deepcopy(per_branch_entries[0][shot_index])
         combined.layer = ALL_LAYERS_VALUE
-        combined.isActive = False
+        # Holger: only the per-shot "All Layers" jobs should be active by default (the individual
+        # per-shot per-layer jobs below are now submitted inactive) - except the whole-sequence
+        # ("NoShot", all shots at once) entry, which stays inactive/opt-in like before. For a real
+        # per-shot entry, isActive is inherited as-is from branch 0's entry (finalize_shot_jobs'
+        # info.enabled - i.e. still respects a shot disabled in the queue).
+        if combined.shotName == "NoShot":
+            combined.isActive = False
 
         channel_filenames = []
         channel_extensions = []
@@ -468,6 +575,14 @@ def collect_rr_job_from_graph(base_job_rr, ue_job):
         unreal.log_warning(f"job skipped, graph has no render layers/branches: {ue_job.job_name}")
         return entries
 
+    # NOTE: deliberately NOT trying to detect/skip "layers the user disabled" here anymore.
+    # There's no one way a layer ends up producing nothing in MRG - a disabled Render Layer node
+    # is only one option; Holger's own MRG_MainSEQ instead gates layers with a plain
+    # MovieGraphBranchNode driven by a graph variable, and there are arbitrarily many other ways
+    # a user's graph could do it. Detecting "is this layer meant to render" in general isn't
+    # reliable from the submit side, so every branch the graph reports is offered as a job (as
+    # before) - per-layer jobs are inactive/opt-in by default anyway (see below), so a layer
+    # that's actually gated off just needs the user to leave that job inactive.
     preset_path = clean_up_game_path(graph.get_path_name().rsplit('.', 1)[0])
 
     # --- Global Output Settings node (directory, resolution, frame padding, playback range) ---
@@ -480,24 +595,34 @@ def collect_rr_job_from_graph(base_job_rr, ue_job):
 
     template_job = _build_template_job(base_job_rr, ue_job, preset_path, output_setting)
 
-    # --- one job per render layer/branch ---
-    for branch_name in branch_names:
-        new_job_rr = copy.deepcopy(template_job)
-        new_job_rr.layer = branch_name
+    # --- one job per render layer/branch - only when CREATE_PER_LAYER_JOBS is on (Holger: the
+    # combined "** All **"/per-shot jobs below are always created regardless of this switch) ---
+    if CREATE_PER_LAYER_JOBS:
+        for branch_name in branch_names:
+            new_job_rr = copy.deepcopy(template_job)
+            new_job_rr.layer = branch_name
 
-        _apply_branch_output(new_job_rr, flattened, branch_name, ue_job, branch_names)
+            _apply_branch_output(new_job_rr, flattened, branch_name, ue_job, branch_names)
 
-        # mirrors collect_rr_job_from_legacy(): a single monolithic (video/audio) output
-        # overrides RR_NO_SPLIT - it's only split by shot if the filename actually varies per
-        # shot ({shot_name} token present), regardless of the cvar.
-        split_shot_jobs = split_shot_jobs_base
-        if new_job_rr.imageSingleOutput:
-            split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
+            # mirrors collect_rr_job_from_legacy(): a single monolithic (video/audio) output
+            # overrides RR_NO_SPLIT - it's only split by shot if the filename actually varies per
+            # shot ({shot_name} token present), regardless of the cvar.
+            split_shot_jobs = split_shot_jobs_base
+            if new_job_rr.imageSingleOutput:
+                split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
 
-        entries.extend(finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs))
+            layer_entries = finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs)
+            _apply_all_shots_camera(layer_entries, ue_job)
 
-    # --- combined "** All **" jobs, one per shot (see _build_all_layers_jobs docstring for why),
-    # inactive by default so they can be enabled manually ---
+            # Holger: only the per-shot "All Layers" jobs (built below) should be active by
+            # default - these individual per-shot per-layer jobs are submitted inactive/opt-in.
+            for entry in layer_entries:
+                entry.isActive = False
+
+            entries.extend(layer_entries)
+
+    # --- combined "** All **" jobs, one per shot (see _build_all_layers_jobs docstring for why) -
+    # active by default (except the whole-sequence "NoShot" entry, still inactive/opt-in) ---
     if len(branch_names) > 1:
         entries.extend(_build_all_layers_jobs(template_job, ue_job, flattened, branch_names, split_shot_jobs_base))
 

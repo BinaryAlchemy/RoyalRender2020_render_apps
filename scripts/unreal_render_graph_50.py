@@ -3,6 +3,8 @@
 ######################################################################
 #
 # Royal Render Render script for Unreal Engine - Movie Render Graph
+# Author:  Holger Schoenberger
+# Last Change: %rrVersion%
 #
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 #
@@ -75,6 +77,24 @@ import unreal_render_50
 TICK_HANDLE = None
 
 
+# Every line this script itself logs is prefixed like this, so it's visually distinguishable in
+# the render log from Unreal's own LogXxx: lines - Holger: "Ich erkenne nicht welche Zeile von uns
+# ist und welche von Unreal."
+LOG_PREFIX = " rrUnreal       : "
+
+
+def log_info(message):
+    unreal.log(f"{LOG_PREFIX}{message}")
+
+
+def log_warn(message):
+    unreal.log_warning(f"{LOG_PREFIX}{message}")
+
+
+def log_error(message):
+    unreal.log_error(f"{LOG_PREFIX}{message}")
+
+
 def _walk_upstream_nodes(start_nodes):
     """Returns every node reachable by walking upstream (via each node's own input pins) from
     the given starting nodes, each included once. Confirmed necessary against a real project
@@ -145,15 +165,18 @@ def disable_other_render_layers(branches, keep_layer_name):
     branch actually renders. Nodes that also appear in the kept branch's own chain (e.g. a
     shared Collection/Modifier node feeding multiple render layers) are left alone even if they
     also appear in a disabled branch's chain, so disabling one layer can't silently break
-    another. Returns True if `keep_layer_name` was found and left enabled."""
+    another. Returns (found, disabled_nodes): found is True if `keep_layer_name` was located and
+    left enabled; disabled_nodes is every node this call actually disabled, so the caller can put
+    them back afterward - see the "restore" note in render_new_graph_queue() for why that matters."""
     if keep_layer_name not in branches:
-        unreal.log_warning(
+        log_warn(
             f"-rLayer '{keep_layer_name}' not found among graph branches ({', '.join(branches.keys())}); "
             "nothing was disabled, ALL layers will render."
         )
-        return False
+        return False, []
 
     keep_chain = branches[keep_layer_name]
+    disabled_nodes = []
 
     for branch_name, nodes in branches.items():
         if branch_name == keep_layer_name:
@@ -165,13 +188,14 @@ def disable_other_render_layers(branches, keep_layer_name):
                 continue
 
             if not node.can_be_disabled():
-                unreal.log_warning(f"branch '{branch_name}': node {node.get_node_title(False)} can't be disabled, it may still render")
+                log_warn(f"branch '{branch_name}': node {node.get_node_title(False)} can't be disabled, it may still render")
                 continue
 
             node.set_disabled(True)
-            unreal.log(f"disabled branch '{branch_name}' (node {node.get_node_title(False)}) so only '{keep_layer_name}' renders")
+            disabled_nodes.append(node)
+            log_info(f"disabled branch '{branch_name}' (node {node.get_node_title(False)}) so only '{keep_layer_name}' renders")
 
-    return True
+    return True, disabled_nodes
 
 
 def apply_global_output_overrides(output_setting, render_args):
@@ -180,13 +204,62 @@ def apply_global_output_overrides(output_setting, render_args):
     padding. File name format is NOT here - confirmed to live on each branch's own format node
     instead, see apply_branch_filename_override()."""
     output_setting.override_output_resolution = True
-    output_setting.output_resolution = unreal.IntPoint(render_args.img_width, render_args.img_height)
+
+    resolution = unreal.IntPoint(render_args.img_width, render_args.img_height)
+
+    # CONFIRMED (live test, render side): output_resolution is a MovieGraphNamedResolution struct
+    # (the "Named Resolution" presets feature) on engine versions that have it, not a plain
+    # IntPoint - same discovery already made reading it on the submit side, see
+    # MoviePipelineRoyalGraph._apply_output_setting. Writing a bare IntPoint there fails with
+    # "Cannot nativize 'IntPoint' as 'MovieGraphNamedResolution'". Fall back to a plain IntPoint
+    # assignment on older engines that don't have the struct at all.
+    named_resolution_class = getattr(unreal, 'MovieGraphNamedResolution', None)
+    if named_resolution_class:
+        output_setting.output_resolution = named_resolution_class(profile_name="Custom", resolution=resolution, description="")
+    else:
+        output_setting.output_resolution = resolution
 
     output_setting.override_output_directory = True
     output_setting.output_directory = unreal.DirectoryPath(render_args.img_folder)
 
     output_setting.override_zero_pad_frame_numbers = True
     output_setting.zero_pad_frame_numbers = render_args.img_padding
+
+
+def _remember_output_setting_state(output_setting, restore_actions):
+    """Snapshots the Global Output Settings node's fields that apply_global_output_overrides()
+    is about to overwrite, and appends a restore action for them. See render_new_graph_queue()
+    docstring for why this matters - `output_setting` lives on the shared, live graph asset."""
+    prev_override_resolution = output_setting.override_output_resolution
+    prev_resolution = output_setting.output_resolution
+    prev_override_directory = output_setting.override_output_directory
+    prev_directory = output_setting.output_directory
+    prev_override_padding = output_setting.override_zero_pad_frame_numbers
+    prev_padding = output_setting.zero_pad_frame_numbers
+
+    def _restore():
+        output_setting.override_output_resolution = prev_override_resolution
+        output_setting.output_resolution = prev_resolution
+        output_setting.override_output_directory = prev_override_directory
+        output_setting.output_directory = prev_directory
+        output_setting.override_zero_pad_frame_numbers = prev_override_padding
+        output_setting.zero_pad_frame_numbers = prev_padding
+
+    restore_actions.append(_restore)
+
+
+def _remember_file_output_node_state(fmt_node, restore_actions):
+    """Snapshots the fields apply_branch_filename_override() is about to overwrite on one
+    branch's format node, and appends a restore action for them. Same reasoning as
+    _remember_output_setting_state() - see render_new_graph_queue() docstring."""
+    prev_override_format = fmt_node.override_file_name_format
+    prev_format = fmt_node.file_name_format
+
+    def _restore():
+        fmt_node.override_file_name_format = prev_override_format
+        fmt_node.file_name_format = prev_format
+
+    restore_actions.append(_restore)
 
 
 def apply_branch_filename_override(fmt_node, render_args):
@@ -197,7 +270,7 @@ def apply_branch_filename_override(fmt_node, render_args):
     fmt_node.override_file_name_format = True
     fmt_node.file_name_format = render_args.img_name + ("{frame_number_shot}" if render_args.seq_offset else "{frame_number}")
 
-    unreal.log(f"Rendering with filename: {fmt_node.file_name_format}")
+    log_info(f"Rendering with filename: {fmt_node.file_name_format}")
 
 
 class GraphRenderArgs(RenderArgs):
@@ -209,11 +282,24 @@ class GraphRenderArgs(RenderArgs):
         if not self.render_layer:
             # Expected for the combined "** All **" job (and if -rLayer="<Layer>" hasn't been
             # added to the RR command line template yet) - render every layer in that case.
-            unreal.log("-rLayer not set/empty: rendering all render layers in this graph")
+            log_info("-rLayer not set/empty: rendering all render layers in this graph")
 
 
 def render_new_graph_queue(render_args, graph):
-    """Graph equivalent of unreal_render_50.RenderCommander.render_new_queue()."""
+    """Graph equivalent of unreal_render_50.RenderCommander.render_new_queue().
+
+    IMPORTANT: `graph` (from unreal.load_asset() in render_from_command_line()) is the live,
+    shared MovieGraphConfig asset - the exact same object the Editor UI shows, not a private
+    duplicate. Every node.set_disabled()/override_* call below therefore mutates that shared
+    asset directly. CONFIRMED as the root cause of a real farm failure (a -rLayer=out_EAGLE job
+    logging "For render jobs to succeed, one or more render layer node(s) must be present." and
+    finishing in ~5s with no GPU work): an earlier render for a different layer had disabled
+    out_EAGLE's own nodes and never re-enabled them, so by the time this job ran, every branch -
+    including its own target - was left disabled. That state persists either because the asset
+    stays resident/cached in memory across repeated calls in one long-lived Editor session, or
+    because it gets saved to disk. Every temporary mutation made here is therefore tracked in
+    `restore_actions` and undone as soon as the queue finishes (see below), regardless of
+    success/failure, so the graph asset always ends up back in its originally authored state."""
     subsystem = unreal.get_editor_subsystem(unreal.MoviePipelineQueueSubsystem)
     pipeline_queue = subsystem.get_queue()
 
@@ -222,10 +308,16 @@ def render_new_graph_queue(render_args, graph):
     job.map = unreal.SoftObjectPath(render_args.map_game_path)
     job.sequence = unreal.SoftObjectPath(render_args.sequence_game_path)
 
+    # Every entry is a no-arg callable that puts one piece of shared-asset state back the way it
+    # was before this job touched it - run once the render finishes, see
+    # _restore_graph_then_forward() further down.
+    restore_actions = []
+
     output_setting = _find_output_settings_node(graph)
     if not output_setting:
         raise Exception("Graph has no Global Output Settings node (or it's inside a subgraph this script can't reach - see module docstring)")
 
+    _remember_output_setting_state(output_setting, restore_actions)
     apply_global_output_overrides(output_setting, render_args)
 
     branches = _find_render_layer_nodes(graph)
@@ -234,13 +326,16 @@ def render_new_graph_queue(render_args, graph):
         # Single-layer job (the common case: one rrJob per render layer from the submit side).
         # Disable every other branch, then force this branch's own filename to match what RR
         # expects (<ImageFilename> etc.) so verification finds the right file.
-        found = disable_other_render_layers(branches, render_args.render_layer)
+        found, disabled_nodes = disable_other_render_layers(branches, render_args.render_layer)
+        for disabled_node in disabled_nodes:
+            restore_actions.append(lambda n=disabled_node: n.set_disabled(False))
         if found:
             fmt_node = _find_file_output_node(branches[render_args.render_layer])
             if fmt_node:
+                _remember_file_output_node_state(fmt_node, restore_actions)
                 apply_branch_filename_override(fmt_node, render_args)
             else:
-                unreal.log_warning(
+                log_warn(
                     f"no output format node found in branch '{render_args.render_layer}'s chain - "
                     "filename override skipped, rendering with whatever File Name Format is authored "
                     "in the graph for this branch (verification may not find the expected file)."
@@ -251,24 +346,24 @@ def render_new_graph_queue(render_args, graph):
         # the graph - forcing render_args.img_name onto every branch would make them all write to
         # the same file and overwrite each other. RR verifies this job's output via its per-branch
         # channelFileName/channelExtension instead, not via a single ImageFilename.
-        unreal.log(f"-rLayer empty: rendering all {len(branches)} render layers with their own filenames from the graph")
+        log_info(f"-rLayer empty: rendering all {len(branches)} render layers with their own filenames from the graph")
 
     # Frame range: job.shot_info-based, not config-system-specific, so the legacy helpers work
     # unchanged for graph jobs too.
     seq_matches = seq_range_matches(job, render_args.seq_start, render_args.seq_end)
     if seq_matches:
-        unreal.log("job's sequence matches render start/end, no shot disabling required")
+        log_info("job's sequence matches render start/end, no shot disabling required")
     else:
         matching_shot = disable_out_of_range_shots(job, render_args.seq_start, render_args.seq_end)
         if matching_shot:
-            unreal.log(f"About to render shot {matching_shot.outer_name}")
+            log_info(f"About to render shot {matching_shot.outer_name}")
         else:
             # Unlike the legacy path, the graph's Output Setting node has no "custom playback
             # range" override to fall back on (see MoviePipelineRoyalGraph._apply_output_setting)
             # - a mismatch here means the job's own start/end frame will be used as-is, which
             # may not match -rStart/-rEnd. Surfaced as a warning rather than silently rendering
             # the wrong range.
-            unreal.log_warning(
+            log_warn(
                 f"no shot matching job's start/end ({render_args.seq_start}/{render_args.seq_end}) "
                 "and the graph has no custom-range override - the job will render whatever range "
                 "its own job/shot data implies, which may not match -rStart/-rEnd."
@@ -282,10 +377,31 @@ def render_new_graph_queue(render_args, graph):
     unreal_render_50.SUBSYSTEM_EXECUTOR = unreal.MoviePipelinePIEExecutor(subsystem)
     executor = unreal_render_50.SUBSYSTEM_EXECUTOR
 
-    executor.on_executor_finished_delegate.add_callable_unique(on_queue_finished_callback)
+    def _restore_graph_then_forward(executor, success):
+        # Runs once the whole queue is done (success or failure alike) - undoes every temporary
+        # node-disable/override this job made to the shared graph asset before handing off to the
+        # normal finished callback, so the next job (this run or a completely separate one reusing
+        # the same asset) always starts from the graph's originally authored state. See
+        # render_new_graph_queue() docstring for why this is necessary.
+        #
+        # Signature must match OnMoviePipelineExecutorFinished exactly - (executor, success), not
+        # *args/**kwargs - CONFIRMED (live test): add_callable_unique() inspects the callable's
+        # argument count itself and rejects a *args-based wrapper with "Callable has the incorrect
+        # number of arguments (expected 2, got 0)" before the render is even queued, so this isn't
+        # just a style preference.
+        log_info(f"restoring {len(restore_actions)} temporary change(s) made to the graph asset for this job")
+        for restore_action in restore_actions:
+            try:
+                restore_action()
+            except Exception as exc:
+                log_warn(f"failed to restore a graph node/setting to its original state: {exc}")
+        on_queue_finished_callback(executor, success)
+
+    executor.on_executor_finished_delegate.add_callable_unique(_restore_graph_then_forward)
     executor.on_individual_job_work_finished_delegate.add_callable_unique(on_individual_job_finished_callback)
     executor.on_individual_shot_work_finished_delegate.add_callable_unique(on_individual_shot_finished_callback)
 
+    log_info("______________________________________________________ Scene init done, starting to render... _____________________________________________________________________")
     subsystem.render_queue_with_executor_instance(executor)
 
 
@@ -317,16 +433,19 @@ def wait_for_asset_registry(delta_seconds):
     beyond the plain helper functions imported above."""
     asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
     if asset_registry.is_loading_assets():
-        unreal.log_warning("Asset Registry still loading...")
+        log_warn("Asset Registry still loading...")
         return
 
     global TICK_HANDLE
     unreal.unregister_slate_pre_tick_callback(TICK_HANDLE)
     TICK_HANDLE = None
 
+    log_info("______________________________________________________ Streaming-Assets completed _____________________________________________________________________")
     render_from_command_line()
 
 
 if __name__ == "__main__":
-    unreal.log("RR Movie Render Graph render module %rrVersion%")
+    log_info("_______________________________________________________ Unreal started ____________________________________________________________________")
+    log_info("RR Movie Render Graph render module %rrVersion%")
+    log_info("______________________________________________________ waiting while loading Streaming-Assets ___________________________________________________________________")
     TICK_HANDLE = unreal.register_slate_pre_tick_callback(wait_for_asset_registry)

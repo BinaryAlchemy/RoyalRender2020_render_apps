@@ -4,7 +4,7 @@
 #
 # Royal Render Render script for Unreal Engine
 # Author:  Antonio Ruocco, Paolo Acampora
-# Last Change: d9.0.06Unreal
+# Last Change: %rrVersion%
 #
 # Copyright (c) Holger Schoenberger - Binary Alchemy
 # 
