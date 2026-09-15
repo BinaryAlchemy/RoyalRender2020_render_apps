@@ -35,12 +35,12 @@
 #     map to .exr on disk - the "Suffix == extension" trick from the legacy code would have
 #     produced ".multilayerexr", which is wrong, hence the explicit _FILE_FORMAT_EXTENSIONS map
 #     below instead of deriving it from the class name). Audio is a single class,
-#     MovieGraphAudioOutputNode (no per-codec subclass the way legacy had). Video (H.264 MP4,
-#     ProRes, DNx, ...) - NOT YET CONFIRMED: no node class matching those names showed up in a
-#     `dir(unreal)` scan restricted to 'Output'/'Mp4'/'H264' - there may be a single
-#     MovieGraphVideoOutputNode with a codec/container property that determines the extension,
-#     analogous to Audio. If you use a video output type, tell me which one so I can get its
-#     exact node class + extension-relevant property name confirmed rather than guessed.
+#     MovieGraphAudioOutputNode (no per-codec subclass the way legacy had). H.264/MP4 video -
+#     CONFIRMED (live test): class is MovieGraphMP4EncoderNode (not a generic
+#     "MovieGraphVideoOutputNode" as first guessed), same file_name_format/override_file_name_format
+#     contract as the image format nodes, no separate extension property - always .mp4. ProRes/DNx
+#     or any other non-H.264/MP4 video node is still unconfirmed (no test scene available) - tell
+#     Holger which one so its exact node class can get confirmed the same way rather than guessed.
 #
 #   - The Global Output Settings node DOES have a custom playback range override (unlike what
 #     was assumed before testing) - override_custom_playback_range_start/end (bool) plus both a
@@ -143,8 +143,16 @@ _FILE_FORMAT_EXTENSIONS = {
     'MovieGraphImageSequenceOutputNode_EXR': ('.exr', False),
     'MovieGraphImageSequenceOutputNode_MultiLayerEXR': ('.exr', False),
     'MovieGraphAudioOutputNode': ('.wav', True),
-    # TODO: MovieGraphVideoOutputNode (H.264 MP4 / ProRes / DNx / ...) - not yet confirmed, see
-    # module docstring. Add the real class name + extension here once confirmed.
+    # CONFIRMED (live test, Holger): class is MovieGraphMP4EncoderNode, not a generic
+    # "MovieGraphVideoOutputNode" as guessed before - has file_name_format/override_file_name_format
+    # exactly like the image format nodes above, but no separate container/codec extension property
+    # (encoding_profile/encoding_level/encoding_rate_control control the encode, not the file
+    # extension) - the extension is simply always .mp4 for this node. One video file per shot, not
+    # per-frame, hence is_single_output=True like Audio above.
+    'MovieGraphMP4EncoderNode': ('.mp4', True),
+    # Still genuinely unconfirmed (no test scene available): ProRes/DNx or any other
+    # non-H.264/MP4 video node. Same pattern likely applies (its own concrete class, probably a
+    # MovieGraphFileOutputNode subclass with file_name_format) - add it here once confirmed.
 }
 
 
