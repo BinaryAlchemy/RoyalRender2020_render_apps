@@ -2902,8 +2902,10 @@ if __name__ == '__main__':
     thispath = os.path.dirname(os.path.abspath(__file__))
     icon = bitmaps.BaseBitmap()
     icon.InitWith(os.path.join(thispath, "rrSubmit_Cinema 4d_23.0+.png"))
-    # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs) does not work with macOS + R23
+    # Note: Using "#$0" in front of the name to sort menu entries (according to C4D docs). does not work with macOS + R23
     result = plugins.RegisterCommandPlugin(PLUGIN_ID                      , "rrSubmit", 0, icon, "rrSubmit", RRSubmit())
+    if not result:
+        print("rrSubmit: RegisterCommandPlugin FAILED for PLUGIN_ID (%s) - loaded from: %s" % (PLUGIN_ID, thispath))    
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_CAM                  , "rrSubmit - Select Camera..."         , 0, icon,  "rrSubmit - Select Camera..."            , RRSubmit(multi_cam=True))
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_ASS                  , "rrSubmit - Export Arnold .ass files..." , 0, icon,  "rrSubmit - Export Arnold .ass files..." , RRSubmitAssExport())
     result = plugins.RegisterCommandPlugin(PLUGIN_ID_RoyalRender_RSExport , "rrSubmit - Export Redshift .rs files...", 0, icon,  "rrSubmit - Export Redshift .rs files...", RRSubmitRsExport())
