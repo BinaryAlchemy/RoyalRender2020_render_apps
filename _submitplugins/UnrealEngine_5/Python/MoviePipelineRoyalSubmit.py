@@ -861,9 +861,10 @@ def collect_rr_job_from_legacy(base_job_rr, ue_job):
         split_shot_jobs = "{shot_name}" in new_job_rr.imageFileName
 
     if new_job_rr.multicam and "<Camera>" not in new_job_rr.imageFileName:
-        unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, adding .<Camera>. to file name")
-        new_job_rr.imageFileName += ".<Camera>."
-        # TODO: add other cameras as channels
+        unreal.log_warning(f"job {ue_job.job_name}'s sequence renders multiple camera, adding <Camera>. to file name")
+        
+        frame_num_at = new_job_rr.imageFileName.index("#")
+        new_job_rr.imageFileName = f"{new_job_rr.imageFileName[:frame_num_at]}<Camera>.{new_job_rr.imageFileName[frame_num_at:]}"
 
     entries.extend(finalize_shot_jobs(new_job_rr, ue_job, split_shot_jobs))
 
