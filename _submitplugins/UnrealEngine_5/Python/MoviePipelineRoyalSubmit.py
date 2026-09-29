@@ -831,9 +831,20 @@ def collect_rr_job_from_legacy(base_job_rr, ue_job):
         if isinstance(setting, unreal.MoviePipelineVideoOutputBase):
             # video output
             new_job_rr.imageSingleOutput = True
-            if isinstance(setting, unreal.MoviePipelineAppleProResOutput):
-                new_job_rr.imageExtension = ".mov"
-            elif isinstance(setting, unreal.MoviePipelineAvidDNxOutput):
+            try:
+                use_pro_res = isinstance(setting, unreal.MoviePipelineAppleProResOutput)
+            except AttributeError:
+                unreal.log_warning("Skipping Apple ProRes, not supported")
+            else:
+                if use_pro_res:
+                    new_job_rr.imageExtension = ".mov"
+                    continue
+
+            if isinstance(setting, unreal.MoviePipelineMP4EncoderOutput):
+                new_job_rr.imageExtension = ".mp4"
+                continue
+
+            if isinstance(setting, unreal.MoviePipelineAvidDNxOutput):
                 new_job_rr.imageExtension = ".mxf"
 
             continue
