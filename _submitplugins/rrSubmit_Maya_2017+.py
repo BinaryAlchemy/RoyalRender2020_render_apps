@@ -54,6 +54,10 @@ def printDebug(msg):
     if debug_val in ["TRUE", "ON", "1"]:
         print(msg)
 
+def replaceCI(text, old, new):
+    # case-insensitive replace of all occurrences, the replacement is inserted literally
+    return re.sub(re.escape(old), lambda m: new, text, flags=re.IGNORECASE)
+
 # option menus
 FR_SET_OPTION = None
 
@@ -297,13 +301,13 @@ class rrDelightRenderPass:
     def evalShortcodes(self,path,variable):
         #replace short codes                
         for k,v in self.shortcodeAttrs.iteritems():
-            path = path.replace(k,v())
+            path = replaceCI(path, k,v())
         
         #replace env vars                
         for k,v in os.environ.iteritems():
             path = path.replace('${'+k+'}',v)
 
-        path = path.replace("<aov>",variable)
+        path = replaceCI(path, "<aov>",variable)
             
         paths = os.path.split(path)
         self.imageDir = paths[0]
@@ -706,21 +710,19 @@ class rrMayaLayer:
                 continue
 
             prefix = self.get_attr(driver+'.prefix')
-            prefix= prefix.replace('<Channel>', aovName)
-            prefix= prefix.replace('<RenderPass>', aovName)
-            prefix= prefix.replace('<RenderPass>', aovName)
-            prefix= prefix.replace("<RenderLayer>","<Layer>")
-            prefix= prefix.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but by Redshift
+            prefix= replaceCI(prefix, '<Channel>', aovName)
+            prefix= replaceCI(prefix, '<RenderPass>', aovName)
+            prefix= replaceCI(prefix, "<RenderLayer>","<Layer>")  # case-insensitive, also covers lowercase 'R' (not recognized by Maya, but by Redshift)
 
             if prefix:
                 # Dateiname aus dem Original-Pfad entfernen, nur Ordner behalten
-                dirPath = os.path.dirname(self.imageFileName.replace('<RenderPass>', aovName))
+                dirPath = os.path.dirname(replaceCI(self.imageFileName, '<RenderPass>', aovName))
                 fileName = os.path.join(dirPath, prefix)
             else:
                 if mergeAOV:
                     printDebug("Skipping AOV %s (driver %s): no prefix and mergeAOV is True" % (aovName, driver))
                     continue
-                fileName = self.imageFileName.replace('<Channel>', aovName)
+                fileName = replaceCI(self.imageFileName, '<Channel>', aovName)
             
             if fileName in self.channelFileName:
                 printDebug("Skipping AOV %s: filename %s already in list" % (aovName, fileName))
@@ -765,7 +767,7 @@ class rrMayaLayer:
                 if (len(filePrefix)==0):
                     continue
                 filePrefix= filePrefix.replace('\\','/')
-                filePrefix= filePrefix.replace("<RenderPass>","<Channel>")
+                filePrefix= replaceCI(filePrefix, "<RenderPass>","<Channel>")
                 newFileName=""
                 printDebug("AOV2   "+filePrefix+"   "+newFileName)                
                 if (filePrefix.startswith("<BeautyPath>/")):
@@ -783,7 +785,7 @@ class rrMayaLayer:
                     newFileName += orgFileSplitName
                     filePrefix = filePrefix[len("<BeautyFile>"):]
                 printDebug("AOV4   "+filePrefix+"   "+newFileName)
-                filePrefix= filePrefix.replace("<BeautyFile>",orgFileSplitName)
+                filePrefix= replaceCI(filePrefix, "<BeautyFile>",orgFileSplitName)
                 redVersion = self.rendererVersion
                 if (redVersion<"3.0.65"):
                     self.channelName= aovName
@@ -814,9 +816,9 @@ class rrMayaLayer:
                     filePrefix += "."
                     printDebug("AOV8 add   "+aovName+": "+filePrefix)                
                     filePrefix= filePrefix.replace('\\','/')
-                    filePrefix= filePrefix.replace("<BeautyPath>",orgFileSplitDir)
-                    filePrefix= filePrefix.replace("<BeautyFile>",orgFileSplitName)
-                    filePrefix= filePrefix.replace("<RenderPass>", "<IMS>"+aovName)   
+                    filePrefix= replaceCI(filePrefix, "<BeautyPath>",orgFileSplitDir)
+                    filePrefix= replaceCI(filePrefix, "<BeautyFile>",orgFileSplitName)
+                    filePrefix= replaceCI(filePrefix, "<RenderPass>", "<IMS>"+aovName)   
                 printDebug("AOV9 add   "+aovName+": "+filePrefix)                
                 self.channelFileName.append(filePrefix)
                 self.channelExtension.append(self.imageExtension)
@@ -833,7 +835,7 @@ class rrMayaLayer:
             return
         for p in passes:
             if ((cmds.nodeType(p)=="renderPass") and (self.get_attr(p+'.renderable') == 1)):
-                self.channelFileName.append(self.imageFileName.replace('<Channel>',p))
+                self.channelFileName.append(replaceCI(self.imageFileName, '<Channel>',p))
                 self.channelExtension.append(self.imageExtension)
                 self.maxChannels +=1
 
@@ -913,37 +915,35 @@ class rrMayaLayer:
             elif (self.renderer=="redshift"):
                 self.channelName=""
             else:
-                self.imageFileName= self.imageFileName.replace("<Channel>","")
+                self.imageFileName= replaceCI(self.imageFileName, "<Channel>","")
                 
         printDebug("     getImageOut_imageFilePrefix   self.imageFileName "+self.imageFileName)
         
 
     def replaceMayaVariablesWithRR(self):
         self.imageFileName=self.imageFileName.strip()
-        self.imageFileName=self.imageFileName.replace("%/l","<Layer>/")
-        self.imageFileName=self.imageFileName.replace("%l","<Layer>")
-        self.imageFileName=self.imageFileName.replace("<layer>","<Layer>")
-        self.imageFileName=self.imageFileName.replace("<RenderLayer>","<Layer>")
-        self.imageFileName=self.imageFileName.replace("<renderLayer>","<Layer>") #lowercase 'R' is not recognized by Maya, but by Redshift
-        self.imageFileName=self.imageFileName.replace("<RenderPass>","<Channel>")
-        self.imageFileName=self.imageFileName.replace("%/c","<Camera>/")
-        self.imageFileName=self.imageFileName.replace("%c","<Camera>")
-        self.imageFileName=self.imageFileName.replace("<camera>","<Camera>")
-        self.imageFileName=self.imageFileName.replace("%/s","<SceneFile>/")
-        self.imageFileName=self.imageFileName.replace("%s","<SceneFile>")
-        self.imageFileName=self.imageFileName.replace("<Scene>","<SceneFile>")
-        self.imageFileName=self.imageFileName.replace("<scene>","<SceneFile>")
-        self.imageFileName=self.imageFileName.replace("<channel>","<Channel>")
-        self.imageFileName=self.imageFileName.replace("<aov>","<Channel>")
-        self.imageFileName=self.imageFileName.replace("<ext>",self.tempImageExtension)
-        self.imageFileName=self.imageFileName.replace("%e",self.tempImageExtension)
-        self.imageFileName=self.imageFileName.replace("<Extension>",self.tempImageExtension)
-        self.imageFileName=self.imageFileName.replace("<Version>",self.tempVersionTag)
-        self.imageFileName=self.imageFileName.replace("%v",self.tempVersionTag)
-        self.imageFileName=self.imageFileName.replace("%/v",self.tempVersionTag+"/")
+        self.imageFileName=replaceCI(self.imageFileName, "%/l","<Layer>/")
+        self.imageFileName=replaceCI(self.imageFileName, "%l","<Layer>")
+        self.imageFileName=replaceCI(self.imageFileName, "<layer>","<Layer>")
+        self.imageFileName=replaceCI(self.imageFileName, "<RenderLayer>","<Layer>")
+        self.imageFileName=replaceCI(self.imageFileName, "<RenderPass>","<Channel>")
+        self.imageFileName=replaceCI(self.imageFileName, "%/c","<Camera>/")
+        self.imageFileName=replaceCI(self.imageFileName, "%c","<Camera>")
+        self.imageFileName=replaceCI(self.imageFileName, "<camera>","<Camera>")
+        self.imageFileName=replaceCI(self.imageFileName, "%/s","<SceneFile>/")
+        self.imageFileName=replaceCI(self.imageFileName, "%s","<SceneFile>")
+        self.imageFileName=replaceCI(self.imageFileName, "<Scene>","<SceneFile>")
+        self.imageFileName=replaceCI(self.imageFileName, "<channel>","<Channel>")
+        self.imageFileName=replaceCI(self.imageFileName, "<aov>","<Channel>")
+        self.imageFileName=replaceCI(self.imageFileName, "<ext>",self.tempImageExtension)
+        self.imageFileName=replaceCI(self.imageFileName, "%e",self.tempImageExtension)
+        self.imageFileName=replaceCI(self.imageFileName, "<Extension>",self.tempImageExtension)
+        self.imageFileName=replaceCI(self.imageFileName, "<Version>",self.tempVersionTag)
+        self.imageFileName=replaceCI(self.imageFileName, "%v",self.tempVersionTag)
+        self.imageFileName=replaceCI(self.imageFileName, "%/v",self.tempVersionTag+"/")
         
-        self.imageExtension= self.imageExtension.replace("%e",self.tempImageExtension)
-        self.imageExtension= self.imageExtension.replace("<Extension>",self.tempImageExtension)        
+        self.imageExtension= replaceCI(self.imageExtension, "%e",self.tempImageExtension)
+        self.imageExtension= replaceCI(self.imageExtension, "<Extension>",self.tempImageExtension)        
 
 
     def getImageOut(self,sceneInfo,isLayerRendering):
@@ -1087,13 +1087,13 @@ class rrMayaLayer:
         self.imageFileName= self.get_attr('rmanGlobals.imageOutputDir') +"/"+ self.get_attr('rmanGlobals.imageFileFormat')
         printDebug("     getImageOut_renderman22   self.imageFileName "+self.imageFileName)
         if (not isLayerRendering):
-            self.imageFileName= self.imageFileName.replace("<layer>","")
+            self.imageFileName= replaceCI(self.imageFileName, "<layer>","")
         if (self.imageFileName.startswith("<ws>")):
             isRelativeOutputDir=True
             self.imageFileName= self.imageFileName[5:]
         printDebug("     getImageOut_renderman22   self.imageFileName "+self.imageFileName)
-        self.imageFileName= self.imageFileName.replace("<version>",str(self.get_attr('rmanGlobals.version')))
-        self.imageFileName= self.imageFileName.replace("<take>",str(self.get_attr('rmanGlobals.take')))
+        self.imageFileName= replaceCI(self.imageFileName, "<version>",str(self.get_attr('rmanGlobals.version')))
+        self.imageFileName= replaceCI(self.imageFileName, "<take>",str(self.get_attr('rmanGlobals.take')))
  
         
         self.imageFileName=self.imageFileName.replace("\\","/")
@@ -1180,12 +1180,12 @@ class rrMayaLayer:
                 aovExt="tex"
             else:
                 aovExt="exr"
-            self.imageExtension= self.imageExtension.replace("<ext>",aovExt)
+            self.imageExtension= replaceCI(self.imageExtension, "<ext>",aovExt)
             
 
         aovList = cmds.ls(type='rmanDisplay', sns=True)
         if aovList == None or len(aovList) == 0:
-            self.imageExtension= self.imageExtension.replace("<ext>","exr")        
+            self.imageExtension= replaceCI(self.imageExtension, "<ext>","exr")        
             self.replaceMayaVariablesWithRR()  
             if (self.imageFileName.find("<Channel>")>=0):
                 self.channelName="beauty"    
@@ -1213,9 +1213,9 @@ class rrMayaLayer:
 
                 if (len(self.channelName)==0):
                     self.channelName=aovName
-                    self.imageExtension= self.imageExtension.replace("<ext>",aovExt) 
+                    self.imageExtension= replaceCI(self.imageExtension, "<ext>",aovExt) 
                 else:
-                    self.channelFileName.append(self.imageFileName.replace('<aov>', aovName))
+                    self.channelFileName.append(replaceCI(self.imageFileName, '<aov>', aovName))
                     self.channelExtension.append("."+aovExt)
                     self.maxChannels +=1
                 
@@ -1226,7 +1226,7 @@ class rrMayaLayer:
         printDebug("     getImageOut_renderman22   self.imageExtension "+self.imageExtension)
             
             
-        self.imageExtension= self.imageExtension.replace("<Extension>","exr")  
+        self.imageExtension= replaceCI(self.imageExtension, "<Extension>","exr")  
         
         return True
         
@@ -1299,7 +1299,7 @@ class rrMayaLayer:
             return False
 
         self.replaceMayaVariablesWithRR()
-        self.imageFileName=self.imageFileName.replace("<Channel>","")
+        self.imageFileName=replaceCI(self.imageFileName, "<Channel>","")
 
         if (self.renderer=="vray_prepass"):
             self.imageFileName= self.imageFileName + self.imagePreNumberLetter
@@ -1406,6 +1406,8 @@ class rrMayaLayer:
                 self.renderer="arnold-exportAss"
         if (self.renderer == "redshift"):
             self.addRedshiftAOVToLayer()
+            if (len(self.channelName)==0 and self.maxChannels>0):
+                self.channelName= "beauty"  # other AOVs exist, so the main output needs a channel name
         return True        
 
     # gather all information from a layer
@@ -1470,7 +1472,7 @@ class rrMayaLayer:
                     camName= getCameraNameFromShape(self.tempCamNames[c])
                     
                     if (self.camera!=camName):
-                        self.channelFileName.append(self.imageFileName.replace('<Camera>',camName))
+                        self.channelFileName.append(replaceCI(self.imageFileName, '<Camera>',camName))
                         self.channelExtension.append(self.imageExtension)
                         self.maxChannels +=1
             self.camera=self.camera + " MultiCam"
@@ -1478,7 +1480,7 @@ class rrMayaLayer:
         if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<camera>")<0)):
             self.camera=""
         if (self.renderer=="mayaSoftware") or (self.renderer=="redshift") or (self.renderer=="vray"):
-            self.imageFileName=self.imageFileName.replace('<Camera>','<CameraKeepVBar>')
+            self.imageFileName=replaceCI(self.imageFileName, '<Camera>','<CameraKeepVBar>')
         if ((len(self.camera)>150) and (self.camera.find(":")>0)):
             splitted=self.camera.split(":")
             self.camera=splitted[len(splitted)-1]
@@ -1521,7 +1523,7 @@ class rrsceneInfo:
         self.ColorSpaceConfigFile = cmds.colorManagementPrefs(q=True, configFilePath=True)
         self.ColorSpace_View = cmds.colorManagementPrefs(q=True, viewName=True)
 
-        self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace("<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
+        self.ColorSpaceConfigFile = replaceCI(self.ColorSpaceConfigFile, "<MAYA_RESOURCES>", OpenMaya.MGlobal.getAbsolutePathToResources()) 
         mayaPath=cmds.internalVar(mayaInstallDir=True)
         if (len(mayaPath)>0):
             self.ColorSpaceConfigFile = self.ColorSpaceConfigFile.replace(cmds.internalVar(mayaInstallDir=True), "<rrBaseAppPath>") 
@@ -1943,10 +1945,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         
         dbDir=  self.sceneInfo.DatabaseDir
         sceneName=  Path(self.sceneInfo.SceneName).stem
-        usdFileName= usdFileName.replace("<MayaProject>",dbDir)
-        usdFileName= usdFileName.replace("<mayaproject>",dbDir)
-        usdFileName= usdFileName.replace("<Scene>",sceneName)
-        usdFileName= usdFileName.replace("<scene>",sceneName)
+        usdFileName= replaceCI(usdFileName, "<MayaProject>",dbDir)
+        usdFileName= replaceCI(usdFileName, "<Scene>",sceneName)
         usdFileName= usdFileName.replace("#","") # file per frame not supported by Arnold
         usdFileNameLower= usdFileName.lower()
         if (not usdFileNameLower.endswith(".usd")) and  (not usdFileNameLower.endswith(".usda")):
@@ -1961,10 +1961,8 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
             self.maxLayer= self.maxLayer +1
              
             usdFileName_Layer= usdFileName;
-            usdFileName_Layer= usdFileName_Layer.replace("<layer>", self.layer[L].name)
-            usdFileName_Layer= usdFileName_Layer.replace("<Layer>", self.layer[L].name)
-            usdFileName_Layer= usdFileName_Layer.replace("<version>", self.layer[L].tempVersionTag)
-            usdFileName_Layer= usdFileName_Layer.replace("<Version>", self.layer[L].tempVersionTag)
+            usdFileName_Layer= replaceCI(usdFileName_Layer, "<Layer>", self.layer[L].name)
+            usdFileName_Layer= replaceCI(usdFileName_Layer, "<Version>", self.layer[L].tempVersionTag)
             usdHasFrameNumber= (usdFileName_Layer.find("#") > 0)
              
             #Export USD job:
