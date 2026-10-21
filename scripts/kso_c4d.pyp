@@ -1414,7 +1414,7 @@ def renderFrames(FrStart, FrEnd, FrStep):
                 else:
                     msg = "error rendering document: "
                     if res == c4d.RENDERRESULT_OUTOFMEMORY:
-                        msg += "Not enough memory. In case of Redshift: Unspecified error, please see separate Redshift log file."
+                        msg += "Not enough memory. In case of Redshift: Can be a VRAM or somtimes an Unspecified error, please see _sep(arate) Redshift log file."
                     elif res == c4d.RENDERRESULT_ASSETMISSING:
                         msg += "Assets (textures etc.) are missing"
                     elif res == c4d.RENDERRESULT_SAVINGFAILED:

@@ -225,8 +225,8 @@ class rrDelightRenderPass:
         self.preID = 0
         self.version= 0
         self.waitForPreID = 0
-        self.channelFilenames = []
-        self.channelExts = []
+        self.aovFilenames = []
+        self.aovExts = []
         self.renderer = "_3delight"
         self.software= "Maya"
         self.shortcodeAttrs = {'<ext>':self.getExtension,
@@ -283,7 +283,7 @@ class rrDelightRenderPass:
             rrWriteLog('No Renderable Displays!')
             return False
         
-#        get channels
+#        get AOVs
         
         return True
 
@@ -351,11 +351,11 @@ class rrDelightRenderPass:
                         self.imageFileName= self.imageFileName[:len(self.imageFileName)-1]
                     primary = False
                 else:
-                    channelFile=tokens[-1]+os.sep+tokens[0]
-                    if ((channelFile[len(channelFile)-1]) == '#'):
-                        channelFile= channelFile[:len(channelFile)-1]
-                    self.channelFilenames.append(channelFile)
-                    self.channelExts.append('.'+tokens[-2])
+                    aovFile=tokens[-1]+os.sep+tokens[0]
+                    if ((aovFile[len(aovFile)-1]) == '#'):
+                        aovFile= aovFile[:len(aovFile)-1]
+                    self.aovFilenames.append(aovFile)
+                    self.aovExts.append('.'+tokens[-2])
 
         if primary:
             return False
@@ -536,10 +536,10 @@ class rrMayaLayer:
         self.imageExtension=""
         self.imagePreNumberLetter=""
         self.ImageSingleOutputFile=False
-        self.channelName=""
-        self.maxChannels=0
-        self.channelFileName=[]
-        self.channelExtension=[]
+        self.aovName=""
+        self.maxAOVs=0
+        self.aovFileName=[]
+        self.aovExtension=[]
         self.tempModifyExtension=False
         self.tempModifyByframe=1.0
         self.tempModifyStart=1
@@ -710,7 +710,8 @@ class rrMayaLayer:
                 continue
 
             prefix = self.get_attr(driver+'.prefix')
-            prefix= replaceCI(prefix, '<Channel>', aovName)
+            prefix= replaceCI(prefix, '<AOV>', aovName)
+            prefix= replaceCI(prefix, '<Channel>', aovName)  # legacy name
             prefix= replaceCI(prefix, '<RenderPass>', aovName)
             prefix= replaceCI(prefix, "<RenderLayer>","<Layer>")  # case-insensitive, also covers lowercase 'R' (not recognized by Maya, but by Redshift)
 
@@ -722,15 +723,15 @@ class rrMayaLayer:
                 if mergeAOV:
                     printDebug("Skipping AOV %s (driver %s): no prefix and mergeAOV is True" % (aovName, driver))
                     continue
-                fileName = replaceCI(self.imageFileName, '<Channel>', aovName)
+                fileName = replaceCI(self.imageFileName, '<AOV>', aovName)
             
-            if fileName in self.channelFileName:
+            if fileName in self.aovFileName:
                 printDebug("Skipping AOV %s: filename %s already in list" % (aovName, fileName))
                 continue
 
-            self.channelFileName.append(fileName)
-            self.channelExtension.append(self.imageExtension)
-            self.maxChannels += 1
+            self.aovFileName.append(fileName)
+            self.aovExtension.append(self.imageExtension)
+            self.maxAOVs += 1
 
     #add Redshift AOV to layer
     def addRedshiftAOVToLayer(self):
@@ -767,7 +768,7 @@ class rrMayaLayer:
                 if (len(filePrefix)==0):
                     continue
                 filePrefix= filePrefix.replace('\\','/')
-                filePrefix= replaceCI(filePrefix, "<RenderPass>","<Channel>")
+                filePrefix= replaceCI(filePrefix, "<RenderPass>","<AOV>")
                 newFileName=""
                 printDebug("AOV2   "+filePrefix+"   "+newFileName)                
                 if (filePrefix.startswith("<BeautyPath>/")):
@@ -788,7 +789,7 @@ class rrMayaLayer:
                 filePrefix= replaceCI(filePrefix, "<BeautyFile>",orgFileSplitName)
                 redVersion = self.rendererVersion
                 if (redVersion<"3.0.65"):
-                    self.channelName= aovName
+                    self.aovName= aovName
                     newFileName += "<RemoveVar " + filePrefix + ">"
                 filePrefix=""
                 printDebug("AOV5   "+filePrefix+"   "+newFileName)
@@ -820,13 +821,13 @@ class rrMayaLayer:
                     filePrefix= replaceCI(filePrefix, "<BeautyFile>",orgFileSplitName)
                     filePrefix= replaceCI(filePrefix, "<RenderPass>", "<IMS>"+aovName)   
                 printDebug("AOV9 add   "+aovName+": "+filePrefix)                
-                self.channelFileName.append(filePrefix)
-                self.channelExtension.append(self.imageExtension)
-                self.maxChannels +=1
+                self.aovFileName.append(filePrefix)
+                self.aovExtension.append(self.imageExtension)
+                self.maxAOVs +=1
                 
 
     #add MRay Render Passes to layer
-    def addChannelsToLayer(self):
+    def addAOVsToLayer(self):
         name = self.name
         if self.name == 'masterLayer':
             name = 'defaultRenderLayer'
@@ -835,9 +836,9 @@ class rrMayaLayer:
             return
         for p in passes:
             if ((cmds.nodeType(p)=="renderPass") and (self.get_attr(p+'.renderable') == 1)):
-                self.channelFileName.append(replaceCI(self.imageFileName, '<Channel>',p))
-                self.channelExtension.append(self.imageExtension)
-                self.maxChannels +=1
+                self.aovFileName.append(replaceCI(self.imageFileName, '<AOV>',p))
+                self.aovExtension.append(self.imageExtension)
+                self.maxAOVs +=1
 
 
 
@@ -901,21 +902,21 @@ class rrMayaLayer:
         self.imageFileName=self.imageFileName.replace("//","/")
         if (isUNC):
             self.imageFileName='/'+self.imageFileName
-        if ((self.renderer=="arnold") and (self.get_attr('defaultArnoldRenderOptions.aovMode')!=0) and (self.get_attr('defaultArnoldDriver.mergeAOVs')!=1) and (self.imageFileName.find("<Channel>")<0)):
+        if ((self.renderer=="arnold") and (self.get_attr('defaultArnoldRenderOptions.aovMode')!=0) and (self.get_attr('defaultArnoldDriver.mergeAOVs')!=1) and (self.imageFileName.find("<AOV>")<0)):
             if (len(os.path.dirname(self.imageFileName))>0):
-                self.imageFileName=os.path.dirname(self.imageFileName)+"/<Channel>/"+os.path.basename(self.imageFileName)
+                self.imageFileName=os.path.dirname(self.imageFileName)+"/<AOV>/"+os.path.basename(self.imageFileName)
             else:
-                self.imageFileName="<Channel>/"+self.imageFileName
+                self.imageFileName="<AOV>/"+self.imageFileName
 
-        if (self.imageFileName.find("<Channel>")>=0):
+        if (self.imageFileName.find("<AOV>")>=0):
             if (self.renderer=="mentalRay") :
-                self.channelName="MasterBeauty"
+                self.aovName="MasterBeauty"
             elif (self.renderer=="arnold"):
-                self.channelName="beauty"
+                self.aovName="beauty"
             elif (self.renderer=="redshift"):
-                self.channelName=""
+                self.aovName=""
             else:
-                self.imageFileName= replaceCI(self.imageFileName, "<Channel>","")
+                self.imageFileName= replaceCI(self.imageFileName, "<AOV>","")
                 
         printDebug("     getImageOut_imageFilePrefix   self.imageFileName "+self.imageFileName)
         
@@ -926,15 +927,15 @@ class rrMayaLayer:
         self.imageFileName=replaceCI(self.imageFileName, "%l","<Layer>")
         self.imageFileName=replaceCI(self.imageFileName, "<layer>","<Layer>")
         self.imageFileName=replaceCI(self.imageFileName, "<RenderLayer>","<Layer>")
-        self.imageFileName=replaceCI(self.imageFileName, "<RenderPass>","<Channel>")
+        self.imageFileName=replaceCI(self.imageFileName, "<RenderPass>","<AOV>")
         self.imageFileName=replaceCI(self.imageFileName, "%/c","<Camera>/")
         self.imageFileName=replaceCI(self.imageFileName, "%c","<Camera>")
         self.imageFileName=replaceCI(self.imageFileName, "<camera>","<Camera>")
         self.imageFileName=replaceCI(self.imageFileName, "%/s","<SceneFile>/")
         self.imageFileName=replaceCI(self.imageFileName, "%s","<SceneFile>")
         self.imageFileName=replaceCI(self.imageFileName, "<Scene>","<SceneFile>")
-        self.imageFileName=replaceCI(self.imageFileName, "<channel>","<Channel>")
-        self.imageFileName=replaceCI(self.imageFileName, "<aov>","<Channel>")
+        self.imageFileName=replaceCI(self.imageFileName, "<Channel>","<AOV>")  # legacy name
+        self.imageFileName=replaceCI(self.imageFileName, "<aov>","<AOV>")
         self.imageFileName=replaceCI(self.imageFileName, "<ext>",self.tempImageExtension)
         self.imageFileName=replaceCI(self.imageFileName, "%e",self.tempImageExtension)
         self.imageFileName=replaceCI(self.imageFileName, "<Extension>",self.tempImageExtension)
@@ -1000,13 +1001,13 @@ class rrMayaLayer:
                 filepath=""
                 filename=""
                 (filepath, filename)= os.path.split(self.imageFileName)
-                self.channelName="beauty"
-                filepath=filepath+"/<Channel-removeVar>/"
+                self.aovName="beauty"
+                filepath=filepath+"/<AOV-removeVar>/"
                 if (filename[len(filename)-1]=="."):
                     filename=filename[:len(filename)-1]
-                    filename=filename+"_<Channel-removeVar>."
+                    filename=filename+"_<AOV-removeVar>."
                 else:
-                    filename=filename+"_<Channel-removeVar>"
+                    filename=filename+"_<AOV-removeVar>"
                 self.imageFileName=filepath+filename
         printDebug("getImageOut - imageDir "+self.imageDir+"   imageFileName  "+self.imageFileName)
         return True
@@ -1163,9 +1164,9 @@ class rrMayaLayer:
         
         
         
-        self.channelName="" 
+        self.aovName="" 
         if (self.get_attr("rmanDefaultDisplay.enable")==1):
-            self.channelName="beauty"
+            self.aovName="beauty"
             aovExt=cmds.listConnections('rmanDefaultDisplay.displayType')
             aovExt=aovExt[0]
             if (aovExt.find("exr")>0):
@@ -1187,8 +1188,8 @@ class rrMayaLayer:
         if aovList == None or len(aovList) == 0:
             self.imageExtension= replaceCI(self.imageExtension, "<ext>","exr")        
             self.replaceMayaVariablesWithRR()  
-            if (self.imageFileName.find("<Channel>")>=0):
-                self.channelName="beauty"    
+            if (self.imageFileName.find("<AOV>")>=0):
+                self.aovName="beauty"    
             return
             
         aovList = [aovList[i] for i in range(0, len(aovList), 2) if aovList[i + 1] == ':']
@@ -1211,13 +1212,13 @@ class rrMayaLayer:
                 else:
                     aovExt="exr"
 
-                if (len(self.channelName)==0):
-                    self.channelName=aovName
+                if (len(self.aovName)==0):
+                    self.aovName=aovName
                     self.imageExtension= replaceCI(self.imageExtension, "<ext>",aovExt) 
                 else:
-                    self.channelFileName.append(replaceCI(self.imageFileName, '<aov>', aovName))
-                    self.channelExtension.append("."+aovExt)
-                    self.maxChannels +=1
+                    self.aovFileName.append(replaceCI(self.imageFileName, '<aov>', aovName))
+                    self.aovExtension.append("."+aovExt)
+                    self.maxAOVs +=1
                 
         printDebug("     getImageOut_renderman22   self.imageFileName "+self.imageFileName)
         printDebug("     getImageOut_renderman22   self.imageExtension "+self.imageExtension)
@@ -1266,18 +1267,18 @@ class rrMayaLayer:
             self.imageExtension="png"
         self.imageExtension= "."+ self.imageExtension
         
-        noChannels= False
+        noAOVs= False
         if ((self.imageExtension==".exr (multichannel)")):
             self.imageExtension=".exr"
             self.imagePreNumberLetter=""
             self.renderer=="vray_mexr"
-            noChannels= True
+            noAOVs= True
         if ((self.imageExtension==".exr (deep)")):
             self.imageExtension=".exr"
         if ((self.imageExtension==".vrimg")):
             self.imagePreNumberLetter=""
             self.renderer=="vray_mexr"
-            noChannels= True
+            noAOVs= True
         if ((self.camera==None) or (len(self.camera)==0)):
             self.camera=""
         if ((self.tempIsGI) and (self.tempIsGI2)):
@@ -1299,7 +1300,7 @@ class rrMayaLayer:
             return False
 
         self.replaceMayaVariablesWithRR()
-        self.imageFileName=replaceCI(self.imageFileName, "<Channel>","")
+        self.imageFileName=replaceCI(self.imageFileName, "<AOV>","")
 
         if (self.renderer=="vray_prepass"):
             self.imageFileName= self.imageFileName + self.imagePreNumberLetter
@@ -1340,7 +1341,7 @@ class rrMayaLayer:
             vrayElemSeperateFolders= self.get_attr('vraySettings.relements_separateFolders')
             vrayElemSep= self.get_attr('vraySettings.fileNameRenderElementSeparator')
             vrayElements= maya.mel.eval('$rrTempExisting = vrayRenderElementsExisting();')
-            if (not noChannels):
+            if (not noAOVs):
                 for elem in vrayElements:
                     if (self.get_attr(elem+'.enabled')):
                         suffix=elem
@@ -1358,11 +1359,11 @@ class rrMayaLayer:
                                 if (len(overridename) > 0):
                                     suffix= overridename
                         if (vrayElemSeperateFolders):
-                            self.channelFileName.append(imageDirName_nopre+suffix+"/"+imageFileName_nopre+vrayElemSep+suffix+self.imagePreNumberLetter)
+                            self.aovFileName.append(imageDirName_nopre+suffix+"/"+imageFileName_nopre+vrayElemSep+suffix+self.imagePreNumberLetter)
                         else:
-                            self.channelFileName.append(imageDirName_nopre+imageFileName_nopre+vrayElemSep+suffix+self.imagePreNumberLetter)
-                        self.channelExtension.append(self.imageExtension)
-                        self.maxChannels +=1
+                            self.aovFileName.append(imageDirName_nopre+imageFileName_nopre+vrayElemSep+suffix+self.imagePreNumberLetter)
+                        self.aovExtension.append(self.imageExtension)
+                        self.maxAOVs +=1
 
         return True
 
@@ -1394,7 +1395,7 @@ class rrMayaLayer:
             return False
 
         if (self.renderer == 'mentalRay'):
-            self.addChannelsToLayer()
+            self.addAOVsToLayer()
         if (self.renderer == 'arnold'):
             self.addAOVToLayer()
             isAssExport= self.get_attr('defaultArnoldRenderOptions.renderType')
@@ -1406,8 +1407,8 @@ class rrMayaLayer:
                 self.renderer="arnold-exportAss"
         if (self.renderer == "redshift"):
             self.addRedshiftAOVToLayer()
-            if (len(self.channelName)==0 and self.maxChannels>0):
-                self.channelName= "beauty"  # other AOVs exist, so the main output needs a channel name
+            if (len(self.aovName)==0 and self.maxAOVs>0):
+                self.aovName= "beauty"  # other AOVs exist, so the main output needs an AOV name
         return True        
 
     # gather all information from a layer
@@ -1472,9 +1473,9 @@ class rrMayaLayer:
                     camName= getCameraNameFromShape(self.tempCamNames[c])
                     
                     if (self.camera!=camName):
-                        self.channelFileName.append(replaceCI(self.imageFileName, '<Camera>',camName))
-                        self.channelExtension.append(self.imageExtension)
-                        self.maxChannels +=1
+                        self.aovFileName.append(replaceCI(self.imageFileName, '<Camera>',camName))
+                        self.aovExtension.append(self.imageExtension)
+                        self.maxAOVs +=1
             self.camera=self.camera + " MultiCam"
             
         if ((self.camera.find(":")>0) and (self.imageFileName.lower().find("<camera>")<0)):
@@ -2098,7 +2099,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
         self.subE(jobElement,"Camera",camera)
         self.subE(jobElement,"Layer", Layer)
-        self.subE(jobElement,"Channel", DPass.name)
+        self.subE(jobElement,"AOV", DPass.name)
         self.subE(jobElement,"IsActive",True)
         self.subE(jobElement,"SeqStart",DPass.seqStart)
         self.subE(jobElement,"SeqEnd",DPass.seqEnd)
@@ -2113,15 +2114,15 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
     #        self.subE(jobElement,"ImagePreNumberLetter",Layer.imagePreNumberLetter)
         self.subE(jobElement,"ImageFramePadding",4)
     #        self.subE(jobElement,"ImageSingleOutputFile",Layer.ImageSingleOutputFile)
-        for c in range(0,len(DPass.channelFilenames)):
-           self.subE(jobElement,"ChannelFilename",DPass.channelFilenames[c])
-           self.subE(jobElement,"ChannelExtension",DPass.channelExts[c])
+        for c in range(0,len(DPass.aovFilenames)):
+           self.subE(jobElement,"AOVFilename",DPass.aovFilenames[c])
+           self.subE(jobElement,"AOVExtension",DPass.aovExts[c])
         self.subE(jobElement,"LocalTexturesFile",LocalTextureFile)
         if (len(Layer.customScriptFile)>0):
             self.subE(jobElement,"CustomScriptFile",Layer.customScriptFile)
         
         
-    def rrWriteLayerToFile(self,rootElement,Layer, channel,sceneInfo,camera,LocalTextureFile):
+    def rrWriteLayerToFile(self,rootElement,Layer, aov,sceneInfo,camera,LocalTextureFile):
         #print("\n\n")
         #print LayerID
         jobElement = self.subE(rootElement, "Job", "")
@@ -2144,7 +2145,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"RequiredLicenses", sceneInfo.RequiredLicenses)
         self.subE(jobElement,"Camera",camera)
         self.subE(jobElement,"Layer", Layer.name)
-        self.subE(jobElement,"Channel", channel)
+        self.subE(jobElement,"AOV", aov)
         self.subE(jobElement,"IsActive",Layer.IsActive)
         self.subE(jobElement,"SeqStart",Layer.seqStart)
         self.subE(jobElement,"SeqEnd",Layer.seqEnd)
@@ -2159,9 +2160,9 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
         self.subE(jobElement,"ImagePreNumberLetter",Layer.imagePreNumberLetter)
         self.subE(jobElement,"ImageFramePadding",Layer.imageFramePadding)
         self.subE(jobElement,"ImageSingleOutputFile",Layer.ImageSingleOutputFile)
-        for c in range(0,Layer.maxChannels):
-            self.subE(jobElement,"ChannelFilename",Layer.channelFileName[c])
-            self.subE(jobElement,"ChannelExtension",Layer.channelExtension[c])
+        for c in range(0,Layer.maxAOVs):
+            self.subE(jobElement,"AOVFilename",Layer.aovFileName[c])
+            self.subE(jobElement,"AOVExtension",Layer.aovExtension[c])
         self.subE(jobElement,"LocalTexturesFile",LocalTextureFile)
         if (len(Layer.customScriptFile)>0):
             self.subE(jobElement,"CustomScriptFile",Layer.customScriptFile)
@@ -2193,7 +2194,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                         for p in self.passes:
                             self.rrWritePassToFile(xmlObj, self.layer[L].name, p, self.sceneInfo, cam, self.locTexFile)
                     else:
-                        self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].channelName, self.sceneInfo, cam, self.locTexFile)
+                        self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].aovName, self.sceneInfo, cam, self.locTexFile)
         else:        
             for L in range(0, self.maxLayer):
                 if self.layer[L].renderer == "_3delight":
@@ -2202,7 +2203,7 @@ class rrPlugin(OpenMayaMPx.MPxCommand):
                     for p in self.passes:
                         self.rrWritePassToFile(xmlObj, self.layer[L].name, p, self.sceneInfo, p.camera, self.locTexFile)
                 else:
-                    self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].channelName, self.sceneInfo, self.layer[L].camera, self.locTexFile)
+                    self.rrWriteLayerToFile(xmlObj, self.layer[L], self.layer[L].aovName, self.sceneInfo, self.layer[L].camera, self.locTexFile)
 
         ret = self.writeToXMLEnd(tmpFile, xmlObj)
         if not ret:
