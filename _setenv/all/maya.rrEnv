@@ -59,7 +59,7 @@ MAYA_RENDER_DESC_PATH  =  <rrPlugins><rrExeVersionMinReq>\rendererDesc;<MAYA_REN
 PYTHONPATH  = <PYTHONPATH>
 
 
-# ###################  RenderManStudio environment variables ###################
+echo -----------------------------------------  RenderManStudio environment variables -----------------------------------------
 [If] <rrJobRenderer>  [==] renderMan
     RR_RenderManForMaya_BASE  =  <rrSharedExeDir>RenderManForMaya-<rrJobRendererVersion>-maya<rrExeVersionMinReq>
     RR_RenderManForMaya_LOCAL  =  <rrLocalExeDir>RenderManForMaya-<rrJobRendererVersion>-maya<rrExeVersionMinReq>
@@ -90,13 +90,13 @@ PYTHONPATH  = <PYTHONPATH>
 [EndIf]
 
 
-# ###################  MAYAMANROOT environment variables ###################
+echo -----------------------------------------  MAYAMANROOT environment variables -----------------------------------------
 # MAYAMANROOT  =  C:\Program Files\mayaman<rrJobRendererVersion>
 # MAYA_SCRIPT_PATH  =  <MAYAMANROOT>\mel\;<MAYA_SCRIPT_PATH>
 # MAYA_PLUG_IN_PATH  =  <MAYAMANROOT>\plugins\<rrExeVersionMinReq>;<MAYA_PLUG_IN_PATH>
 
 
-# ###################  3Delight environment variables ###################
+echo -----------------------------------------  3Delight environment variables -----------------------------------------
 # DELIGHT  =  C:\Program Files\3Delight
 # DL_DISPLAYS_PATH  =  <DELIGHT>\displays
 # DL_SHADERS_PATH  =  <DELIGHT>\shaders
@@ -106,7 +106,7 @@ PYTHONPATH  = <PYTHONPATH>
 # MAYA_SCRIPT_PATH  =  <MAYA_SCRIPT_PATH>;<DELIGHT>\maya\scripts
 
 
-# ###################  VRay environment variables ###################
+echo -----------------------------------------  VRay environment variables -----------------------------------------
 [If] <rrJobRenderer>  [contains] vray
     #just some dummy command 
     echo * Using vray
@@ -123,7 +123,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
     [EndIf]
     RR_VRAY_BASE_LOCAL  =  <rrLocalExeDir>vray<rrExeVersionMinReq>__<rrJobRendererVersion>
 [Else]
-    echo * VRay is setup to use local installation in RR. In difference to an RR shared network setup.
+    echo * VRay is setup to use local installation in RR. In difference to a RR shared network setup.
 [EndIf]
 # On Windows, the whole commandline is loaded and variables are replaced before execution. An If/endif is one commandline. Therefore "set RR_VRAY_BASE_LOCAL  =  " and using it inside the same If/EndIf does not work.
 [If] <RR_VRAY_NETWORK>  [==] 1
@@ -151,7 +151,7 @@ VRAY_FOR_MAYA<ExeVersionMinReqUS>_PLUGINS  =  <VRAY_FOR_MAYA<ExeVersionMinReqUS>
 [EndIf]
 
 [If] <RR_VRAY_NETWORK>  [==] 1
-#     ###################  Phoenix inside Vray folder  environment variables ###################
+echo -----------------------------------------  Phoenix inside Vray folder  environment variables -----------------------------------------
     PHX_FOR_MAYA<ExeVersionMinReqUS>_MAIN  =  <RR_VRAY_BASE>\plug-ins
     MAYA_PLUG_IN_PATH  =  <RR_VRAY_BASE_LOCAL>\phoenixfd\plug-ins;<MAYA_PLUG_IN_PATH>;
     MAYA_SCRIPT_PATH  =  <RR_VRAY_BASE_LOCAL>\phoenixfd\scripts;<MAYA_SCRIPT_PATH>;
@@ -162,7 +162,7 @@ VRAY_SEND_FEEDBACK =  0
 
 
 
-# ###################  Arnold/MtoA environment variables ###################
+echo -----------------------------------------  Arnold/MtoA environment variables -----------------------------------------
 #enable RR_MTOA_NETWORK by default if not set in __inhouse file
 [If] <RR_MTOA_NETWORK>  [==] 
     RR_MTOA_NETWORK  =  1
@@ -184,7 +184,7 @@ RR_USE_ARNOLD_RENDERER = 0
 
 #If MtoA network shared folder is not used, then use local MtoA folder on machines drive (installed with Maya)
 [If] <RR_MTOA_NETWORK>  [==] 0
-    echo * MtoA/Arnold is setup to use local installation in RR. In difference to an RR shared network setup.
+    echo * MtoA/Arnold is setup to use local installation in RR. In difference to a RR shared network setup.
     [If] <RR_MTOA_BASE>  [==] 
         [If] <rrExeVersionMajor>  [<] 2020
             [If] <rrExeOS>  [==] win
@@ -268,7 +268,7 @@ ARNOLD_ADP_OPTIN = 0
 
 
 
-# ###################  RedShift environment variables ###################
+echo -----------------------------------------  RedShift environment variables -----------------------------------------
 
 #small bug in RR, this is required because of the YETI section. RR thinks the var was already used, but it is not if redshift is not used
 REDSHIFT_MAYAEXTENSIONSPATH = <REDSHIFT_MAYAEXTENSIONSPATH>
@@ -285,17 +285,7 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
 [If] <rrJobRenderer>  [contains] redshift
     [If] <RR_REDSHIFT_NETWORK>  [==] 0
         [If] <RR_REDSHIFT_BASE>  [==] 
-            [If] <rrJobRendererVersionMajor> [<] 2026
-                [If] <rrExeOS>  [==] win
-                    RR_REDSHIFT_BASE  =  c:\ProgramData\Redshift
-                [Else]
-                    [If] <rrExeOS>  [==] mac
-                        RR_REDSHIFT_BASE  =  /Applications/redshift
-                    [Else]
-                        RR_REDSHIFT_BASE  =  /usr/redshift
-                    [EndIf]
-                [EndIf]
-            [Else]
+            [If] <rrJobRendererVersionMajor>  [==] 
                 [If] <rrExeOS>  [==] win
                     RR_REDSHIFT_BASE  =  C:\Program Files\Maxon Redshift <rrJobRendererVersionMajor>
                 [Else]
@@ -303,6 +293,28 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
                         RR_REDSHIFT_BASE  =  /Applications/Maxon Redshift <rrJobRendererVersionMajor>
                     [Else]
                         RR_REDSHIFT_BASE  =  /usr/Maxon Redshift <rrJobRendererVersionMajor> 
+                    [EndIf]
+                [EndIf]
+            [Else]
+                [If] <rrJobRendererVersionMajor> [<] 2026
+                    [If] <rrExeOS>  [==] win
+                        RR_REDSHIFT_BASE  =  c:\ProgramData\Redshift
+                    [Else]
+                        [If] <rrExeOS>  [==] mac
+                            RR_REDSHIFT_BASE  =  /Applications/redshift
+                        [Else]
+                            RR_REDSHIFT_BASE  =  /usr/redshift
+                        [EndIf]
+                    [EndIf]
+                [Else]
+                    [If] <rrExeOS>  [==] win
+                        RR_REDSHIFT_BASE  =  C:\Program Files\Maxon Redshift <rrJobRendererVersionMajor>
+                    [Else]
+                        [If] <rrExeOS>  [==] mac
+                            RR_REDSHIFT_BASE  =  /Applications/Maxon Redshift <rrJobRendererVersionMajor>
+                        [Else]
+                            RR_REDSHIFT_BASE  =  /usr/Maxon Redshift <rrJobRendererVersionMajor> 
+                        [EndIf]
                     [EndIf]
                 [EndIf]
             [EndIf]
@@ -392,12 +404,12 @@ RR_REDSHIFT_NETWORK= <RR_REDSHIFT_NETWORK>
     [EndIf]
 [EndIf]
 
-# ###################  PhoenixFD environment variables ###################
+echo -----------------------------------------  PhoenixFD environment variables -----------------------------------------
 PHX_FOR_MAYA<rrExeVersionMinReq>_MAIN  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd
 MAYA_PLUG_IN_PATH  =  <rrPlugins><rrExeVersionMinReq>\plug-ins\phoenixfd\plug-ins;<MAYA_PLUG_IN_PATH>
 
 
-# ###################  Yeti environment variables ###################
+echo -----------------------------------------  Yeti environment variables -----------------------------------------
 [If] <RR_YETI_NETWORK>  [==] 1
     [If] <RR_YETI_BASE>  [==] 
         RR_YETI_BASE  =  <rrPlugins><rrExeVersionMinReq>\yeti
@@ -438,7 +450,7 @@ YETI_TMP  =  <TEMP>
 
 
 
-# ###################  Golaem environment variables ###################
+echo -----------------------------------------  Golaem environment variables -----------------------------------------
 [If] <RR_GOLAEM_NETWORK>  [==] 1
     [If] <RR_GOLAEM_Base>  [==]
         RR_GOLAEM_BASE  =  <rrPlugins><rrExeVersionMinReq>\golaem
