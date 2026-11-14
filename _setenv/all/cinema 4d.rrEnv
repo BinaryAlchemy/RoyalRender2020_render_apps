@@ -118,8 +118,7 @@ g_additionalModulePath  =  <g_additionalModulePath>
             [copy] SyncCreate C:\ProgramData\Redshift\redshift-core.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core.lic
             [copy] SyncCreate C:\ProgramData\Redshift\redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>\redshift-core2.lic
 
-            PATH  =  <RR_REDSHIFT_BASE_LOCAL>\bin;<REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64;<REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64\qtplugins\platforms;<PATH>
-            LD_LIBRARY_PATH  =  <REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64;<REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64\qtplugins\platforms;<REDSHIFT_PLUG_IN_PATH>
+            PATH  =  <RR_REDSHIFT_BASE_LOCAL>\bin\CUDARuntimeFiles\CUDA-12-8;<RR_REDSHIFT_BASE_LOCAL>\bin;<REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64;<REDSHIFT_PLUG_IN_PATH>\Redshift\res\libs\win64\qtplugins\platforms;<PATH>
         [Else]
             [If] <rrExeOS>  [==] lx
                 [copy] SyncCreate /home/${USERNAME}/redshift/redshift-core2.lic   =>   <RR_REDSHIFT_BASE_LOCAL>/redshift-core2.lic
